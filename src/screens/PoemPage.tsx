@@ -3,7 +3,17 @@ import type { MessageKey } from '../i18n';
 import { useI18n } from '../i18n/context';
 import type { LessonKey } from '../i18n/lessons';
 import { recalled, normalize, typedWords } from '../learn/recall';
-import { linesOf, stanzasOf, stepAfter, type Step } from '../learn/session';
+import {
+  lineGrade,
+  lineUnit,
+  review,
+  stanzaGrade,
+  stanzaUnit,
+  type Card,
+  type Unit,
+  type Verdict,
+} from '../learn/schedule';
+import { firstStart, linesOf, nextStart, stanzasOf, startOf, type Start, type Step } from '../learn/session';
 import { canPeek, nextStage, previousStage, showsMarks, type Stage } from '../learn/stages';
 import { roman } from '../page/fit';
 import { MarkedLine } from '../page/MarkedLine';
@@ -62,6 +72,7 @@ const STEP_NOTE: Partial<Record<Step['kind'], [string, MessageKey]>> = {
   seam: ['note:seam', 'noteSeam'],
   chain: ['note:chain', 'noteChain'],
 };
+const RETURN_NOTE: [string, MessageKey] = ['note:return', 'noteReturn'];
 const LONG_PRESS_MS = 550;
 const PRESS_SLOP_PX = 10;
 
@@ -93,6 +104,11 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
 
   const [explainLongLines, setExplainLongLines] = useState(false);
   const [marks, setMarks] = useState<PoemMarks | null>(null);
+  const [cards, setCards] = useState<ReadonlyMap<Unit, Card> | null>(null);
+  /** Nothing shows until the session knows where to begin, so a review never flashes the words. */
+  const [started, setStarted] = useState(false);
+  /** Stanzas recited well enough in this session not to come back in it. */
+  const practised = useRef(new Set<number>());
   const [step, setStep] = useState<Step>({ kind: 'stanza', stanza: 0 });
   const [stage, setStage] = useState<Stage>('read');
   /** Words showing in pencil, as "line:offset" of the word, and every word peeked at in this step, which still counts once faded again. */
@@ -111,14 +127,6 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
   const [note, setNote] = useState<MessageKey | null>(null);
   const press = useRef<{ x: number; y: number; timer: number } | null>(null);
   const pressed = useRef(false);
-
-  useEffect(() => {
-    let live = true;
-    void store.marks.get(poem.id).then((stored) => live && setMarks(stored));
-    return () => {
-      live = false;
-    };
-  }, [store, poem.id]);
 
   const tokens = useMemo(() => {
     const byLine = new Map<number, Token[]>();
@@ -176,12 +184,6 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
     [seen],
   );
 
-  // The first stanza ever opened explains reading aloud.
-  useEffect(() => {
-    const [key, text] = STAGE_NOTE.read;
-    once(key, () => setNote(text));
-  }, [once]);
-
   // The line being marked settles when the reader moves on from it.
   const settleActive = () => {
     if (activeLine !== null) update((marks) => settle(marks, activeLine));
@@ -196,7 +198,7 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
 
   const pencil = stage === 'mark';
 
-  const go = (next: Stage) => {
+  const go = (next: Stage, quiet = false) => {
     settleActive();
     setDrawing(null);
     setNote(null);
@@ -205,36 +207,9 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
     setDone(false);
     setGranted(new Set());
     if (next === 'mark') pick('beats');
+    if (quiet) return;
     const [key, text] = STAGE_NOTE[next];
     once(key, () => setNote(text));
-  };
-
-  // A stanza starts from reading it; a seam or a chain goes straight to reciting.
-  const openStep = (next: Step) => {
-    setStep(next);
-    setPeeked(new Set());
-    setLooked(new Set());
-    go(next.kind === 'stanza' ? 'read' : 'check');
-    const stepNote = STEP_NOTE[next.kind];
-    if (stepNote) once(stepNote[0], () => setNote(stepNote[1]));
-  };
-
-  // How it went. Not yet: back to the fading. Otherwise on to what comes next, or back to the contents.
-  const rate = (again: boolean) => {
-    if (again) {
-      setPeeked(new Set());
-    setLooked(new Set());
-      go('fadeWords');
-      return;
-    }
-    const next = stepAfter(step, parsed.stanzas.length);
-    if (next) openStep(next);
-    else onBack();
-  };
-
-  const finish = () => {
-    setDone(true);
-    once(MISSED_NOTE[0], () => setNote(MISSED_NOTE[1]));
   };
 
   const inView = useMemo(() => new Set(linesOf(step, parsed)), [step, parsed]);
@@ -259,6 +234,82 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
     );
     return new Set([...granted, ...[...found].map((i) => words[i]!.key)]);
   }, [stage, words, typed, done, granted]);
+
+  const stanzaLines = useMemo(() => parsed.stanzas.map((s) => s.lines.map((l) => l.number)), [parsed]);
+
+  // A new stanza starts from reading it, a review from the marks, a seam or a chain from reciting.
+  const open = ({ step: next, stage: first }: Start) => {
+    setStep(next);
+    setPeeked(new Set());
+    setLooked(new Set());
+    const review = next.kind === 'stanza' && !!next.review;
+    go(first, review);
+    const stepNote = review ? RETURN_NOTE : STEP_NOTE[next.kind];
+    if (stepNote) once(stepNote[0], () => setNote(stepNote[1]));
+  };
+
+  useEffect(() => {
+    let live = true;
+    void Promise.all([store.marks.get(poem.id), store.schedule.cards(poem.id)]).then(([stored, scheduled]) => {
+      if (!live) return;
+      setMarks(stored);
+      setCards(scheduled);
+      // Begin with what is due, or else the next new stanza.
+      setStarted(true);
+      open(firstStart(stanzaLines, scheduled, new Date()));
+    });
+    return () => {
+      live = false;
+    };
+    // Only when the poem opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store, poem.id]);
+
+  /**
+   * Grades what was just recited. The stanza takes the reader's own verdict;
+   * each line takes the words that came back unseen, when the reader typed or
+   * said anything at all.
+   */
+  const grade = (verdict: Verdict, now: Date) => {
+    if (!cards) return cards;
+    const grades: [Unit, ReturnType<typeof lineGrade>][] = [];
+    if (step.kind === 'stanza') grades.push([stanzaUnit(step.stanza), stanzaGrade(verdict, looked.size > 0)]);
+    if (typedWords(typed, true).length > 0 || granted.size > 0) {
+      for (const line of inView) {
+        const keys = words.filter((w) => w.key.startsWith(`${line}:`)).map((w) => w.key);
+        if (keys.length === 0) continue;
+        const unseen = keys.filter((k) => recalledKeys.has(k) && !looked.has(k)).length;
+        grades.push([lineUnit(line), lineGrade(unseen, keys.length, keys.some((k) => looked.has(k)))]);
+      }
+    }
+    const graded = grades.map(([unit, g]) => ({ unit, card: review(cards.get(unit), g, now), grade: g }));
+    void store.schedule.save(poem.id, graded, now);
+    const next = new Map(cards);
+    for (const { unit, card } of graded) next.set(unit, card);
+    setCards(next);
+    return next;
+  };
+
+  // How it went. Not yet: back to the fading. Otherwise on to what comes next, or back to the contents.
+  const rate = (verdict: Verdict) => {
+    const now = new Date();
+    const graded = grade(verdict, now);
+    if (verdict === 'notYet') {
+      setPeeked(new Set());
+      setLooked(new Set());
+      go('fadeWords');
+      return;
+    }
+    if (step.kind === 'stanza') practised.current.add(step.stanza);
+    const next = graded && nextStart(step, stanzaLines, graded, now, practised.current);
+    if (next) open(next);
+    else onBack();
+  };
+
+  const finish = () => {
+    setDone(true);
+    once(MISSED_NOTE[0], () => setNote(MISSED_NOTE[1]));
+  };
 
   const back = () => {
     settleActive();
@@ -382,7 +433,7 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
     return range && { family, ...range };
   };
 
-  const ready = !!marks && !!syllabifier;
+  const ready = !!marks && !!syllabifier && started;
   const hasMarks = !!marks && (marks.beats.length > 0 || marks.echoes.length > 0 || marks.pauses.length > 0);
   const activeFamily = pencil && tool === 'echoes' ? family : undefined;
 
@@ -454,7 +505,7 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
             .join(' ')}
           renderLine={ready ? renderLine : undefined}
           aside={ready ? aside : undefined}
-          only={inView}
+          only={started ? inView : new Set()}
         />
       </div>
       {note && (
@@ -499,7 +550,7 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
                 className="action"
                 aria-label={`${m.stanza} ${i + 1}`}
                 aria-pressed={stanzasOf(step).includes(i)}
-                onClick={() => openStep({ kind: 'stanza', stanza: i })}
+                onClick={() => open(startOf({ kind: 'stanza', stanza: i, review: !!cards?.has(stanzaUnit(i)) }))}
               >
                 {roman(i + 1)}
               </button>
@@ -548,19 +599,19 @@ function StageActions({
   ready: boolean;
   onGo: (stage: Stage) => void;
   onDone: () => void;
-  onRate: (again: boolean) => void;
+  onRate: (verdict: Verdict) => void;
 }) {
   const { m } = useI18n();
   if (stage === 'check' && done) {
     return (
       <div className="stage-actions">
-        <button type="button" className="action soft" onClick={() => onRate(true)}>
+        <button type="button" className="action soft" onClick={() => onRate('notYet')}>
           {m.rateNotYet}
         </button>
-        <button type="button" className="action" onClick={() => onRate(false)}>
+        <button type="button" className="action" onClick={() => onRate('most')}>
           {m.rateMost}
         </button>
-        <button type="button" className="action" onClick={() => onRate(false)}>
+        <button type="button" className="action" onClick={() => onRate('all')}>
           {m.rateAll}
         </button>
       </div>

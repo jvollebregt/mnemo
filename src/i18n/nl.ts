@@ -29,6 +29,7 @@ export const nl: Messages = {
   noteMissed: 'Wat je miste staat in potlood. Een woord missen is nuttig: daar wordt het geheugen gebouwd. Had je er toch een, tik het dan aan.',
   noteSeam: 'De overgang tussen twee strofen is waar het opzeggen meestal hapert, dus die oefen je apart.',
   noteChain: 'Nu de strofen tot hier, achter elkaar.',
+  noteReturn: 'Probeer het voordat je kijkt. Juist het herinneren zorgt dat het blijft hangen.',
 
   toolBeats: 'klemtonen',
   toolEchoes: "echo's",

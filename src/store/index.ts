@@ -3,6 +3,7 @@ import type { Db } from './db';
 import { MarksStore } from './marks';
 import { migrate } from './migrations';
 import { Poems } from './poems';
+import { Schedule } from './schedule';
 import { SeenNotes } from './seen';
 import { Settings } from './settings';
 
@@ -11,10 +12,11 @@ export interface Store {
   seen: SeenNotes;
   marks: MarksStore;
   settings: Settings;
+  schedule: Schedule;
 }
 
 export function createStore(db: Db): Store {
-  return { poems: new Poems(db), seen: new SeenNotes(db), marks: new MarksStore(db), settings: new Settings(db) };
+  return { poems: new Poems(db), seen: new SeenNotes(db), marks: new MarksStore(db), settings: new Settings(db), schedule: new Schedule(db) };
 }
 
 const FILE = 'mnemo.sqlite';

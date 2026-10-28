@@ -32,6 +32,7 @@ export const en = {
   noteMissed: 'What you missed is in pencil. Missing a word is useful: that is where memory is built. If you did have one, tap it.',
   noteSeam: 'The join between two stanzas is where a recital usually breaks, so it gets its own practice.',
   noteChain: 'Now the stanzas so far, together.',
+  noteReturn: 'Try it before you look. Remembering is what makes it stick.',
 
   // The pencil
   toolBeats: 'beats',

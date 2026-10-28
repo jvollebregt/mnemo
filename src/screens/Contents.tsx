@@ -1,17 +1,30 @@
 import { LANGUAGE_NAMES, locales, type Locale } from '../i18n';
 import { useI18n } from '../i18n/context';
+import { poemState, type Card, type PoemState, type Unit } from '../learn/schedule';
+import { parsePoem } from '../poem/parse';
 import type { Poem } from '../store/poems';
+
+const PHRASE = { takingRoot: 'stateTakingRoot', fading: 'stateFading', byHeart: 'stateByHeart' } as const;
+
+/** How a poem stands today: taking root, fading (due), or by heart. */
+function stateOf(poem: Poem, cards: ReadonlyMap<Unit, Card> | undefined, now: Date): PoemState {
+  const stanzaLines = parsePoem(poem.text).stanzas.map((s) => s.lines.map((l) => l.number));
+  return poemState(stanzaLines, cards ?? new Map(), now);
+}
 
 interface Props {
   poems: readonly Poem[];
+  /** Each poem's schedule, by poem id. */
+  cards: ReadonlyMap<string, ReadonlyMap<Unit, Card>>;
   justAdded: boolean;
   onOpen: (poem: Poem) => void;
   onAdd: () => void;
   onLocale: (locale: Locale) => void;
 }
 
-export function Contents({ poems, justAdded, onOpen, onAdd, onLocale }: Props) {
+export function Contents({ poems, cards, justAdded, onOpen, onAdd, onLocale }: Props) {
   const { m, locale } = useI18n();
+  const now = new Date();
 
   return (
     <main className="page">
@@ -20,16 +33,18 @@ export function Contents({ poems, justAdded, onOpen, onAdd, onLocale }: Props) {
         <p className="empty">{m.contentsEmpty}</p>
       ) : (
         <ul className="entries">
-          {poems.map((poem) => (
-            <li key={poem.id}>
-              <button type="button" className="entry" onClick={() => onOpen(poem)}>
-                <span className="entry-title">{poem.title}</span>
-                <span className="entry-leader" aria-hidden="true" />
-                {/* Every poem is taking root until scheduling arrives in M5. */}
-                <span className="entry-state">{m.stateTakingRoot}</span>
-              </button>
-            </li>
-          ))}
+          {poems.map((poem) => {
+            const state = stateOf(poem, cards.get(poem.id), now);
+            return (
+              <li key={poem.id}>
+                <button type="button" className="entry" onClick={() => onOpen(poem)}>
+                  <span className="entry-title">{poem.title}</span>
+                  <span className="entry-leader" aria-hidden="true" />
+                  <span className={state === 'fading' ? 'entry-state fading' : 'entry-state'}>{m[PHRASE[state]]}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
       {justAdded && <p className="note">{m.addedNote}</p>}

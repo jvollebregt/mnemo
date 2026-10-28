@@ -1,5 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Rating, State } from 'ts-fsrs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { review, stanzaUnit } from '../learn/schedule';
 import { createStore, type Store } from '../store';
 import { StoreContext } from '../store/context';
 import { migrate } from '../store/migrations';
@@ -195,5 +197,25 @@ describe('the stages', () => {
     fireEvent.click(action('done'));
     fireEvent.click(action('most of it'));
     expect(onBack).toHaveBeenCalledOnce();
+
+    // Every stanza, and each line recited, now has its place in the schedule.
+    await waitFor(async () => {
+      const units = [...(await store.schedule.cards(poem.id)).keys()];
+      expect(units.filter((u) => u.startsWith('stanza'))).toEqual(['stanza:0', 'stanza:1']);
+    });
+  });
+
+  it('brings a due stanza back from its marks, before anything new', async () => {
+    const { store, poem } = await storeWithPoem();
+    const now = new Date();
+    const due = { ...review(undefined, Rating.Good, new Date(now.getTime() - 9 * 86_400_000)), state: State.Review, due: now };
+    await store.schedule.save(poem.id, [{ unit: stanzaUnit(1), card: due, grade: Rating.Good }], now);
+    await store.schedule.save(poem.id, [{ unit: stanzaUnit(0), card: { ...due, due: new Date(now.getTime() + 5 * 86_400_000) }, grade: Rating.Good }], now);
+    show(store, poem);
+
+    expect(await screen.findByText(/Try it before you look/)).toBeTruthy();
+    expect(document.querySelector('[data-line="1"]')).toBeNull();
+    expect(document.querySelector('[data-line="5"]')).toBeTruthy();
+    expect(action('fade the marks')).toBeTruthy();
   });
 });

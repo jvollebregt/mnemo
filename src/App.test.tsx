@@ -1,7 +1,9 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
+import { Rating, State } from 'ts-fsrs';
 import { App } from './App';
+import { review, stanzaUnit } from './learn/schedule';
 import { I18nContext, i18nFor } from './i18n/context';
 import type { Locale } from './i18n';
 import { createStore, type Store } from './store';
@@ -88,7 +90,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'When I Heard the Learn’d Astronomer' })).toBeTruthy();
     expect(screen.getByText('Walt Whitman')).toBeTruthy();
     // Five of the poet's lines, so the margin numbers the fifth.
-    expect(screen.getByText('5')).toBeTruthy();
+    expect(await screen.findByText('5')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'contents' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'contents' })).toBeTruthy());
@@ -153,5 +155,19 @@ describe('App', () => {
     renderApp(store, 'nl');
     expect(await screen.findByRole('button', { name: 'add a poem' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'English' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('says which poems are fading today', async () => {
+    const store = await freshStore();
+    const poem = await store.poems.add({ title: 'Hope', poet: '', language: 'en', text: 'a line\nanother' });
+    await store.poems.add({ title: 'New', poet: '', language: 'en', text: 'a line' });
+    const now = new Date();
+    const card = { ...review(undefined, Rating.Good, new Date(now.getTime() - 9 * 86_400_000)), state: State.Review, due: now };
+    await store.schedule.save(poem.id, [{ unit: stanzaUnit(0), card, grade: Rating.Good }], now);
+    renderApp(store);
+    const fading = await screen.findByText('fading');
+    expect(fading.closest('button')?.textContent).toContain('Hope');
+    expect(fading.className).toContain('fading');
+    expect(screen.getByText('taking root').closest('button')?.textContent).toContain('New');
   });
 });
