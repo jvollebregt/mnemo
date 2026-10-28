@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Secrets never go in the repo
+.env
+.env.*
+!.env.example
+
+# Capacitor native projects are added in M7
+ios/
+android/
+
+.DS_Store
+*.log

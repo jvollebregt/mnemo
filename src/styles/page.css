@@ -1,0 +1,97 @@
+/*
+ * The page. Paper, ink and one pencil. No cards, icons, shadows or gradients:
+ * see CLAUDE.md before adding anything here.
+ */
+:root {
+  --paper: #fcfbf7;
+  --ink: #1e1b17;
+  --pencil: #a8432f;
+  --grey: #6b6358;
+  --trace: #b9b1a3;
+
+  --serif: 'EB Garamond', Georgia, serif;
+  --measure: 34rem;
+  --gutter: 24px;
+  --touch: 44px;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 20px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* A text action: small capitals, no box. */
+.action {
+  appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 10px 2px;
+  min-height: var(--touch);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  font-variant-caps: all-small-caps;
+  cursor: pointer;
+}
+
+.action:focus-visible {
+  outline: 1px solid var(--pencil);
+  outline-offset: 2px;
+}
+
+.action:disabled {
+  color: var(--grey);
+  cursor: default;
+}
+
+.page {
+  min-height: 100dvh;
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: calc(20px + env(safe-area-inset-top)) var(--gutter)
+    calc(28px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+.running-head {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  font-variant-caps: all-small-caps;
+  color: var(--grey);
+  text-align: center;
+  padding: 12px 0;
+}
+
+.empty {
+  margin: 30vh 0 0;
+  font-style: italic;
+  color: var(--grey);
+  text-align: center;
+}
+
+.foot {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+}
