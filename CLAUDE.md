@@ -33,7 +33,7 @@ CI runs typecheck, lint, test and build on every PR. Keep them green.
 - Type is EB Garamond. Actions are lower-case words set in small capitals, with no boxes.
 - No cards, icons, emoji, badges, pills, gradients, shadows, progress rings, streaks or percentages. If a screen needs one of these to make sense, rethink the screen.
 - Mobile first: design at 390px wide, with 44px touch targets and safe-area insets. Larger screens just get more margin.
-- Sheets and popups close when you tap outside them. Don't add close buttons.
+- Sheets and popups close with *put it away* at their foot (a word, never a ×), a tap outside them, or a swipe down.
 
 ## Long lines
 

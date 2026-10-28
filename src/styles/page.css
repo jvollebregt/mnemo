@@ -391,7 +391,7 @@ body {
 
 /*
  * A sheet slides up from the bottom of the page for a lesson or an
- * explanation. It has no close button: a tap anywhere outside it puts it away.
+ * explanation. It is put away with the words at its foot, a tap outside it or a swipe down.
  */
 .sheet-backdrop {
   position: fixed;
@@ -412,7 +412,7 @@ body {
   overflow-y: auto;
   margin: 0 auto;
   max-width: var(--measure);
-  padding: 28px var(--gutter) calc(32px + env(safe-area-inset-bottom));
+  padding: 28px var(--gutter) 0;
   border-top: 1px solid var(--trace);
   background: var(--paper);
   animation: sheet-in 220ms ease-out;
@@ -670,12 +670,18 @@ body {
   color: var(--grey);
 }
 
-.sheet-more {
+/* The way out stays in view at the foot of the sheet, however long the lesson. */
+.sheet-foot {
+  position: sticky;
+  bottom: 0;
   display: flex;
   justify-content: center;
+  gap: 22px;
+  padding: 4px 0 calc(12px + env(safe-area-inset-bottom));
+  background: var(--paper);
 }
 
-.sheet-more .action {
+.sheet-foot .action {
   color: var(--grey);
 }
 
