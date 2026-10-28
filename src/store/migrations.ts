@@ -26,6 +26,11 @@ export const migrations: readonly Migration[] = [
       )`,
     ],
   },
+  {
+    // Margin notes are shown once each; this remembers which have been seen.
+    version: 2,
+    statements: [`CREATE TABLE seen_notes (key TEXT PRIMARY KEY, seen_at TEXT NOT NULL)`],
+  },
 ];
 
 export const latestVersion = migrations.reduce((v, m) => Math.max(v, m.version), 0);

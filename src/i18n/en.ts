@@ -39,7 +39,7 @@ export const en = {
   setPage: 'set the page',
   titlePlaceholder: 'title',
   poetPlaceholder: 'poet',
-  writtenIn: 'written in',
+  languageQuestion: 'Is this poem in English or Dutch?',
   brokenNoteOne:
     'One line looks broken by the page it came from: it is marked ⁀ in the margin. If the poet didn’t break it there, tap it to join it to the line above. The app never joins lines by itself.',
   brokenNoteMany:
@@ -51,5 +51,6 @@ export const en = {
   closeUp: 'close up the spaces',
   keepIt: 'keep it',
   addedNote: 'It is on the page now, and only on your phone. Open it whenever you have ten quiet minutes.',
+  turnPhoneNote: 'Some lines are longer than the page. Turn your phone sideways to see them whole.',
   openFailed: 'Your poems could not be opened. Close the app and open it again.',
 } as const;

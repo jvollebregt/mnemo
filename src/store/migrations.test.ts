@@ -51,6 +51,18 @@ describe('migrations', () => {
     expect(rows).toEqual([{ id: 'p1', title: 'Hope', text: '“Hope” is the thing with feathers -' }]);
   });
 
+  it('add the seen-notes record in version 2 without touching poems', async () => {
+    const db = await openSqlJs();
+    await migrate(db, 1);
+    await db.run(
+      `INSERT INTO poems (id, title, poet, language, text, created_at, updated_at)
+       VALUES ('p1', 'Hope', '', 'en', 'a line', '2026-10-28T12:00:00.000Z', '2026-10-28T12:00:00.000Z')`,
+    );
+    expect(await migrate(db, 2)).toBe(1);
+    expect(await db.all('SELECT id FROM poems')).toEqual([{ id: 'p1' }]);
+    expect(await db.all('SELECT key FROM seen_notes')).toEqual([]);
+  });
+
   it('survive saving and reopening the database file', async () => {
     const db = await openSqlJs();
     await migrate(db);

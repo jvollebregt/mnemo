@@ -117,13 +117,27 @@ describe('double spacing', () => {
 });
 
 describe('guessLanguage', () => {
-  it('recognises English and Dutch from common words', () => {
-    expect(guessLanguage('When I heard the learn’d astronomer, and the proofs', 'nl')).toBe('en');
-    expect(guessLanguage('Ik hoor een vogeltje fluiten in het verre woud', 'en')).toBe('nl');
+  it('is sure of English and Dutch when common words make it clear', () => {
+    expect(guessLanguage('When I heard the learn’d astronomer, and the proofs, the figures', 'nl')).toEqual({
+      language: 'en',
+      sure: true,
+    });
+    expect(guessLanguage('Ik hoor een vogeltje fluiten in het verre woud, en de wind', 'en')).toEqual({
+      language: 'nl',
+      sure: true,
+    });
   });
 
-  it('falls back when there is nothing to go on', () => {
-    expect(guessLanguage('Ozymandias', 'nl')).toBe('nl');
-    expect(guessLanguage('', 'en')).toBe('en');
+  it('leans but is unsure when there are only one or two clues', () => {
+    expect(guessLanguage('Look’d up in silence at the stars', 'nl')).toEqual({ language: 'en', sure: false });
+  });
+
+  it('falls back to the interface language, unsure, when there is nothing to go on', () => {
+    expect(guessLanguage('Ozymandias', 'nl')).toEqual({ language: 'nl', sure: false });
+    expect(guessLanguage('', 'en')).toEqual({ language: 'en', sure: false });
+  });
+
+  it('is unsure of a poem that mixes both', () => {
+    expect(guessLanguage('the de and en of van', 'en').sure).toBe(false);
   });
 });

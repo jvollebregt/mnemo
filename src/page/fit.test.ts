@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitSize, lineLabel } from './fit';
+import { fitSize, hasTurnovers, lineLabel } from './fit';
 
 describe('fitSize', () => {
   it('uses the largest size when every line fits', () => {
@@ -24,6 +24,15 @@ describe('fitSize', () => {
   it('copes with an empty poem or no measure yet', () => {
     expect(fitSize({ widths: [], referenceSize: 20, measure: 300 })).toBe(20);
     expect(fitSize({ widths: [100], referenceSize: 20, measure: 0 })).toBe(20);
+  });
+});
+
+describe('hasTurnovers', () => {
+  it('says whether a line still overflows at the chosen size', () => {
+    const fit = { widths: [200, 500], referenceSize: 20, measure: 330 };
+    expect(hasTurnovers(fit, 15)).toBe(true);
+    expect(hasTurnovers({ ...fit, measure: 400 }, 15)).toBe(false);
+    expect(hasTurnovers({ ...fit, measure: 0 }, 15)).toBe(false);
   });
 });
 

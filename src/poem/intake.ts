@@ -137,12 +137,24 @@ const COMMON: Record<PoemLanguage, readonly string[]> = {
   nl: ['de', 'het', 'een', 'en', 'van', 'ik', 'niet', 'zijn', 'wat', 'die', 'dat', 'mijn', 'je', 'met', 'naar', 'als'],
 };
 
-/** A guess from common words. Falls back to the interface language when the text gives no clue. */
-export function guessLanguage(text: string, fallback: PoemLanguage): PoemLanguage {
+export interface LanguageGuess {
+  language: PoemLanguage;
+  /** False when the text gives too few clues, so the reader should be asked. */
+  sure: boolean;
+}
+
+/**
+ * A guess from common words. The reader knows the poem's language, but the
+ * app needs it to split syllables and to listen to a recital, so it asks only
+ * when the words don't make it clear. Falls back to the interface language.
+ */
+export function guessLanguage(text: string, fallback: PoemLanguage): LanguageGuess {
   const words = text.toLowerCase().split(/[^\p{L}’']+/u);
   const score = (lang: PoemLanguage) => words.filter((w) => COMMON[lang].includes(w)).length;
   const en = score('en');
   const nl = score('nl');
-  if (en === nl) return fallback;
-  return nl > en ? 'nl' : 'en';
+  if (en === nl) return { language: fallback, sure: false };
+  const language = nl > en ? 'nl' : 'en';
+  const [best, other] = nl > en ? [nl, en] : [en, nl];
+  return { language, sure: best >= 3 && best >= 2 * other };
 }

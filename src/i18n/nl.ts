@@ -34,7 +34,7 @@ export const nl: Messages = {
   setPage: 'zet de bladzijde',
   titlePlaceholder: 'titel',
   poetPlaceholder: 'dichter',
-  writtenIn: 'geschreven in',
+  languageQuestion: 'Is dit gedicht in het Engels of in het Nederlands?',
   brokenNoteOne:
     'Eén regel lijkt gebroken door de pagina waar hij vandaan kwam: hij staat gemarkeerd met ⁀ in de marge. Brak de dichter hem daar niet af, tik hem dan aan om hem aan de regel erboven te plakken. De app plakt nooit zelf regels aan elkaar.',
   brokenNoteMany:
@@ -46,5 +46,6 @@ export const nl: Messages = {
   closeUp: 'haal de witregels weg',
   keepIt: 'bewaar het',
   addedNote: 'Het staat nu op de bladzijde, en alleen op je telefoon. Open het wanneer je tien rustige minuten hebt.',
+  turnPhoneNote: 'Sommige regels zijn langer dan de bladzijde. Draai je telefoon een kwartslag om ze heel te zien.',
   openFailed: 'Je gedichten konden niet worden geopend. Sluit de app en open hem opnieuw.',
 };

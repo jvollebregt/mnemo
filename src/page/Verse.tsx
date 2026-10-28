@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ParsedPoem } from '../poem/parse';
-import { DEFAULT_FIT, fitSize, lineLabel } from './fit';
+import { DEFAULT_FIT, fitSize, hasTurnovers, lineLabel } from './fit';
 
 const REFERENCE_SIZE = 20;
 
@@ -9,7 +9,7 @@ const REFERENCE_SIZE = 20;
  * the measure; a line that still doesn't fit turns over with a hanging indent
  * and is still one line, with one number.
  */
-export function Verse({ poem }: { poem: ParsedPoem }) {
+export function Verse({ poem, onTurnovers }: { poem: ParsedPoem; onTurnovers?: (any: boolean) => void }) {
   const measureRef = useRef<HTMLDivElement>(null);
   const columnRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<number>(DEFAULT_FIT.largest);
@@ -22,7 +22,10 @@ export function Verse({ poem }: { poem: ParsedPoem }) {
 
     const fit = () => {
       const widths = Array.from(measure.children, (el) => el.getBoundingClientRect().width);
-      setSize(fitSize({ widths, referenceSize: REFERENCE_SIZE, measure: column.clientWidth }));
+      const options = { widths, referenceSize: REFERENCE_SIZE, measure: column.clientWidth };
+      const size = fitSize(options);
+      setSize(size);
+      onTurnovers?.(hasTurnovers(options, size));
     };
     fit();
     // Measure again once the book face has loaded, and when the page changes width.
@@ -34,7 +37,7 @@ export function Verse({ poem }: { poem: ParsedPoem }) {
       live = false;
       observer?.disconnect();
     };
-  }, [lines]);
+  }, [lines, onTurnovers]);
 
   return (
     <div className="verse" style={{ fontSize: `${size}px` }}>

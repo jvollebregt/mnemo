@@ -2,13 +2,15 @@ import { Capacitor } from '@capacitor/core';
 import type { Db } from './db';
 import { migrate } from './migrations';
 import { Poems } from './poems';
+import { SeenNotes } from './seen';
 
 export interface Store {
   poems: Poems;
+  seen: SeenNotes;
 }
 
 export function createStore(db: Db): Store {
-  return { poems: new Poems(db) };
+  return { poems: new Poems(db), seen: new SeenNotes(db) };
 }
 
 const FILE = 'mnemo.sqlite';
