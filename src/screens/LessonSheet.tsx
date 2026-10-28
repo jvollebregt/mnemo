@@ -8,19 +8,23 @@ export function LessonSheet({ lesson, onOpen, onClose }: { lesson: LessonKey; on
   const shown = getLessons(locale)[lesson];
   return (
     <div lang={locale}>
-      <Sheet key={lesson} title={shown.title} onClose={onClose}>
+      <Sheet
+        key={lesson}
+        title={shown.title}
+        onClose={onClose}
+        actions={
+          shown.more && (
+            <button type="button" className="action" onClick={() => onOpen(shown.more!)}>
+              {m.moreAboutThis}
+            </button>
+          )
+        }
+      >
         {shown.paragraphs.map((p) => (
           <p key={p}>{p}</p>
         ))}
         <p className="try-it">{shown.tryIt}</p>
         {shown.draft && <p className="draft-note">{m.draftLesson}</p>}
-        {shown.more && (
-          <div className="sheet-more">
-            <button type="button" className="action" onClick={() => onOpen(shown.more!)}>
-              {m.moreAboutThis}
-            </button>
-          </div>
-        )}
       </Sheet>
     </div>
   );
