@@ -8,7 +8,7 @@ Mnemo will be a paid iOS and Android app with no accounts. Your poems, your mark
 
 ## Status
 
-Step 0: the foundation. There's an empty contents page, the poem parser, English and Dutch interface text, and CI. The milestones are listed in [`docs/SPEC.md`](docs/SPEC.md#7-claude-code-build-path).
+M1: you can add a poem by pasting it, check its title and poet, mend lines the source page broke, and read it set on the page. Poems are stored in SQLite on the device (in the browser build, in IndexedDB). The milestones are listed in [`docs/SPEC.md`](docs/SPEC.md#7-claude-code-build-path).
 
 ## Develop
 

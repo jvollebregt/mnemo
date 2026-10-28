@@ -1,0 +1,49 @@
+/**
+ * Choosing the type size for a poem.
+ *
+ * A poem is set once, at the largest size where most of its lines fit the
+ * measure. Lines that still don't fit turn over with a hanging indent, the way
+ * a printed book sets them, and stay one line. Text width grows in proportion
+ * to type size, so every line is measured once at a reference size.
+ */
+
+export interface FitOptions {
+  /** Width of each of the poet's lines, set at `referenceSize`. */
+  widths: readonly number[];
+  referenceSize: number;
+  /** Width available for a line, in the same units. */
+  measure: number;
+  /** Largest and smallest type sizes, in px. */
+  largest?: number;
+  smallest?: number;
+  /** Share of lines that must fit for a size to count as fitting "most lines". */
+  share?: number;
+  /** Size steps, in px. */
+  step?: number;
+}
+
+export const DEFAULT_FIT = { largest: 20, smallest: 15, share: 0.9, step: 0.5 } as const;
+
+export function fitSize({
+  widths,
+  referenceSize,
+  measure,
+  largest = DEFAULT_FIT.largest,
+  smallest = DEFAULT_FIT.smallest,
+  share = DEFAULT_FIT.share,
+  step = DEFAULT_FIT.step,
+}: FitOptions): number {
+  if (widths.length === 0 || measure <= 0) return largest;
+  const needed = Math.ceil(widths.length * share);
+  for (let size = largest; size >= smallest; size -= step) {
+    const scale = size / referenceSize;
+    const fitting = widths.filter((w) => w * scale <= measure).length;
+    if (fitting >= needed) return size;
+  }
+  return smallest;
+}
+
+/** The margin shows the number of every fifth line, counting only the poet's lines. */
+export function lineLabel(number: number): string {
+  return number % 5 === 0 ? String(number) : '';
+}
