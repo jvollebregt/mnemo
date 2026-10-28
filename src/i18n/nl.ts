@@ -25,7 +25,10 @@ export const nl: Messages = {
   noteFadeMarks: 'Nu gaan ook de tekens. Alleen de vorm van de regels blijft over.',
   noteBlank: 'Een lege bladzijde, zoals wanneer je het iemand voordraagt. Zeg het uit je hoofd en controleer dan.',
   notePeek: 'Spieken mag. Tik een vervaagd woord aan en het komt terug in potlood. De woorden waar je naar spiekt, zijn de woorden om op terug te komen.',
-  noteCheck: 'De woorden waar je naar spiekte staan in potlood. Een woord missen is nuttig: daar wordt het geheugen gebouwd.',
+  noteCheck: 'Typ het uit je hoofd. Elk woord komt in inkt terug zodra je het hebt.',
+  noteMissed: 'Wat je miste staat in potlood. Een woord missen is nuttig: daar wordt het geheugen gebouwd. Had je er toch een, tik het dan aan.',
+  noteSeam: 'De overgang tussen twee strofen is waar het opzeggen meestal hapert, dus die oefen je apart.',
+  noteChain: 'Nu de strofen tot hier, achter elkaar.',
 
   toolBeats: 'klemtonen',
   toolEchoes: "echo's",
@@ -52,6 +55,9 @@ export const nl: Messages = {
   rateNotYet: 'nog niet',
   rateMost: 'het meeste',
   rateAll: 'alles',
+  recite: 'opzeggen',
+  recitePlaceholder: 'typ het uit je hoofd',
+  reciteDone: 'klaar',
 
   back: 'terug',
   pastePlaceholder: 'Plak hier het gedicht, zoals het gedrukt staat.',

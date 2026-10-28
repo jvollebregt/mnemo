@@ -65,6 +65,21 @@ describe('fading', () => {
     const pieces = layoutLine(tokens, emptyMarks(), 2, undefined, { stage: 'blank', peeked: new Set([20]) });
     expect(looks(pieces).filter((l) => !l.endsWith(':gone') && !/^\s+:/.test(l))).toEqual(['soul:peek']);
   });
+
+  it('brings recalled words back in ink at the check, and the rest in pencil once done', () => {
+    const fade = { stage: 'check' as const, peeked: new Set<number>(), recalled: new Set([0, 20]) };
+    const visible = (l: string) => !l.endsWith(':gone') && !/^\s+:/.test(l);
+    expect(looks(layoutLine(tokens, emptyMarks(), 2, undefined, fade)).filter(visible)).toEqual(['That:ink', 'soul:ink']);
+    expect(looks(layoutLine(tokens, emptyMarks(), 2, undefined, { ...fade, done: true })).filter(visible)).toEqual([
+      'That:ink',
+      'perch:peek',
+      'es:peek',
+      'in:peek',
+      'the:peek',
+      'soul:ink',
+      '—:ink',
+    ]);
+  });
 });
 
 describe('finding the target of a tap', () => {

@@ -634,6 +634,29 @@ body {
   align-items: center;
 }
 
+/* At the check the reader writes on a ruled line at the foot; the words go back into the poem above. */
+.recite {
+  display: block;
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--trace);
+  border-radius: 0;
+  outline: none;
+  resize: none;
+  background: none;
+  color: var(--grey);
+  font: inherit;
+  font-size: 17px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.recite::placeholder {
+  color: var(--trace);
+}
+
 /* While marking, a pencil line sets the tools apart from the poem. */
 .stage-foot.pencil-foot {
   border-top: 1px solid var(--trace);

@@ -18,7 +18,7 @@ describe('the stages', () => {
   });
 
   it('let a faded word be peeked at, and only then', () => {
-    expect(STAGES.filter(canPeek)).toEqual(['fadeWords', 'marksOnly', 'fadeMarks', 'blank']);
+    expect(STAGES.filter(canPeek)).toEqual(['fadeWords', 'marksOnly', 'fadeMarks', 'blank', 'check']);
   });
 });
 
@@ -44,5 +44,13 @@ describe('lookOf', () => {
     expect(lookOf('blank', word(false, true))).toBe('peek');
     expect(lookOf('check', word(false, true))).toBe('peek');
     expect(lookOf('read', word(false, true))).toBe('ink');
+  });
+
+  it('starts the check blank, brings recalled words back in ink, and the rest in pencil once done', () => {
+    const recalled = { letter: true, recalled: true };
+    expect([recalled, word(), stop()].map((c) => lookOf('check', c))).toEqual(['ink', 'gone', 'gone']);
+    expect([recalled, word(), stop()].map((c) => lookOf('check', c, true))).toEqual(['ink', 'peek', 'ink']);
+    // A word peeked at stays in pencil, even when it was typed after.
+    expect(lookOf('check', { ...recalled, peeked: true }, true)).toBe('peek');
   });
 });

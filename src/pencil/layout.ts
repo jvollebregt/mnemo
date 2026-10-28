@@ -46,6 +46,9 @@ export interface Stroke {
 export interface Fade {
   stage: Stage;
   peeked: ReadonlySet<number>;
+  /** At the check: the words recalled so far (by offset), and whether the reader is done. */
+  recalled?: ReadonlySet<number>;
+  done?: boolean;
 }
 
 interface Context {
@@ -76,7 +79,17 @@ export function layoutLine(
       const echo = !letter ? undefined : preview ? stroke.family : echoAt(marks, line, at)?.family;
       // A space has no shape to trace: the gaps between the traces are what show the words.
       const seen = fade && !/\s/u.test(ch)
-        ? lookOf(fade.stage, { letter, first: at === firstLetter, peeked: !!word && fade.peeked.has(word.start), pause })
+        ? lookOf(
+            fade.stage,
+            {
+              letter,
+              first: at === firstLetter,
+              peeked: !!word && fade.peeked.has(word.start),
+              recalled: !!word && !!fade.recalled?.has(word.start),
+              pause,
+            },
+            fade.done,
+          )
         : 'ink';
       const look = seen === 'ink' ? undefined : seen;
       const last = runs[runs.length - 1];

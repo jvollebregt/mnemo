@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, typ
 import type { MessageKey } from '../i18n';
 import { useI18n } from '../i18n/context';
 import type { LessonKey } from '../i18n/lessons';
+import { recalled, normalize, typedWords } from '../learn/recall';
+import { linesOf, stanzasOf, stepAfter, type Step } from '../learn/session';
 import { canPeek, nextStage, previousStage, showsMarks, type Stage } from '../learn/stages';
 import { roman } from '../page/fit';
 import { MarkedLine } from '../page/MarkedLine';
@@ -55,6 +57,11 @@ const STAGE_NOTE: Record<Stage, [string, MessageKey]> = {
   check: ['note:check', 'noteCheck'],
 };
 const PEEK_NOTE: [string, MessageKey] = ['note:peek', 'notePeek'];
+const MISSED_NOTE: [string, MessageKey] = ['note:missed', 'noteMissed'];
+const STEP_NOTE: Partial<Record<Step['kind'], [string, MessageKey]>> = {
+  seam: ['note:seam', 'noteSeam'],
+  chain: ['note:chain', 'noteChain'],
+};
 const LONG_PRESS_MS = 550;
 const PRESS_SLOP_PX = 10;
 
@@ -86,10 +93,14 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
 
   const [explainLongLines, setExplainLongLines] = useState(false);
   const [marks, setMarks] = useState<PoemMarks | null>(null);
-  const [stanza, setStanza] = useState(0);
+  const [step, setStep] = useState<Step>({ kind: 'stanza', stanza: 0 });
   const [stage, setStage] = useState<Stage>('read');
-  /** Words peeked at in this stanza, as "line:offset" of the word. */
+  /** Words peeked at in this step, as "line:offset" of the word. */
   const [peeked, setPeeked] = useState<ReadonlySet<string>>(new Set());
+  /** At the check: what the reader typed, whether they are done, and the words they say they did have. */
+  const [typed, setTyped] = useState('');
+  const [done, setDone] = useState(false);
+  const [granted, setGranted] = useState<ReadonlySet<string>>(new Set());
   const [tool, setTool] = useState<Tool>('beats');
   const [family, setFamily] = useState<EchoFamily>(1);
   const [activeLine, setActiveLine] = useState<number | null>(null);
@@ -189,25 +200,62 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
     setDrawing(null);
     setNote(null);
     setStage(next);
+    setTyped('');
+    setDone(false);
+    setGranted(new Set());
     if (next === 'mark') pick('beats');
     const [key, text] = STAGE_NOTE[next];
     once(key, () => setNote(text));
   };
 
-  const openStanza = (index: number) => {
-    setStanza(index);
+  // A stanza starts from reading it; a seam or a chain goes straight to reciting.
+  const openStep = (next: Step) => {
+    setStep(next);
     setPeeked(new Set());
-    go('read');
+    go(next.kind === 'stanza' ? 'read' : 'check');
+    const stepNote = STEP_NOTE[next.kind];
+    if (stepNote) once(stepNote[0], () => setNote(stepNote[1]));
   };
 
-  // How it went. Not yet: back to the fading. Otherwise on to the next stanza, or back to the contents.
+  // How it went. Not yet: back to the fading. Otherwise on to what comes next, or back to the contents.
   const rate = (again: boolean) => {
     if (again) {
       setPeeked(new Set());
       go('fadeWords');
-    } else if (stanza + 1 < parsed.stanzas.length) openStanza(stanza + 1);
+      return;
+    }
+    const next = stepAfter(step, parsed.stanzas.length);
+    if (next) openStep(next);
     else onBack();
   };
+
+  const finish = () => {
+    setDone(true);
+    once(MISSED_NOTE[0], () => setNote(MISSED_NOTE[1]));
+  };
+
+  const inView = useMemo(() => new Set(linesOf(step, parsed)), [step, parsed]);
+
+  // The words of the lines in view, in order, to line up with what the reader types.
+  const words = useMemo(
+    () =>
+      lines
+        .filter((line) => inView.has(line.number))
+        .flatMap((line) =>
+          (tokens.get(line.number) ?? []).flatMap((t) =>
+            t.kind === 'word' ? [{ key: markKey(line.number, t.start), word: normalize(t.text) }] : [],
+          ),
+        ),
+    [lines, inView, tokens],
+  );
+  const recalledKeys = useMemo(() => {
+    if (stage !== 'check') return new Set<string>();
+    const found = recalled(
+      words.map((w) => w.word),
+      typedWords(typed, done),
+    );
+    return new Set([...granted, ...[...found].map((i) => words[i]!.key)]);
+  }, [stage, words, typed, done, granted]);
 
   const back = () => {
     settleActive();
@@ -224,6 +272,18 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
   const onTap = (e: MouseEvent) => {
     if (!marks) return;
     const at = hit(e.target);
+    if (at && stage === 'check' && done) {
+      // Once done, a tap on a word in pencil says the reader did have it, unless they peeked at it.
+      const word = tokenAt(tokens.get(at.line) ?? [], at.at);
+      const key = word?.kind === 'word' ? markKey(at.line, word.start) : undefined;
+      if (!key || peeked.has(key)) return;
+      setGranted((words) => {
+        const next = new Set(words);
+        if (!next.delete(key)) next.add(key);
+        return next;
+      });
+      return;
+    }
     if (at && canPeek(stage)) {
       // A tap on a faded word brings it back, in pencil.
       const word = tokenAt(tokens.get(at.line) ?? [], at.at);
@@ -319,13 +379,15 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
 
   // Whatever the reader marked shows while it should; at the other stages, none of it does.
   const shown = marks && showsMarks(stage) ? marks : emptyMarks();
-  const peekedOn = (line: number) =>
-    new Set([...peeked].filter((key) => key.startsWith(`${line}:`)).map((key) => Number(key.split(':')[1])));
+  const onLine = (keys: ReadonlySet<string>, line: number) =>
+    new Set([...keys].filter((key) => key.startsWith(`${line}:`)).map((key) => Number(key.split(':')[1])));
   const renderLine = (line: Line) => (
     <MarkedLine
       pieces={layoutLine(tokens.get(line.number) ?? [], shown, line.number, stroke(line.number), {
         stage,
-        peeked: peekedOn(line.number),
+        peeked: onLine(peeked, line.number),
+        recalled: onLine(recalledKeys, line.number),
+        done,
       })}
       activeFamily={activeFamily}
     />
@@ -382,7 +444,7 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
             .join(' ')}
           renderLine={ready ? renderLine : undefined}
           aside={ready ? aside : undefined}
-          stanzas={[stanza]}
+          only={inView}
         />
       </div>
       {note && (
@@ -401,7 +463,23 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
             onPutDown={() => go('read')}
           />
         )}
-        <StageActions stage={stage} ready={ready} onGo={go} onRate={rate} />
+        {stage === 'check' && !done && (
+          <textarea
+            className="recite"
+            lang={poem.language}
+            aria-label={m.recite}
+            placeholder={m.recitePlaceholder}
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            rows={3}
+            autoFocus
+            autoCapitalize="off"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
+          />
+        )}
+        <StageActions stage={stage} done={done} ready={ready} onGo={go} onDone={finish} onRate={rate} />
         {parsed.stanzas.length > 1 && (
           <div className="folio" role="group" aria-label={m.stanza}>
             {parsed.stanzas.map((_, i) => (
@@ -410,8 +488,8 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
                 key={i}
                 className="action"
                 aria-label={`${m.stanza} ${i + 1}`}
-                aria-pressed={i === stanza}
-                onClick={() => openStanza(i)}
+                aria-pressed={stanzasOf(step).includes(i)}
+                onClick={() => openStep({ kind: 'stanza', stanza: i })}
               >
                 {roman(i + 1)}
               </button>
@@ -449,17 +527,21 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
 /** The words at the foot of the page that move a stanza through the method. */
 function StageActions({
   stage,
+  done,
   ready,
   onGo,
+  onDone,
   onRate,
 }: {
   stage: Stage;
+  done: boolean;
   ready: boolean;
   onGo: (stage: Stage) => void;
+  onDone: () => void;
   onRate: (again: boolean) => void;
 }) {
   const { m } = useI18n();
-  if (stage === 'check') {
+  if (stage === 'check' && done) {
     return (
       <div className="stage-actions">
         <button type="button" className="action soft" onClick={() => onRate(true)}>
@@ -487,6 +569,11 @@ function StageActions({
       {next && (
         <button type="button" className="action" disabled={!ready} onClick={() => onGo(next)}>
           {m[STAGE_ACTION[next]]}
+        </button>
+      )}
+      {stage === 'check' && (
+        <button type="button" className="action" onClick={onDone}>
+          {m.reciteDone}
         </button>
       )}
     </div>
