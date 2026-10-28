@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Locale } from './i18n';
+import type { Card, Unit } from './learn/schedule';
 import { I18nContext, i18nFor, useI18n } from './i18n/context';
 import { AddPoem } from './screens/AddPoem';
 import { Contents } from './screens/Contents';
@@ -10,25 +11,35 @@ import type { NewPoem, Poem } from './store/poems';
 type View = { name: 'contents'; justAdded?: boolean } | { name: 'add' } | { name: 'poem'; poem: Poem };
 
 export function App() {
-  const { poems, settings } = useStore();
+  const { poems, schedule, settings } = useStore();
   const { locale: phoneLocale } = useI18n();
   const [view, setView] = useState<View>({ name: 'contents' });
   const [list, setList] = useState<Poem[] | null>(null);
+  const [cards, setCards] = useState<ReadonlyMap<string, ReadonlyMap<Unit, Card>>>(new Map());
   // The interface follows the phone's language until the reader picks one.
   const [chosen, setChosen] = useState<Locale | undefined>();
   const i18n = useMemo(() => i18nFor(chosen ?? phoneLocale), [chosen, phoneLocale]);
 
   useEffect(() => {
     let live = true;
-    void Promise.all([poems.list(), settings.locale()]).then(([all, locale]) => {
+    void Promise.all([poems.list(), schedule.all(), settings.locale()]).then(([all, scheduled, locale]) => {
       if (!live) return;
       setChosen(locale);
+      setCards(scheduled);
       setList(all);
     });
     return () => {
       live = false;
     };
-  }, [poems, settings]);
+  }, [poems, schedule, settings]);
+
+  // Back from a poem, the contents say how each one stands now.
+  const toContents = async () => {
+    const [all, scheduled] = await Promise.all([poems.list(), schedule.all()]);
+    setCards(scheduled);
+    setList(all);
+    setView({ name: 'contents' });
+  };
 
   const keep = async (poem: NewPoem) => {
     await poems.add(poem);
@@ -46,12 +57,13 @@ export function App() {
       case 'add':
         return <AddPoem onKeep={keep} onCancel={() => setView({ name: 'contents' })} />;
       case 'poem':
-        return <PoemPage poem={view.poem} onBack={() => setView({ name: 'contents' })} />;
+        return <PoemPage poem={view.poem} onBack={() => void toContents()} />;
       case 'contents':
         // Wait for the list rather than flashing the empty page.
         return list ? (
           <Contents
             poems={list}
+            cards={cards}
             justAdded={view.justAdded ?? false}
             onOpen={(poem) => setView({ name: 'poem', poem })}
             onAdd={() => setView({ name: 'add' })}

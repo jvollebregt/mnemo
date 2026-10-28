@@ -581,6 +581,14 @@ body {
   pointer-events: none;
 }
 
+/* A pause at the end of a line with no punctuation sits just after the last word. */
+.gap.end.pause::after {
+  position: static;
+  display: inline-block;
+  margin-left: 0.3em;
+  transform: none;
+}
+
 /* Rhyme letters, in the right-hand margin beside the end of the line. */
 .rhyme {
   position: absolute;
@@ -632,6 +640,38 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* At the check the reader writes on a ruled line at the foot; the words go back into the poem above. */
+.recite {
+  display: block;
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--trace);
+  border-radius: 0;
+  outline: none;
+  resize: none;
+  background: none;
+  color: var(--grey);
+  font: inherit;
+  font-size: 17px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.recite::placeholder,
+.recite.heard.empty {
+  color: var(--trace);
+}
+
+/* What was heard, written out on the same ruled line. */
+.recite.heard {
+  text-align: left;
+  min-height: calc(3 * 1.5em + 12px);
+  max-height: 30vh;
+  overflow-y: auto;
 }
 
 /* While marking, a pencil line sets the tools apart from the poem. */

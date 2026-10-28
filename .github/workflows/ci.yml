@@ -1,9 +1,16 @@
 name: CI
 
+# One run per pull request push; a newer push cancels the run before it.
+# Changes that only touch the docs don't need a check.
 on:
   pull_request:
-  push:
-    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

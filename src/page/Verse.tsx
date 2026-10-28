@@ -15,7 +15,7 @@ export function Verse({
   className,
   renderLine,
   aside,
-  stanzas,
+  only,
 }: {
   poem: ParsedPoem;
   onTurnovers?: (any: boolean) => void;
@@ -24,8 +24,8 @@ export function Verse({
   renderLine?: (line: Line) => ReactNode;
   /** Something for the right-hand margin, beside the end of the line. */
   aside?: (line: Line) => ReactNode;
-  /** Which stanzas to set, by index; all of them by default. The type size is always fitted to the whole poem. */
-  stanzas?: readonly number[];
+  /** Which lines to set, by number; all of them by default. The type size is always fitted to the whole poem. */
+  only?: ReadonlySet<number>;
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
   // Every line's text spans the whole verse column, so the column's width is the measure.
@@ -64,21 +64,24 @@ export function Verse({
           <span key={line.number}>{line.text}</span>
         ))}
       </div>
-      {poem.stanzas.map((stanza, index) => (stanzas && !stanzas.includes(index) ? null : (
-        <div className="stanza" key={stanza.lines[0]?.number}>
-          {stanza.lines.map((line) => (
-            <div className="line" key={line.number} data-line={line.number}>
-              <span className="line-number" aria-hidden="true">
-                {lineLabel(line.number)}
-              </span>
-              <div className="line-text">
-                {renderLine ? renderLine(line) : line.text}
+      {poem.stanzas.map((stanza) => {
+        const shown = only ? stanza.lines.filter((line) => only.has(line.number)) : stanza.lines;
+        return shown.length === 0 ? null : (
+          <div className="stanza" key={stanza.lines[0]?.number}>
+            {shown.map((line) => (
+              <div className="line" key={line.number} data-line={line.number}>
+                <span className="line-number" aria-hidden="true">
+                  {lineLabel(line.number)}
+                </span>
+                <div className="line-text">
+                  {renderLine ? renderLine(line) : line.text}
+                </div>
+                {aside?.(line)}
               </div>
-              {aside?.(line)}
-            </div>
-          ))}
-        </div>
-      )))}
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

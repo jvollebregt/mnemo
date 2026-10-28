@@ -47,6 +47,26 @@ export const migrations: readonly Migration[] = [
     version: 4,
     statements: [`CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`],
   },
+  {
+    // The schedule: one FSRS card per stanza and per line (see src/learn/schedule.ts),
+    // and every grade given, so the schedule can be tuned to the reader later.
+    version: 5,
+    statements: [
+      `CREATE TABLE cards (
+        poem_id TEXT NOT NULL REFERENCES poems (id) ON DELETE CASCADE,
+        unit TEXT NOT NULL,
+        data TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (poem_id, unit)
+      )`,
+      `CREATE TABLE reviews (
+        poem_id TEXT NOT NULL REFERENCES poems (id) ON DELETE CASCADE,
+        unit TEXT NOT NULL,
+        grade INTEGER NOT NULL,
+        reviewed_at TEXT NOT NULL
+      )`,
+    ],
+  },
 ];
 
 export const latestVersion = migrations.reduce((v, m) => Math.max(v, m.version), 0);

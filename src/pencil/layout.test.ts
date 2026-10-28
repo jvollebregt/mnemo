@@ -65,6 +65,21 @@ describe('fading', () => {
     const pieces = layoutLine(tokens, emptyMarks(), 2, undefined, { stage: 'blank', peeked: new Set([20]) });
     expect(looks(pieces).filter((l) => !l.endsWith(':gone') && !/^\s+:/.test(l))).toEqual(['soul:peek']);
   });
+
+  it('brings recalled words back in ink on the blank page, and the rest in pencil once done', () => {
+    const fade = { stage: 'blank' as const, peeked: new Set<number>(), recalled: new Set([0, 20]) };
+    const visible = (l: string) => !l.endsWith(':gone') && !/^\s+:/.test(l);
+    expect(looks(layoutLine(tokens, emptyMarks(), 2, undefined, fade)).filter(visible)).toEqual(['That:ink', 'soul:ink']);
+    expect(looks(layoutLine(tokens, emptyMarks(), 2, undefined, { ...fade, done: true })).filter(visible)).toEqual([
+      'That:ink',
+      'perch:peek',
+      'es:peek',
+      'in:peek',
+      'the:peek',
+      'soul:ink',
+      '—:ink',
+    ]);
+  });
 });
 
 describe('finding the target of a tap', () => {
@@ -73,10 +88,18 @@ describe('finding the target of a tap', () => {
     expect(syllableAt(tokens, 4)).toBeUndefined();
   });
 
+  it('sets a pause at the end of a line with no punctuation', () => {
+    const plain = tokenize('the soul', { language: 'en' });
+    const pieces = layoutLine(plain, togglePause(emptyMarks(), 1, 8), 1);
+    expect(pieces.at(-1)).toEqual({ kind: 'end', start: 8, pause: true, runs: [] });
+    expect(layoutLine(plain, emptyMarks(), 1).some((p) => p.kind === 'end')).toBe(false);
+  });
+
   it('puts a pause tapped on a word after it: on its punctuation, else between words', () => {
     expect(pauseAfter(tokens, 21)).toBe(25);
     expect(pauseAfter(tokens, 1)).toBe(4);
-    expect(pauseAfter(tokenize('the soul', { language: 'en' }), 5)).toBeUndefined();
+    // With no punctuation after the last word, the pause goes at the end of the line.
+    expect(pauseAfter(tokenize('the soul', { language: 'en' }), 5)).toBe(8);
   });
 
   it('trims a stroke to letters, whichever way it was drawn', () => {

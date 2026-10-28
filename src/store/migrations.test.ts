@@ -93,6 +93,23 @@ describe('migrations', () => {
     expect(await db.all('SELECT key FROM settings')).toEqual([]);
   });
 
+  it('add the schedule in version 5, keeping everything before it', async () => {
+    const db = await openSqlJs();
+    await migrate(db, 4);
+    await db.run(
+      `INSERT INTO poems (id, title, poet, language, text, created_at, updated_at)
+       VALUES ('p1', 'Hope', '', 'en', 'a line', '2026-10-28T12:00:00.000Z', '2026-10-28T12:00:00.000Z')`,
+    );
+    await db.run(`INSERT INTO marks (poem_id, data, updated_at) VALUES ('p1', '{"beats":["1:0"]}', '2026-10-28T12:00:00.000Z')`);
+    await db.run("INSERT INTO settings (key, value) VALUES ('locale', 'nl')");
+    expect(await migrate(db, 5)).toBe(4);
+    expect(await db.all('SELECT id FROM poems')).toEqual([{ id: 'p1' }]);
+    expect(await db.all('SELECT data FROM marks')).toEqual([{ data: '{"beats":["1:0"]}' }]);
+    expect(await db.all('SELECT value FROM settings')).toEqual([{ value: 'nl' }]);
+    expect(await db.all('SELECT unit FROM cards')).toEqual([]);
+    expect(await db.all('SELECT unit FROM reviews')).toEqual([]);
+  });
+
   it('survive saving and reopening the database file', async () => {
     const db = await openSqlJs();
     await migrate(db);

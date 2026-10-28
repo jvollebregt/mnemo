@@ -18,7 +18,6 @@ export const en = {
   stageMarksOnly: 'marks only',
   stageFadeMarks: 'fade the marks',
   stageBlank: 'blank page',
-  stageCheck: 'check',
   stanza: 'stanza',
 
   // Margin notes, each shown once, the first time its stage is reached
@@ -26,9 +25,14 @@ export const en = {
   noteFadeWords: 'The words fade; your marks stay. First letters and rhythm are enough to pull a line back.',
   noteMarksOnly: 'Only your marks now. Rebuild each line from its beats, its echoes and its pauses.',
   noteFadeMarks: 'Now the marks go too. Only the shape of the lines is left.',
-  noteBlank: 'A blank page, as when you recite to someone. Say it from memory, then check.',
   notePeek: 'Peeking is fine. Tap a faded word and it comes back in pencil. The words you peek at are the ones to come back to.',
-  noteCheck: 'The words you peeked at are in pencil. Missing a word is useful: that is where memory is built.',
+  noteBlank: 'A blank page, as when you recite to someone. Say it aloud from memory; each word comes back in ink as you get it.',
+  noteBlankTyping: 'A blank page, as when you recite to someone. Type it from memory; each word comes back in ink as you get it.',
+  noteNoEar: 'I can’t listen here just now, so type it instead. You can try speaking again any time.',
+  noteMissed: 'What you missed is in pencil. Missing a word is useful: that is where memory is built. If you did have one, tap it.',
+  noteSeam: 'The join between two stanzas is where a recital usually breaks, so it gets its own practice.',
+  noteChain: 'Now the stanzas so far, together.',
+  noteReturn: 'Try it before you look. Remembering is what makes it stick.',
 
   // The pencil
   toolBeats: 'beats',
@@ -57,6 +61,14 @@ export const en = {
   rateNotYet: 'not yet',
   rateMost: 'most of it',
   rateAll: 'all of it',
+  recite: 'recite',
+  recitePlaceholder: 'type it from memory',
+  reciteSay: 'say it',
+  reciteListening: 'listening…',
+  reciteSpeakPrompt: 'say it aloud from memory',
+  reciteByTyping: 'type instead',
+  reciteBySpeaking: 'speak instead',
+  reciteDone: 'done',
 
   // Adding a poem
   back: 'back',

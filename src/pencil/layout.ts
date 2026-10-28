@@ -27,7 +27,8 @@ export interface Run {
 }
 
 export interface Piece {
-  kind: Token['kind'] | 'syllable';
+  /** `end`: the end of a line with no punctuation, where a pause can still be heard. */
+  kind: Token['kind'] | 'syllable' | 'end';
   start: number;
   /** Above a syllable: a beat, or the light mark of a settled line. */
   mark?: 'beat' | 'light';
@@ -46,6 +47,9 @@ export interface Stroke {
 export interface Fade {
   stage: Stage;
   peeked: ReadonlySet<number>;
+  /** At the check: the words recalled so far (by offset), and whether the reader is done. */
+  recalled?: ReadonlySet<number>;
+  done?: boolean;
 }
 
 interface Context {
@@ -76,7 +80,17 @@ export function layoutLine(
       const echo = !letter ? undefined : preview ? stroke.family : echoAt(marks, line, at)?.family;
       // A space has no shape to trace: the gaps between the traces are what show the words.
       const seen = fade && !/\s/u.test(ch)
-        ? lookOf(fade.stage, { letter, first: at === firstLetter, peeked: !!word && fade.peeked.has(word.start), pause })
+        ? lookOf(
+            fade.stage,
+            {
+              letter,
+              first: at === firstLetter,
+              peeked: !!word && fade.peeked.has(word.start),
+              recalled: !!word && !!fade.recalled?.has(word.start),
+              pause,
+            },
+            fade.done,
+          )
         : 'ink';
       const look = seen === 'ink' ? undefined : seen;
       const last = runs[runs.length - 1];
@@ -86,6 +100,9 @@ export function layoutLine(
     }
     return runs;
   };
+
+  const end = lineEnd(tokens);
+  const endPause: Piece[] = marks.pauses.includes(markKey(line, end)) ? [{ kind: 'end', start: end, pause: true, runs: [] }] : [];
 
   return tokens.flatMap((token): Piece[] => {
     if (token.kind !== 'word') {
@@ -100,8 +117,11 @@ export function layoutLine(
       const mark = beat ? 'beat' : light ? 'light' : undefined;
       return { kind: 'syllable', start: s.start, ...(mark ? { mark } : {}), runs: runsOf(s.text, s.start, { word: token }) };
     });
-  });
+  }).concat(endPause);
 }
+
+/** The offset just after a line's last character. */
+const lineEnd = (tokens: readonly Token[]) => tokens.reduce((end, t) => Math.max(end, t.start + t.text.length), 0);
 
 /** The token holding the character at `at`. */
 export function tokenAt(tokens: readonly Token[], at: number): Token | undefined {
@@ -118,7 +138,7 @@ export function syllableAt(tokens: readonly Token[], at: number): number | undef
 /**
  * Where a pause goes when the reader taps a word rather than the narrow
  * space after it: on the punctuation that follows the word, or else on the
- * space before the next word. Nothing at the end of a line.
+ * space before the next word, or at the very end of the line.
  */
 export function pauseAfter(tokens: readonly Token[], at: number): number | undefined {
   const index = tokens.findIndex((t) => at >= t.start && at < t.start + t.text.length);
@@ -129,7 +149,7 @@ export function pauseAfter(tokens: readonly Token[], at: number): number | undef
   const between = nextWord < 0 ? next : next.slice(0, nextWord);
   const punct = between.find((t) => t.kind === 'punct');
   if (punct) return punct.start;
-  return nextWord < 0 ? undefined : between.find((t) => t.kind === 'space')?.start;
+  return nextWord < 0 ? lineEnd(tokens) : between.find((t) => t.kind === 'space')?.start;
 }
 
 /** A stroke from one letter to another, in either direction, trimmed to start and end on a letter. */
