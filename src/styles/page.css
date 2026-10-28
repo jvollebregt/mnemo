@@ -338,9 +338,10 @@ body {
   font-size: 21px;
 }
 
+/* 16px at least: on an iPhone a smaller field zooms the whole page in when tapped, and it stays zoomed. */
 .field.poet {
   margin-top: 6px;
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: 0.2em;
   font-variant-caps: all-small-caps;
   color: var(--grey);
