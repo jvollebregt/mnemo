@@ -47,6 +47,23 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'contents' })).toBeTruthy();
   });
 
+  it('lets a poem go after a second tap, and only that poem', async () => {
+    const store = await freshStore();
+    await store.poems.add({ title: 'Stone', poet: '', language: 'en', text: 'a stone' });
+    await store.poems.add({ title: 'Hope', poet: '', language: 'en', text: 'a line' });
+    renderApp(store);
+
+    fireEvent.click(await screen.findByRole('button', { name: /^Hope/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'remove this poem' }));
+    expect(await screen.findByRole('button', { name: 'yes, remove it' })).toBeTruthy();
+    expect((await store.poems.list()).length).toBe(2);
+    fireEvent.click(screen.getByRole('button', { name: 'yes, remove it' }));
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Hope/ })).toBeNull());
+    expect(screen.getByRole('button', { name: /^Stone/ })).toBeTruthy();
+    expect((await store.poems.list()).map((p) => p.title)).toEqual(['Stone']);
+  });
+
   it('adds a pasted poem, mending a broken line, and opens it', async () => {
     const store = await freshStore();
     renderApp(store);

@@ -173,7 +173,7 @@ body {
 .top {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  align-items: baseline;
   min-height: var(--touch);
 }
 
@@ -733,10 +733,12 @@ body {
   color: var(--grey);
 }
 
+/* A long poem's numerals turn over onto a second row rather than run off the page. */
 .folio {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 4px;
+  gap: 0 4px;
 }
 
 .folio .action {

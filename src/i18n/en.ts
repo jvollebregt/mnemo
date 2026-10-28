@@ -112,6 +112,8 @@ export const en = {
   recitalsNone: 'No recitals are kept.',
   clearRecordings: 'clear recordings',
   clearRecordingsSure: 'yes, clear them',
+  removePoem: 'remove this poem',
+  removePoemSure: 'yes, remove it',
   settingsYourPoems: 'your poems',
   exportPoems: 'export',
   importPoems: 'import',

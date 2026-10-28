@@ -13,7 +13,7 @@ import type { NewPoem, Poem } from './store/poems';
 type View = { name: 'contents'; justAdded?: boolean } | { name: 'add' } | { name: 'poem'; poem: Poem } | { name: 'settings' };
 
 export function App() {
-  const { poems, schedule, settings } = useStore();
+  const { poems, schedule, settings, recordings } = useStore();
   const { locale: phoneLocale } = useI18n();
   const [view, setView] = useState<View>({ name: 'contents' });
   const [list, setList] = useState<Poem[] | null>(null);
@@ -43,6 +43,12 @@ export function App() {
     setView({ name: 'contents' });
   };
 
+  const remove = async (poem: Poem) => {
+    await recordings.forget(poem.id);
+    await poems.remove(poem.id);
+    await toContents();
+  };
+
   const keep = async (poem: NewPoem) => {
     await poems.add(poem);
     setList(await poems.list());
@@ -69,7 +75,7 @@ export function App() {
           />
         );
       case 'poem':
-        return <PoemPage poem={view.poem} onBack={() => void toContents()} />;
+        return <PoemPage poem={view.poem} onBack={() => void toContents()} onRemove={() => void remove(view.poem)} />;
       case 'contents':
         // Wait for the list rather than flashing the empty page.
         return list ? (

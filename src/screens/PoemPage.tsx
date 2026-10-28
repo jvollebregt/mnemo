@@ -100,11 +100,14 @@ function hit(target: EventTarget | Element | null): { line: number; at: number }
 export function PoemPage({
   poem,
   onBack,
+  onRemove,
   ear = deviceEar,
   recorder = deviceRecorder,
 }: {
   poem: Poem;
   onBack: () => void;
+  /** Lets the poem go, with its marks and schedule, after a second tap to be sure. */
+  onRemove?: () => void;
   ear?: Ear;
   recorder?: Recorder;
 }) {
@@ -116,6 +119,7 @@ export function PoemPage({
   const syllabifier = useSyllabifier(poem.language);
 
   const [explainLongLines, setExplainLongLines] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [marks, setMarks] = useState<PoemMarks | null>(null);
   const [cards, setCards] = useState<ReadonlyMap<Unit, Card> | null>(null);
   /** Nothing shows until the session knows where to begin, so a review never flashes the words. */
@@ -653,6 +657,11 @@ export function PoemPage({
               </button>
             ))}
           </div>
+        )}
+        {onRemove && stage === 'read' && (
+          <button type="button" className="action quiet" onClick={() => (removing ? onRemove() : setRemoving(true))}>
+            {removing ? m.removePoemSure : m.removePoem}
+          </button>
         )}
       </div>
       {lesson && <LessonSheet lesson={lesson} onOpen={setLesson} onClose={() => setLesson(null)} />}

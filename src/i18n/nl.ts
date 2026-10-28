@@ -106,6 +106,8 @@ export const nl: Messages = {
   recitalsNone: 'Er zijn geen voordrachten bewaard.',
   clearRecordings: 'wis opnames',
   clearRecordingsSure: 'ja, wis ze',
+  removePoem: 'haal dit gedicht weg',
+  removePoemSure: 'ja, haal het weg',
   settingsYourPoems: 'je gedichten',
   exportPoems: 'exporteer',
   importPoems: 'importeer',

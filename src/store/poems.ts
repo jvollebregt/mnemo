@@ -67,6 +67,15 @@ export class Poems {
     return rows.map(fromRow);
   }
 
+  /** Removes a poem with its marks and schedule. A kept recital is the Recordings' to forget. */
+  async remove(id: string): Promise<void> {
+    await this.db.transaction(async () => {
+      for (const table of ['marks', 'cards', 'reviews', 'recordings'])
+        await this.db.run(`DELETE FROM ${table} WHERE poem_id = ?`, [id]);
+      await this.db.run('DELETE FROM poems WHERE id = ?', [id]);
+    });
+  }
+
   async get(id: string): Promise<Poem | undefined> {
     const [row] = await this.db.all<PoemRow>(`SELECT ${COLUMNS} FROM poems WHERE id = ?`, [id]);
     return row ? fromRow(row) : undefined;
