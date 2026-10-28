@@ -95,8 +95,9 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
   const [marks, setMarks] = useState<PoemMarks | null>(null);
   const [step, setStep] = useState<Step>({ kind: 'stanza', stanza: 0 });
   const [stage, setStage] = useState<Stage>('read');
-  /** Words peeked at in this step, as "line:offset" of the word. */
+  /** Words showing in pencil, as "line:offset" of the word, and every word peeked at in this step, which still counts once faded again. */
   const [peeked, setPeeked] = useState<ReadonlySet<string>>(new Set());
+  const [looked, setLooked] = useState<ReadonlySet<string>>(new Set());
   /** At the check: what the reader typed, whether they are done, and the words they say they did have. */
   const [typed, setTyped] = useState('');
   const [done, setDone] = useState(false);
@@ -212,6 +213,7 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
   const openStep = (next: Step) => {
     setStep(next);
     setPeeked(new Set());
+    setLooked(new Set());
     go(next.kind === 'stanza' ? 'read' : 'check');
     const stepNote = STEP_NOTE[next.kind];
     if (stepNote) once(stepNote[0], () => setNote(stepNote[1]));
@@ -221,6 +223,7 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
   const rate = (again: boolean) => {
     if (again) {
       setPeeked(new Set());
+    setLooked(new Set());
       go('fadeWords');
       return;
     }
@@ -276,7 +279,7 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
       // Once done, a tap on a word in pencil says the reader did have it, unless they peeked at it.
       const word = tokenAt(tokens.get(at.line) ?? [], at.at);
       const key = word?.kind === 'word' ? markKey(at.line, word.start) : undefined;
-      if (!key || peeked.has(key)) return;
+      if (!key || looked.has(key)) return;
       setGranted((words) => {
         const next = new Set(words);
         if (!next.delete(key)) next.add(key);
@@ -285,10 +288,16 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
       return;
     }
     if (at && canPeek(stage)) {
-      // A tap on a faded word brings it back, in pencil.
+      // A tap on a faded word brings it back, in pencil; a second tap fades it again. Either way it was looked at.
       const word = tokenAt(tokens.get(at.line) ?? [], at.at);
       if (word?.kind !== 'word') return;
-      setPeeked((words) => new Set(words).add(markKey(at.line, word.start)));
+      const key = markKey(at.line, word.start);
+      setPeeked((words) => {
+        const next = new Set(words);
+        if (!next.delete(key)) next.add(key);
+        return next;
+      });
+      setLooked((words) => new Set(words).add(key));
       once(PEEK_NOTE[0], () => setNote(PEEK_NOTE[1]));
       return;
     }
@@ -385,7 +394,8 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
     <MarkedLine
       pieces={layoutLine(tokens.get(line.number) ?? [], shown, line.number, stroke(line.number), {
         stage,
-        peeked: onLine(peeked, line.number),
+        // Once the recital is done, every word looked at shows in pencil.
+        peeked: onLine(done ? looked : peeked, line.number),
         recalled: onLine(recalledKeys, line.number),
         done,
       })}

@@ -79,7 +79,7 @@ From stanza two on, the stanzas so far are chained, with extra practice on the s
 
 ## Recite and recordings
 
-- Recitation is checked with on-device speech recognition, aligned word by word to the text. Misses show in pencil, and the user can tap a word to say "I did say that". Typing is a fallback.
+- Recitation is checked with on-device speech recognition, aligned word by word to the text. Misses show in pencil, and the user can tap a word to say "I did say that". Speaking is the default; typing always stays available as an option, so the app works fully for someone who can't or would rather not speak.
 - Audio is discarded after checking by default. Optionally, keep one latest recital per poem (compressed voice, about 150 KB a minute). Settings shows the space used, with *clear recordings*.
 
 ## Working here

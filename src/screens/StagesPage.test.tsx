@@ -113,8 +113,14 @@ describe('the stages', () => {
     expect(looks(2)).toEqual(['Thatperchesinthe:gone', 'soul:peek', '-:gone']);
     expect(await screen.findByText(/Peeking is fine/)).toBeTruthy();
 
+    // A second tap fades it again, but it still counts as looked at.
+    fireEvent.click(glyph(2, 22));
+    expect(looks(2)).toEqual(['Thatperchesinthesoul-:gone']);
+
     fireEvent.click(action('check'));
-    expect(looks(2)).toEqual(['Thatperchesinthe:gone', 'soul:peek', '-:gone']);
+    expect(looks(2)).toEqual(['Thatperchesinthesoul-:gone']);
+    fireEvent.click(action('done'));
+    expect(looks(2)).toEqual(['Thatperchesinthesoul:peek', '-:ink']);
     expect(await store.seen.has('note:peek')).toBe(true);
   });
 
