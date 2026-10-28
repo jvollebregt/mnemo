@@ -3,6 +3,7 @@ import { Rating, State } from 'ts-fsrs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { review, stanzaUnit } from '../learn/schedule';
 import type { Ear } from '../recite/ear';
+import type { Recorder } from '../recite/recorder';
 import { createStore, type Store } from '../store';
 import { StoreContext } from '../store/context';
 import { migrate } from '../store/migrations';
@@ -28,10 +29,10 @@ async function storeWithPoem() {
   return { store, poem };
 }
 
-const show = (store: Store, poem: Poem, onBack = () => {}, ear?: Ear) =>
+const show = (store: Store, poem: Poem, onBack = () => {}, ear?: Ear, recorder?: Recorder) =>
   render(
     <StoreContext.Provider value={store}>
-      <PoemPage poem={poem} onBack={onBack} ear={ear} />
+      <PoemPage poem={poem} onBack={onBack} ear={ear} recorder={recorder} />
     </StoreContext.Provider>,
   );
 
@@ -237,6 +238,46 @@ describe('the stages', () => {
     expect(document.querySelector('[data-line="5"]')).toBeTruthy();
     // It opens on the marks alone, so the way on is to fade them.
     expect(action('fade the marks')).toBeTruthy();
+  });
+
+  it('keeps the latest recital only when the reader asks, and offers to play it back', async () => {
+    const { store, poem } = await storeWithPoem();
+    const { ear, say } = fakeEar();
+    let takes = 0;
+    const recorder: Recorder = {
+      available: true,
+      start: async () => {
+        takes += 1;
+        return { stop: async () => ({ data: new Uint8Array([takes]), type: 'audio/webm' }) };
+      },
+    };
+    URL.createObjectURL = vi.fn(() => 'blob:recital');
+    URL.revokeObjectURL = vi.fn();
+    const recite = async () => {
+      for (const name of ['fade the words', 'marks only', 'fade the marks', 'blank page']) fireEvent.click(action(name));
+      fireEvent.click(action('say it'));
+      say('hope is the thing with feathers');
+      await act(async () => fireEvent.click(action('done')));
+    };
+    show(store, poem, () => {}, ear, recorder);
+    await ready();
+    fireEvent.click(action('mark what you hear'));
+    await screen.findByRole('dialog', { name: 'beats' });
+    fireEvent.click(action('put it away'));
+
+    // Off by default: nothing is recorded.
+    await recite();
+    expect(takes).toBe(0);
+    expect(screen.queryByRole('button', { name: 'play it back' })).toBeNull();
+
+    cleanup();
+    await store.settings.setKeepRecitals(true);
+    show(store, poem, () => {}, ear, recorder);
+    await ready();
+    fireEvent.click(action('mark what you hear'));
+    await recite();
+    expect(await screen.findByRole('button', { name: 'play it back' })).toBeTruthy();
+    expect(Array.from((await store.recordings.get(poem.id))!.data)).toEqual([1]);
   });
 
   it('listens to the recital by default, and lets the reader type instead', async () => {

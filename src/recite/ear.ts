@@ -1,8 +1,8 @@
 /**
  * Listening to a recital. The page only needs the words heard so far, as one
  * running text; it lines them up with the poem itself. In the browser this
- * is the Web Speech API. On the phone it will be the phone's own on-device
- * recognition, behind the same interface.
+ * is the Web Speech API. On the phone it is the phone's own on-device
+ * recognition (phoneEar.ts), behind the same interface.
  */
 import type { PoemLanguage } from '../poem/language';
 
@@ -22,7 +22,7 @@ export interface Ear {
 }
 
 /** The recogniser's language for a poem's language. */
-const SPEECH_LANGUAGE: Record<PoemLanguage, string> = { en: 'en-GB', nl: 'nl-NL' };
+export const SPEECH_LANGUAGE: Record<PoemLanguage, string> = { en: 'en-GB', nl: 'nl-NL' };
 
 /** Problems that mean listening can't work here, as opposed to a pause in speech. */
 const FATAL = new Set(['not-allowed', 'service-not-allowed', 'audio-capture', 'language-not-supported']);

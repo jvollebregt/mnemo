@@ -6,6 +6,7 @@ export const en = {
   contentsEmpty: 'Add a poem you want to know by heart.',
   interfaceLanguage: 'language of the app',
   addPoem: 'add a poem',
+  settings: 'settings',
 
   // How a poem is doing
   stateTakingRoot: 'taking root',
@@ -69,6 +70,7 @@ export const en = {
   reciteByTyping: 'type instead',
   reciteBySpeaking: 'speak instead',
   reciteDone: 'done',
+  playBack: 'play it back',
 
   // Adding a poem
   back: 'back',
@@ -96,5 +98,28 @@ export const en = {
     'Some lines in this poem are longer than the page is wide. Rather than break them where the poet didn’t, the page lets them turn over: the rest of the line carries on just below, indented, the way a printed book sets a long line.',
   longLines2: 'It is still one line. The margin counts it once, and when the words fade, it fades as one.',
   longLines3: 'Turn your phone sideways and the page grows wider, so most long lines fit whole. Turn it back whenever you like.',
+  // Settings
+  settingsReciting: 'reciting',
+  reciteAloud: 'aloud',
+  reciteTyped: 'by typing',
+  settingsRecitals: 'your recitals',
+  recitalsLetGo: 'let them go',
+  recitalsKeepLatest: 'keep the latest',
+  recitalsNote:
+    'Kept only on your phone: for each poem, your latest recital, so you can hear its rhythm again. A new one replaces the one before.',
+  recitalsUsed: 'Your recitals take {size}.',
+  recitalsUnavailable: 'Keeping recitals isn’t possible on this phone yet.',
+  recitalsNone: 'No recitals are kept.',
+  clearRecordings: 'clear recordings',
+  clearRecordingsSure: 'yes, clear them',
+  settingsYourPoems: 'your poems',
+  exportPoems: 'export',
+  importPoems: 'import',
+  exchangeNote:
+    'One file with your poems, your marks and how each one is coming along, to keep somewhere safe or take to a new phone. Recitals are not in it.',
+  importedNote: 'Poems read in from the file: {count}. A poem you already had now has the file’s marks and schedule.',
+  importNotMnemo: 'That file is not a Mnemo export, so nothing was read in.',
+  importNewer: 'That file comes from a newer version of Mnemo. Update the app first, then read it in.',
+  importDamaged: 'That file is damaged, so nothing was read in.',
   openFailed: 'Your poems could not be opened. Close the app and open it again.',
 } as const;

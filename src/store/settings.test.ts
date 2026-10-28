@@ -23,6 +23,17 @@ describe('Settings', () => {
     expect(await settings.reciteBy()).toBe('typing');
   });
 
+  it('keeps no recitals until the reader asks', async () => {
+    const db = await openSqlJs();
+    await migrate(db);
+    const settings = new Settings(db);
+    expect(await settings.keepRecitals()).toBe(false);
+    await settings.setKeepRecitals(true);
+    expect(await settings.keepRecitals()).toBe(true);
+    await settings.setKeepRecitals(false);
+    expect(await settings.keepRecitals()).toBe(false);
+  });
+
   it('ignores a language the app no longer has', async () => {
     const db = await openSqlJs();
     await migrate(db);

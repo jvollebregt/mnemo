@@ -1,0 +1,15 @@
+{
+  "name": "mnemo-ear",
+  "version": "0.1.0",
+  "private": true,
+  "description": "On-device speech recognition for Mnemo's recitals, and the optional recording of the latest one. Nothing is sent away.",
+  "license": "UNLICENSED",
+  "files": ["android/src/main/", "android/build.gradle", "ios/Sources", "Package.swift"],
+  "capacitor": {
+    "ios": { "src": "ios" },
+    "android": { "src": "android" }
+  },
+  "peerDependencies": {
+    "@capacitor/core": "^8.5.3"
+  }
+}

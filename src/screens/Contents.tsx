@@ -1,4 +1,3 @@
-import { LANGUAGE_NAMES, locales, type Locale } from '../i18n';
 import { useI18n } from '../i18n/context';
 import { poemState, type Card, type PoemState, type Unit } from '../learn/schedule';
 import { parsePoem } from '../poem/parse';
@@ -19,11 +18,11 @@ interface Props {
   justAdded: boolean;
   onOpen: (poem: Poem) => void;
   onAdd: () => void;
-  onLocale: (locale: Locale) => void;
+  onSettings: () => void;
 }
 
-export function Contents({ poems, cards, justAdded, onOpen, onAdd, onLocale }: Props) {
-  const { m, locale } = useI18n();
+export function Contents({ poems, cards, justAdded, onOpen, onAdd, onSettings }: Props) {
+  const { m } = useI18n();
   const now = new Date();
 
   return (
@@ -52,16 +51,9 @@ export function Contents({ poems, cards, justAdded, onOpen, onAdd, onLocale }: P
         <button type="button" className="action" onClick={onAdd}>
           {m.addPoem}
         </button>
-        <div className="interface-language" role="group" aria-label={m.interfaceLanguage}>
-          {locales.map((l, i) => (
-            <span key={l}>
-              {i > 0 && <span aria-hidden="true">·</span>}
-              <button type="button" className="action" aria-pressed={l === locale} lang={l} onClick={() => onLocale(l)}>
-                {LANGUAGE_NAMES[l]}
-              </button>
-            </span>
-          ))}
-        </div>
+        <button type="button" className="action quiet" onClick={onSettings}>
+          {m.settings}
+        </button>
       </div>
     </main>
   );

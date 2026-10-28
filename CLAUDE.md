@@ -19,7 +19,7 @@ CI runs typecheck, lint, test and build on every PR. Keep them green.
 
 ## Stack
 
-- React + TypeScript + Vite, packaged with Capacitor as a paid iOS/Android store app. Native projects are added in M7.
+- React + TypeScript + Vite, packaged with Capacitor as a paid iOS/Android store app. The native projects are in `ios/` and `android/`; after a web change run `npm run build && npx cap sync`. Listening and recording on the phone go through our own small plugin in `native/ear` (on-device recognition only).
 - No accounts, no server, no Supabase. Everything lives on the phone: SQLite for poems, marks and schedule, and audio in the app's own storage. Backup is the OS backup plus an export file.
 - Every change to stored data ships with a migration in `src/store/migrations.ts` and a test in `migrations.test.ts` that migrates real data from the version before. Migrations are only ever added, never edited.
 - Storage goes through the small `Db` interface (`src/store/db.ts`): the Capacitor SQLite plugin on the phone, sql.js in the browser build and in tests.

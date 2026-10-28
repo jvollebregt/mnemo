@@ -40,3 +40,12 @@ export async function writeFile(key: string, data: Uint8Array): Promise<void> {
     idb.close();
   }
 }
+
+export async function removeFile(key: string): Promise<void> {
+  const idb = await openIdb();
+  try {
+    await done(idb.transaction(STORE, 'readwrite').objectStore(STORE).delete(key));
+  } finally {
+    idb.close();
+  }
+}
