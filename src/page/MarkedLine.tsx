@@ -2,7 +2,7 @@ import type { EchoFamily } from '../pencil/marks';
 import type { Piece, Run } from '../pencil/layout';
 
 const pieceClass = (piece: Piece) => {
-  const kind = { syllable: 'syl', word: 'word', space: 'gap', punct: 'stop' }[piece.kind];
+  const kind = { syllable: 'syl', word: 'word', space: 'gap', punct: 'stop', end: 'gap end' }[piece.kind];
   return [kind, piece.mark, piece.pause && 'pause'].filter(Boolean).join(' ');
 };
 

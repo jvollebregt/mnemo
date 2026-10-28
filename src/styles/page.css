@@ -581,6 +581,14 @@ body {
   pointer-events: none;
 }
 
+/* A pause at the end of a line with no punctuation sits just after the last word. */
+.gap.end.pause::after {
+  position: static;
+  display: inline-block;
+  margin-left: 0.3em;
+  transform: none;
+}
+
 /* Rhyme letters, in the right-hand margin beside the end of the line. */
 .rhyme {
   position: absolute;
