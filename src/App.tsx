@@ -4,11 +4,13 @@ import type { Card, Unit } from './learn/schedule';
 import { I18nContext, i18nFor, useI18n } from './i18n/context';
 import { AddPoem } from './screens/AddPoem';
 import { Contents } from './screens/Contents';
+import { deviceEar, deviceRecorder } from './recite/device';
 import { PoemPage } from './screens/PoemPage';
+import { SettingsPage } from './screens/SettingsPage';
 import { useStore } from './store/context';
 import type { NewPoem, Poem } from './store/poems';
 
-type View = { name: 'contents'; justAdded?: boolean } | { name: 'add' } | { name: 'poem'; poem: Poem };
+type View = { name: 'contents'; justAdded?: boolean } | { name: 'add' } | { name: 'poem'; poem: Poem } | { name: 'settings' };
 
 export function App() {
   const { poems, schedule, settings } = useStore();
@@ -56,6 +58,16 @@ export function App() {
     switch (view.name) {
       case 'add':
         return <AddPoem onKeep={keep} onCancel={() => setView({ name: 'contents' })} />;
+      case 'settings':
+        return (
+          <SettingsPage
+            canSpeak={deviceEar.available}
+            canRecord={deviceRecorder.available}
+            onLocale={chooseLocale}
+            onBack={() => void toContents()}
+            onImported={() => void poems.list().then(setList)}
+          />
+        );
       case 'poem':
         return <PoemPage poem={view.poem} onBack={() => void toContents()} />;
       case 'contents':
@@ -67,7 +79,7 @@ export function App() {
             justAdded={view.justAdded ?? false}
             onOpen={(poem) => setView({ name: 'poem', poem })}
             onAdd={() => setView({ name: 'add' })}
-            onLocale={chooseLocale}
+            onSettings={() => setView({ name: 'settings' })}
           />
         ) : (
           <main className="page" />

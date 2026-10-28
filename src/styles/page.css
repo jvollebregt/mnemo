@@ -101,19 +101,61 @@ body {
   align-items: center;
 }
 
-/* The interface language: quiet, at the foot of the contents. */
-.interface-language {
+/* Settings: quiet, at the foot of the contents. */
+.action.quiet {
+  font-size: 13px;
+  color: var(--grey);
+}
+
+/* A few words to choose between, the chosen one in ink. */
+.choices {
   color: var(--trace);
 }
 
-.interface-language .action {
-  font-size: 13px;
+.choices .action {
   color: var(--grey);
   padding-inline: 6px;
 }
 
-.interface-language .action[aria-pressed='true'] {
+.choices .action:first-of-type {
+  padding-left: 0;
+}
+
+.choices .action[aria-pressed='true'],
+.choices .action:not([aria-pressed]) {
   color: var(--ink);
+}
+
+.settings-title {
+  margin: 28px 0 8px;
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.setting {
+  margin-top: 24px;
+}
+
+.setting h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  font-variant-caps: all-small-caps;
+  color: var(--grey);
+}
+
+.setting-note {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--grey);
+}
+
+.setting-note .action {
+  margin-left: 10px;
+  font-style: normal;
 }
 
 /* A margin note: the app's teaching voice, set in italics beside a pencil rule. */

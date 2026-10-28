@@ -27,6 +27,15 @@ export class Settings {
     await this.set('recite-by', way);
   }
 
+  /** Whether to keep the latest recital of each poem. Off until the reader turns it on. */
+  async keepRecitals(): Promise<boolean> {
+    return (await this.get('keep-recitals')) === 'yes';
+  }
+
+  async setKeepRecitals(keep: boolean): Promise<void> {
+    await this.set('keep-recitals', keep ? 'yes' : 'no');
+  }
+
   private async get(key: string): Promise<string | undefined> {
     const [row] = await this.db.all<{ value: string }>('SELECT value FROM settings WHERE key = ?', [key]);
     return row?.value;

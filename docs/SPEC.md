@@ -83,7 +83,7 @@ Rhyme is treated as part of *sound*, following Mary Oliver's handbooks: allitera
 5. **M4 Recite + chain:** typed recall first, then cumulative stanzas and seam practice.
 6. **M5 Schedule + contents page:** FSRS per line and stanza, and the *taking root / fading / by heart* contents page. A stanza that comes back opens where the schedule thinks the reader still is: *blank page* when it is likely still known, then *fade the marks*, *marks only* or *fade the words* the longer it has been left (Joos, 2026-10-28).
 7. **M6 Spoken recall:** speaking aloud becomes the default way to recite on the blank page. Typing always stays available as an option, so the app works fully for anyone who can't or would rather not speak (Joos, 2026-10-28).
-8. **M7 Store build:** Capacitor iOS and Android projects, OS backup plus export/import file, the quiet settings page (default mark kinds, space used by recordings, *clear recordings*), store listing.
+8. **M7 Store build:** Capacitor iOS and Android projects, OS backup plus export/import file, the quiet settings page (default mark kinds, space used by recordings, *clear recordings*), store listing. On the phone, speech is recognised on the device only (iPhones that support it, Android 12 and later); elsewhere the reader types. Keeping a recital works on iPhone first; on Android the recogniser holds the microphone, so that follows later.
 
 Each milestone is one PR. The prompt can be as short as: *"Read CLAUDE.md and docs/SPEC.md, plan M2, then build it with tests and open a PR."*
 

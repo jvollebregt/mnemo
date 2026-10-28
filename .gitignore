@@ -8,9 +8,6 @@ coverage/
 .env.*
 !.env.example
 
-# Capacitor native projects are added in M7
-ios/
-android/
 
 .DS_Store
 *.log

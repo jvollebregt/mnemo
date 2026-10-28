@@ -67,6 +67,20 @@ export const migrations: readonly Migration[] = [
       )`,
     ],
   },
+  {
+    // The reader's latest recital of each poem, kept only when they ask for it.
+    // The audio itself is a file in the app's own storage; this row says where.
+    version: 6,
+    statements: [
+      `CREATE TABLE recordings (
+        poem_id TEXT PRIMARY KEY REFERENCES poems (id) ON DELETE CASCADE,
+        file TEXT NOT NULL,
+        type TEXT NOT NULL,
+        bytes INTEGER NOT NULL,
+        recorded_at TEXT NOT NULL
+      )`,
+    ],
+  },
 ];
 
 export const latestVersion = migrations.reduce((v, m) => Math.max(v, m.version), 0);

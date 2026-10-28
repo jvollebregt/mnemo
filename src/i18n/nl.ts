@@ -5,6 +5,7 @@ export const nl: Messages = {
   contents: 'inhoud',
   contentsEmpty: 'Voeg een gedicht toe dat je uit je hoofd wilt kennen.',
   interfaceLanguage: 'taal van de app',
+  settings: 'instellingen',
   addPoem: 'voeg een gedicht toe',
 
   stateTakingRoot: 'schiet wortel',
@@ -63,6 +64,7 @@ export const nl: Messages = {
   reciteSpeakPrompt: 'zeg het hardop uit je hoofd',
   reciteByTyping: 'liever typen',
   reciteBySpeaking: 'liever hardop',
+  playBack: 'speel het af',
   reciteDone: 'klaar',
 
   back: 'terug',
@@ -90,5 +92,28 @@ export const nl: Messages = {
     'Sommige regels in dit gedicht zijn langer dan de bladzijde breed is. In plaats van ze af te breken waar de dichter dat niet deed, loopt de regel door: het vervolg staat er vlak onder, ingesprongen, zoals een gedrukt boek een lange regel zet.',
   longLines2: 'Het blijft één regel. De marge telt hem één keer, en als de woorden vervagen, vervaagt hij in zijn geheel.',
   longLines3: 'Draai je telefoon een kwartslag en de bladzijde wordt breder, zodat de meeste lange regels heel passen. Draai hem terug wanneer je wilt.',
+  // Instellingen
+  settingsReciting: 'opzeggen',
+  reciteAloud: 'hardop',
+  reciteTyped: 'door te typen',
+  settingsRecitals: 'je voordrachten',
+  recitalsLetGo: 'laat ze gaan',
+  recitalsKeepLatest: 'bewaar de laatste',
+  recitalsNote:
+    'Alleen op je telefoon bewaard: per gedicht je laatste voordracht, zodat je het ritme terug kunt horen. Een nieuwe vervangt de vorige.',
+  recitalsUsed: 'Je voordrachten nemen {size} in beslag.',
+  recitalsUnavailable: 'Voordrachten bewaren kan op deze telefoon nog niet.',
+  recitalsNone: 'Er zijn geen voordrachten bewaard.',
+  clearRecordings: 'wis opnames',
+  clearRecordingsSure: 'ja, wis ze',
+  settingsYourPoems: 'je gedichten',
+  exportPoems: 'exporteer',
+  importPoems: 'importeer',
+  exchangeNote:
+    'Eén bestand met je gedichten, je tekens en hoe het met elk gedicht gaat, om veilig te bewaren of mee te nemen naar een nieuwe telefoon. Voordrachten zitten er niet in.',
+  importedNote: 'Gedichten ingelezen uit het bestand: {count}. Een gedicht dat je al had, heeft nu de tekens en planning uit het bestand.',
+  importNotMnemo: 'Dat bestand is geen Mnemo-export, dus er is niets ingelezen.',
+  importNewer: 'Dat bestand komt uit een nieuwere versie van Mnemo. Werk de app eerst bij en lees het dan in.',
+  importDamaged: 'Dat bestand is beschadigd, dus er is niets ingelezen.',
   openFailed: 'Je gedichten konden niet worden geopend. Sluit de app en open hem opnieuw.',
 };
