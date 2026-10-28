@@ -49,7 +49,7 @@ export function hasTurnovers({ widths, referenceSize, measure }: Pick<FitOptions
   return widths.some((w) => (w * size) / referenceSize > measure);
 }
 
-/** The margin shows the number of every fifth line, counting only the poet's lines. */
+/** The proof of a new poem numbers every fifth line, counting only the poet's lines. */
 export function lineLabel(number: number): string {
   return number % 5 === 0 ? String(number) : '';
 }

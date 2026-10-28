@@ -106,8 +106,9 @@ describe('App', () => {
     fireEvent.click(entry);
     expect(screen.getByRole('heading', { name: 'When I Heard the Learn’d Astronomer' })).toBeTruthy();
     expect(screen.getByText('Walt Whitman')).toBeTruthy();
-    // Five of the poet's lines, so the margin numbers the fifth.
-    expect(await screen.findByText('5')).toBeTruthy();
+    // While learning, the reader goes by stanza: no line numbers in the margin.
+    await screen.findByRole('button', { name: 'mark what you hear' });
+    expect(screen.queryByText('5')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'contents' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'contents' })).toBeTruthy());

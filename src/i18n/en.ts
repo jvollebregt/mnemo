@@ -20,6 +20,7 @@ export const en = {
   stageFadeMarks: 'fade the marks',
   stageBlank: 'blank page',
   stanza: 'stanza',
+  nextStanza: 'next stanza',
 
   // Margin notes, each shown once, the first time its stage is reached
   noteRead: 'Read it aloud, slowly, twice. Hearing yourself say it is half the work.',

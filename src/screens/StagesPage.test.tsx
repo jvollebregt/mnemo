@@ -119,6 +119,32 @@ describe('the stages', () => {
     expect(looks(2)).toEqual(['Thatperchesinthesoul-:trace']);
   });
 
+  it('marks the whole poem stanza by stanza, then fades from the first', async () => {
+    const { store, poem } = await storeWithPoem();
+    show(store, poem);
+    await ready();
+    fireEvent.click(action('mark what you hear'));
+    await screen.findByRole('dialog', { name: 'beats' });
+    fireEvent.click(action('put it away'));
+    fireEvent.click(glyph(2, 6)); // per
+
+    fireEvent.click(action('next stanza'));
+    expect(document.querySelector('[data-line="2"]')).toBeNull();
+    expect(document.querySelector('[data-line="6"]')).toBeTruthy();
+    // Still the pencil, and the last stanza has nowhere further to go.
+    expect(action('beats')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'next stanza' })).toBeNull();
+    fireEvent.click(glyph(6, 4)); // sweet
+    expect(document.querySelectorAll('[data-line="6"] .syl.beat')).toHaveLength(1);
+
+    // Fading starts from the stanza being learned, with the marks made on the way.
+    fireEvent.click(action('fade the words'));
+    expect(document.querySelector('[data-line="6"]')).toBeNull();
+    expect(looks(2)[0]).toBe('T:ink');
+    expect(document.querySelectorAll('[data-line="2"] .syl.beat')).toHaveLength(1);
+    expect((await store.marks.get(poem.id)).settled).toEqual(expect.arrayContaining([2, 6]));
+  });
+
   it('brings a faded word back in pencil, and keeps it marked when the recital is done', async () => {
     const { store, poem } = await storeWithPoem();
     show(store, poem);

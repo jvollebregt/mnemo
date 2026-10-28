@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Line, ParsedPoem } from '../poem/parse';
-import { DEFAULT_FIT, fitSize, hasTurnovers, lineLabel } from './fit';
+import { DEFAULT_FIT, fitSize, hasTurnovers } from './fit';
 
 const REFERENCE_SIZE = 20;
 
@@ -70,9 +70,8 @@ export function Verse({
           <div className="stanza" key={stanza.lines[0]?.number}>
             {shown.map((line) => (
               <div className="line" key={line.number} data-line={line.number}>
-                <span className="line-number" aria-hidden="true">
-                  {lineLabel(line.number)}
-                </span>
+                {/* The margin stays, but while learning a poem the reader goes by stanza, not by line number. */}
+                <span className="line-number" aria-hidden="true" />
                 <div className="line-text">
                   {renderLine ? renderLine(line) : line.text}
                 </div>

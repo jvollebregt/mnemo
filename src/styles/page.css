@@ -774,11 +774,6 @@ body {
   -webkit-user-select: none;
 }
 
-/* A blank page is blank: not even the line numbers. */
-.verse.stage-blank .line-number {
-  visibility: hidden;
-}
-
 .tools,
 .minor {
   display: flex;

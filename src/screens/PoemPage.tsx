@@ -126,6 +126,8 @@ export function PoemPage({
   const [started, setStarted] = useState(false);
   /** Stanzas recited well enough in this session not to come back in it. */
   const practised = useRef(new Set<number>());
+  /** While the pencil moves on through the poem, the stanza that the fading comes back to. */
+  const markingFrom = useRef<Step | null>(null);
   const [step, setStep] = useState<Step>({ kind: 'stanza', stanza: 0 });
   const [stage, setStage] = useState<Stage>('read');
   /** Words showing in pencil, as "line:offset" of the word, and every word peeked at in this step, which still counts once faded again. */
@@ -296,6 +298,25 @@ export function PoemPage({
     once(key, () => setNote(text));
   };
 
+  /** The pencil moves on to the next stanza, so the whole poem can be marked before any of it fades. */
+  const markNextStanza = () => {
+    if (step.kind !== 'stanza') return;
+    markingFrom.current ??= step;
+    settleActive();
+    setDrawing(null);
+    setNote(null);
+    setStep({ kind: 'stanza', stanza: step.stanza + 1 });
+  };
+
+  /** Leaving the pencil goes back to the stanza being learned, wherever the marking got to. */
+  const goOn = (next: Stage) => {
+    if (markingFrom.current) {
+      setStep(markingFrom.current);
+      markingFrom.current = null;
+    }
+    go(next);
+  };
+
   const inView = useMemo(() => new Set(linesOf(step, parsed)), [step, parsed]);
 
   // The words of the lines in view, in order, to line up with what the reader types.
@@ -323,6 +344,7 @@ export function PoemPage({
 
   // A new stanza starts from reading it, a review from the marks, a seam or a chain from reciting.
   const open = ({ step: next, stage: first }: Start) => {
+    markingFrom.current = null;
     setStep(next);
     setPeeked(new Set());
     setLooked(new Set());
@@ -613,7 +635,7 @@ export function PoemPage({
             onTool={pick}
             onFamily={setFamily}
             onAbout={() => setLesson(tool)}
-            onPutDown={() => go('read')}
+            onPutDown={() => goOn('read')}
           />
         )}
         {stage === 'blank' && !done && (
@@ -635,7 +657,15 @@ export function PoemPage({
             </button>
           </div>
         )}
-        <StageActions stage={stage} done={done} ready={ready} onGo={go} onDone={finish} onRate={rate} />
+        <StageActions
+          stage={stage}
+          done={done}
+          ready={ready}
+          onGo={goOn}
+          onDone={finish}
+          onRate={rate}
+          onNextStanza={pencil && step.kind === 'stanza' && step.stanza + 1 < parsed.stanzas.length ? markNextStanza : undefined}
+        />
         {parsed.stanzas.length > 1 && (
           <div className="folio" role="group" aria-label={m.stanza}>
             {parsed.stanzas.map((_, i) => (
@@ -699,6 +729,7 @@ function StageActions({
   onGo,
   onDone,
   onRate,
+  onNextStanza,
 }: {
   stage: Stage;
   done: boolean;
@@ -706,6 +737,8 @@ function StageActions({
   onGo: (stage: Stage) => void;
   onDone: () => void;
   onRate: (verdict: Verdict) => void;
+  /** While marking, the pencil can move on before anything fades. */
+  onNextStanza?: () => void;
 }) {
   const { m } = useI18n();
   if (stage === 'blank' && done) {
@@ -731,6 +764,11 @@ function StageActions({
       {back && stage !== 'mark' && (
         <button type="button" className="action soft" onClick={() => onGo(back)}>
           {m.back}
+        </button>
+      )}
+      {onNextStanza && (
+        <button type="button" className="action" onClick={onNextStanza}>
+          {m.nextStanza}
         </button>
       )}
       {next && (
