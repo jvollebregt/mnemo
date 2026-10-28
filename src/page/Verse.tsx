@@ -1,5 +1,5 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { ParsedPoem } from '../poem/parse';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { Line, ParsedPoem } from '../poem/parse';
 import { DEFAULT_FIT, fitSize, hasTurnovers, lineLabel } from './fit';
 
 const REFERENCE_SIZE = 20;
@@ -9,7 +9,21 @@ const REFERENCE_SIZE = 20;
  * the measure; a line that still doesn't fit turns over with a hanging indent
  * and is still one line, with one number.
  */
-export function Verse({ poem, onTurnovers }: { poem: ParsedPoem; onTurnovers?: (any: boolean) => void }) {
+export function Verse({
+  poem,
+  onTurnovers,
+  className,
+  renderLine,
+  aside,
+}: {
+  poem: ParsedPoem;
+  onTurnovers?: (any: boolean) => void;
+  className?: string;
+  /** Sets a line's text with marks; the plain text by default. It must keep every character of the line. */
+  renderLine?: (line: Line) => ReactNode;
+  /** Something for the right-hand margin, beside the end of the line. */
+  aside?: (line: Line) => ReactNode;
+}) {
   const measureRef = useRef<HTMLDivElement>(null);
   const columnRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<number>(DEFAULT_FIT.largest);
@@ -40,7 +54,7 @@ export function Verse({ poem, onTurnovers }: { poem: ParsedPoem; onTurnovers?: (
   }, [lines, onTurnovers]);
 
   return (
-    <div className="verse" style={{ fontSize: `${size}px` }}>
+    <div className={className ? `verse ${className}` : 'verse'} style={{ fontSize: `${size}px` }}>
       <div ref={measureRef} className="verse-measure" aria-hidden="true">
         {lines.map((line) => (
           <span key={line.number}>{line.text}</span>
@@ -49,13 +63,14 @@ export function Verse({ poem, onTurnovers }: { poem: ParsedPoem; onTurnovers?: (
       {poem.stanzas.map((stanza) => (
         <div className="stanza" key={stanza.lines[0]?.number}>
           {stanza.lines.map((line) => (
-            <div className="line" key={line.number}>
+            <div className="line" key={line.number} data-line={line.number}>
               <span className="line-number" aria-hidden="true">
                 {lineLabel(line.number)}
               </span>
               <div className="line-text" ref={line.number === 1 ? columnRef : undefined}>
-                {line.text}
+                {renderLine ? renderLine(line) : line.text}
               </div>
+              {aside?.(line)}
             </div>
           ))}
         </div>

@@ -1,0 +1,113 @@
+/**
+ * How a marked line is set on the page: the line's tokens cut into pieces
+ * (syllables, spaces, punctuation), each carrying the reader's marks, down to
+ * the single letters an echo underlines. The page renders this as it is.
+ */
+import { echoAt, markKey, type EchoFamily, type PoemMarks } from './marks';
+import type { Token } from './tokens';
+
+const LETTER = /[\p{L}\p{M}]/u;
+export const isLetter = (ch: string) => LETTER.test(ch);
+
+export interface Glyph {
+  /** Offset in the line. */
+  at: number;
+  ch: string;
+}
+
+/** Neighbouring letters set alike: underlined in one family's style, or not at all. */
+export interface Run {
+  echo?: EchoFamily;
+  /** Part of the stroke the reader is drawing right now. */
+  preview?: boolean;
+  glyphs: Glyph[];
+}
+
+export interface Piece {
+  kind: Token['kind'] | 'syllable';
+  start: number;
+  /** Above a syllable: a beat, or the light mark of a settled line. */
+  mark?: 'beat' | 'light';
+  /** On punctuation or a space: the reader hears a pause here. */
+  pause?: boolean;
+  runs: Run[];
+}
+
+export interface Stroke {
+  family: EchoFamily;
+  start: number;
+  end: number;
+}
+
+export function layoutLine(tokens: readonly Token[], marks: PoemMarks, line: number, stroke?: Stroke): Piece[] {
+  const syllableStarts = tokens.flatMap((t) => (t.kind === 'word' ? t.syllables.map((s) => s.start) : []));
+  const hasBeat = syllableStarts.some((at) => marks.beats.includes(markKey(line, at)));
+  // A settled line shows a light mark on every unmarked syllable, once it has a beat to count from.
+  const light = hasBeat && marks.settled.includes(line);
+
+  const runsOf = (text: string, start: number): Run[] => {
+    const runs: Run[] = [];
+    let at = start;
+    for (const ch of text) {
+      const letter = isLetter(ch);
+      const preview = letter && !!stroke && at >= stroke.start && at < stroke.end;
+      const echo = !letter ? undefined : preview ? stroke.family : echoAt(marks, line, at)?.family;
+      const last = runs[runs.length - 1];
+      if (last && last.echo === echo && !!last.preview === preview) last.glyphs.push({ at, ch });
+      else runs.push({ ...(echo ? { echo } : {}), ...(preview ? { preview } : {}), glyphs: [{ at, ch }] });
+      at += ch.length;
+    }
+    return runs;
+  };
+
+  return tokens.flatMap((token): Piece[] => {
+    if (token.kind !== 'word') {
+      const pause = marks.pauses.includes(markKey(line, token.start));
+      return [{ kind: token.kind, start: token.start, ...(pause ? { pause } : {}), runs: runsOf(token.text, token.start) }];
+    }
+    if (token.syllables.length === 0) return [{ kind: 'word', start: token.start, runs: runsOf(token.text, token.start) }];
+    return token.syllables.map((s) => {
+      const beat = marks.beats.includes(markKey(line, s.start));
+      const mark = beat ? 'beat' : light ? 'light' : undefined;
+      return { kind: 'syllable', start: s.start, ...(mark ? { mark } : {}), runs: runsOf(s.text, s.start) };
+    });
+  });
+}
+
+/** The token holding the character at `at`. */
+export function tokenAt(tokens: readonly Token[], at: number): Token | undefined {
+  return tokens.find((t) => at >= t.start && at < t.start + t.text.length);
+}
+
+/** The syllable holding the character at `at`, as the offset of its first letter. */
+export function syllableAt(tokens: readonly Token[], at: number): number | undefined {
+  const token = tokenAt(tokens, at);
+  if (token?.kind !== 'word') return undefined;
+  return [...token.syllables].reverse().find((s) => s.start <= at)?.start;
+}
+
+/**
+ * Where a pause goes when the reader taps a word rather than the narrow
+ * space after it: on the punctuation that follows the word, or else on the
+ * space before the next word. Nothing at the end of a line.
+ */
+export function pauseAfter(tokens: readonly Token[], at: number): number | undefined {
+  const index = tokens.findIndex((t) => at >= t.start && at < t.start + t.text.length);
+  if (index < 0) return undefined;
+  if (tokens[index]?.kind !== 'word') return tokens[index]?.start;
+  const next = tokens.slice(index + 1);
+  const nextWord = next.findIndex((t) => t.kind === 'word');
+  const between = nextWord < 0 ? next : next.slice(0, nextWord);
+  const punct = between.find((t) => t.kind === 'punct');
+  if (punct) return punct.start;
+  return nextWord < 0 ? undefined : between.find((t) => t.kind === 'space')?.start;
+}
+
+/** A stroke from one letter to another, in either direction, trimmed to start and end on a letter. */
+export function strokeRange(text: string, from: number, to: number): { start: number; end: number } | undefined {
+  let start = Math.min(from, to);
+  let end = Math.max(from, to) + 1;
+  while (start < end && !isLetter(text[start] ?? '')) start += 1;
+  while (end > start && !isLetter(text[end - 1] ?? '')) end -= 1;
+  return end > start ? { start, end } : undefined;
+}

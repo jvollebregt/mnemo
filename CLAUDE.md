@@ -67,7 +67,7 @@ From stanza two on, the stanzas so far are chained, with extra practice on the s
 - The first time a tool is picked, a short lesson opens in a bottom sheet. It closes on a tap outside and ends with an optional *more about this* (feet, meter by name).
 - Margin notes are shown once each, at the moment they're needed, and a "seen" record is kept.
 - Core lessons avoid jargon: describe shapes as DUM-da and da-DUM, not "trochee" and "iamb". Names belong in *more about this*.
-- Lessons draw on Mary Oliver's *A Poetry Handbook* and *Rules for the Dance*, but those are in copyright. Write in our own words, with short attributed quotes at most. Joos co-writes and approves the lesson texts, so don't invent final lesson copy in code; use the drafts and mark them as drafts.
+- Lessons draw on Mary Oliver's *A Poetry Handbook* and *Rules for the Dance*, but those are in copyright. Write in our own words, with short attributed quotes at most. Joos co-writes and approves the lesson texts, so don't invent final lesson copy in code; use the drafts and mark them as drafts. Lesson texts live in `src/i18n/lessons/` (`draft: true` until Joos approves them).
 
 ## Words in the interface
 

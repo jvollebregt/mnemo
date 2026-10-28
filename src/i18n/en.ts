@@ -25,6 +25,22 @@ export const en = {
   toolPauses: 'pauses',
   putDown: 'put down',
   moreAboutThis: 'more about this',
+  pencil: 'pencil',
+  aboutBeats: 'about beats',
+  aboutEchoes: 'about echoes',
+  aboutPauses: 'about pauses',
+  underlines: 'underlines',
+  echoDotted: 'dotted underline',
+  echoDashed: 'dashed underline',
+  echoDouble: 'double underline',
+  echoWavy: 'wavy underline',
+  echoSolid: 'solid underline',
+  pencilNote:
+    'Choose beats, echoes or pauses below, then tap the poem. Whatever you mark will outlast the words. If a word is split in the wrong place, press and hold it.',
+  draftLesson: 'A draft lesson, still to be rewritten.',
+  recutTitle: 'syllables',
+  recutNote: 'Tap between two letters to split the word there. Tap a split to close it again.',
+  splitHere: 'split here',
 
   // How it went
   rateNotYet: 'not yet',
