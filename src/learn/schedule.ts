@@ -5,6 +5,7 @@
  * looking. A peek always counts against the schedule.
  */
 import { createEmptyCard, fsrs, Rating, State, type Card, type Grade } from 'ts-fsrs';
+import type { Stage } from './stages';
 
 export type { Card } from 'ts-fsrs';
 
@@ -59,6 +60,23 @@ export function dueStanzas(stanzaLines: readonly (readonly number[])[], cards: C
 export function firstNewStanza(stanzaCount: number, cards: Cards): number | undefined {
   for (let i = 0; i < stanzaCount; i += 1) if (!cards.has(stanzaUnit(i))) return i;
   return undefined;
+}
+
+/**
+ * Where a stanza that comes back starts, from how likely the reader still
+ * knows it (its weakest card): straight to the blank page when it is
+ * probably still there, and further back along the fade the longer they
+ * have been away.
+ */
+export function returnStage(cards: readonly Card[], now: Date): Stage {
+  const known = cards.filter((c) => c.state !== State.New);
+  if (known.length === 0) return 'marksOnly';
+  const likely = Math.min(...known.map((c) => scheduler.get_retrievability(c, now, false)));
+  // A stanza recited on time sits near 0.9; these bands are weeks to months overdue.
+  if (likely >= 0.85) return 'blank';
+  if (likely >= 0.75) return 'fadeMarks';
+  if (likely >= 0.6) return 'marksOnly';
+  return 'fadeWords';
 }
 
 export type PoemState = 'takingRoot' | 'fading' | 'byHeart';

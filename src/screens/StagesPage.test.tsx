@@ -221,10 +221,16 @@ describe('the stages', () => {
     });
   });
 
-  it('brings a due stanza back from its marks, before anything new', async () => {
+  it('brings a due stanza back before anything new, as far along the fade as it is likely still known', async () => {
     const { store, poem } = await storeWithPoem();
     const now = new Date();
-    const due = { ...review(undefined, Rating.Good, new Date(now.getTime() - 9 * 86_400_000)), state: State.Review, due: now };
+    // Last recited two months ago and hardly settled then: likely half gone.
+    const due = {
+      ...review(undefined, Rating.Good, new Date(now.getTime() - 60 * 86_400_000)),
+      state: State.Review,
+      stability: 5,
+      due: now,
+    };
     await store.schedule.save(poem.id, [{ unit: stanzaUnit(1), card: due, grade: Rating.Good }], now);
     await store.schedule.save(poem.id, [{ unit: stanzaUnit(0), card: { ...due, due: new Date(now.getTime() + 5 * 86_400_000) }, grade: Rating.Good }], now);
     show(store, poem);
@@ -232,6 +238,7 @@ describe('the stages', () => {
     expect(await screen.findByText(/Try it before you look/)).toBeTruthy();
     expect(document.querySelector('[data-line="1"]')).toBeNull();
     expect(document.querySelector('[data-line="5"]')).toBeTruthy();
+    // It opens on the marks alone, so the way on is to fade them.
     expect(action('fade the marks')).toBeTruthy();
   });
 

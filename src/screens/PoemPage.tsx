@@ -13,7 +13,7 @@ import {
   type Unit,
   type Verdict,
 } from '../learn/schedule';
-import { firstStart, linesOf, nextStart, stanzasOf, startOf, type Start, type Step } from '../learn/session';
+import { firstStart, linesOf, nextStart, reviewStart, stanzasOf, startOf, type Start, type Step } from '../learn/session';
 import { canPeek, nextStage, previousStage, showsMarks, type Stage } from '../learn/stages';
 import { roman } from '../page/fit';
 import { MarkedLine } from '../page/MarkedLine';
@@ -590,7 +590,13 @@ export function PoemPage({ poem, onBack, ear = DEVICE_EAR }: { poem: Poem; onBac
                 className="action"
                 aria-label={`${m.stanza} ${i + 1}`}
                 aria-pressed={stanzasOf(step).includes(i)}
-                onClick={() => open(startOf({ kind: 'stanza', stanza: i, review: !!cards?.has(stanzaUnit(i)) }))}
+                onClick={() =>
+                  open(
+                    cards?.has(stanzaUnit(i))
+                      ? reviewStart(i, stanzaLines, cards, new Date())
+                      : startOf({ kind: 'stanza', stanza: i }),
+                  )
+                }
               >
                 {roman(i + 1)}
               </button>

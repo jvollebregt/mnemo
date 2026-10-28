@@ -81,7 +81,7 @@ Rhyme is treated as part of *sound*, following Mary Oliver's handbooks: allitera
 3. **M2 Pencil:** snapping pencil for beats (with syllabification for English and Dutch), sound families and pauses; marks stored per syllable; bottom-sheet lessons.
 4. **M3 Fade → peek:** the stages (fade the words, marks only, fade the marks, blank page), honouring which kinds the user marked, with margin notes and a "seen once" record.
 5. **M4 Recite + chain:** typed recall first, then cumulative stanzas and seam practice.
-6. **M5 Schedule + contents page:** FSRS per line and stanza, and the *taking root / fading / by heart* contents page. A *fading* poem opens at *marks only*.
+6. **M5 Schedule + contents page:** FSRS per line and stanza, and the *taking root / fading / by heart* contents page. A stanza that comes back opens where the schedule thinks the reader still is: *blank page* when it is likely still known, then *fade the marks*, *marks only* or *fade the words* the longer it has been left (Joos, 2026-10-28).
 7. **M6 Spoken recall:** speaking aloud becomes the default way to recite at the check. Typing always stays available as an option, so the app works fully for anyone who can't or would rather not speak (Joos, 2026-10-28).
 8. **M7 Store build:** Capacitor iOS and Android projects, OS backup plus export/import file, the quiet settings page (default mark kinds, space used by recordings, *clear recordings*), store listing.
 

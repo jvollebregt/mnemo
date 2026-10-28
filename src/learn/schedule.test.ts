@@ -8,6 +8,7 @@ import {
   lineGrade,
   lineUnit,
   poemState,
+  returnStage,
   review,
   stanzaGrade,
   stanzaUnit,
@@ -90,5 +91,24 @@ describe('the contents phrase', () => {
       [stanzaUnit(1), reviewing(days(40), 30)],
     ]);
     expect(poemState(STANZAS, settled, NOW)).toBe('byHeart');
+  });
+});
+
+describe('where a returning stanza starts', () => {
+  const recited = (daysAgo: number, stability: number): Card => ({
+    ...reviewing(NOW),
+    stability,
+    last_review: days(-daysAgo),
+  });
+
+  it('goes further back along the fade the less likely it is still known', () => {
+    expect(returnStage([recited(1, 30)], NOW)).toBe('blank');
+    expect(returnStage([recited(20, 5)], NOW)).toBe('fadeMarks');
+    expect(returnStage([recited(60, 5)], NOW)).toBe('marksOnly');
+    expect(returnStage([recited(365, 2)], NOW)).toBe('fadeWords');
+  });
+
+  it('follows the weakest of a stanza\'s cards', () => {
+    expect(returnStage([recited(1, 30), recited(365, 2)], NOW)).toBe('fadeWords');
   });
 });

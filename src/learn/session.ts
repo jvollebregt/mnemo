@@ -6,7 +6,7 @@
  * where recitals usually break, and then all the stanzas so far are recited
  * together.
  */
-import { dueStanzas, firstNewStanza, type Cards } from './schedule';
+import { dueStanzas, firstNewStanza, lineUnit, returnStage, stanzaUnit, type Card, type Cards } from './schedule';
 import type { Stage } from './stages';
 
 export type Step =
@@ -26,23 +26,31 @@ export interface Start {
   stage: Stage;
 }
 
-/** Where a step begins: a new stanza from reading it, a review from the marks, a seam or a chain from reciting. */
+/** Where a step begins: a new stanza from reading it, a seam or a chain from reciting. */
 export function startOf(step: Step): Start {
   if (step.kind !== 'stanza') return { step, stage: 'check' };
   return { step, stage: step.review ? 'marksOnly' : 'read' };
 }
 
+/** A stanza coming back starts as far along the fade as the reader probably still knows it. */
+export function reviewStart(stanza: number, stanzaLines: readonly (readonly number[])[], cards: Cards, now: Date): Start {
+  const own = [stanzaUnit(stanza), ...(stanzaLines[stanza] ?? []).map(lineUnit)]
+    .map((unit) => cards.get(unit))
+    .filter((card): card is Card => !!card);
+  return { step: { kind: 'stanza', stanza, review: true }, stage: returnStage(own, now) };
+}
+
 /** The next stanza to practise: one that is due and not yet practised today, else the next new one. */
 function pick(stanzaLines: readonly (readonly number[])[], cards: Cards, now: Date, practised: ReadonlySet<number>) {
   const due = dueStanzas(stanzaLines, cards, now).find((i) => !practised.has(i));
-  if (due !== undefined) return startOf({ kind: 'stanza', stanza: due, review: true });
+  if (due !== undefined) return reviewStart(due, stanzaLines, cards, now);
   const fresh = firstNewStanza(stanzaLines.length, cards);
   return fresh === undefined ? undefined : startOf({ kind: 'stanza', stanza: fresh });
 }
 
 /** Where opening a poem begins. A poem with nothing due or new still starts from recall. */
 export function firstStart(stanzaLines: readonly (readonly number[])[], cards: Cards, now: Date): Start {
-  return pick(stanzaLines, cards, now, new Set()) ?? startOf({ kind: 'stanza', stanza: 0, review: true });
+  return pick(stanzaLines, cards, now, new Set()) ?? reviewStart(0, stanzaLines, cards, now);
 }
 
 /** What comes after a step that went well, or nothing once the session is done. */
