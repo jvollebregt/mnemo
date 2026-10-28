@@ -37,6 +37,11 @@ describe('English syllables', () => {
     expect(en('unaccountable')).toBe('un|ac|count|a|ble');
   });
 
+  it('cuts around an e the dictionary doesn’t sound', () => {
+    expect(en('evening')).toBe('eve|ning');
+    expect(en('Evening')).toBe('Eve|ning');
+  });
+
   it('keeps a printer\'s break between two vowels that are sounded apart', () => {
     expect(en('diagrams')).toBe('di|a|grams');
   });

@@ -1,12 +1,10 @@
 import { useMemo, useState } from 'react';
+import { LANGUAGE_NAMES } from '../i18n';
 import { useI18n } from '../i18n/context';
 import { canJoin, closeUp, guessLanguage, looksDoubleSpaced, mend, readPasted, suspectBreaks } from '../poem/intake';
 import { lineLabel } from '../page/fit';
 import { poemLanguages, type PoemLanguage } from '../poem/language';
 import type { NewPoem } from '../store/poems';
-
-// Language names are always written in their own language.
-const LANGUAGE_NAMES: Record<PoemLanguage, string> = { en: 'English', nl: 'Nederlands' };
 
 interface Props {
   onKeep: (poem: NewPoem) => Promise<void>;

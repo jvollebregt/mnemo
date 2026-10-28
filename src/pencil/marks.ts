@@ -98,7 +98,8 @@ export function recut(
 
 /**
  * Rhyme letters for the margin. A line gets a letter only when the reader has
- * underlined its last word, and only when that echo family closes at least
+ * underlined the end of it (`lineEnds`: the last syllable of each line's last
+ * word), and only when that echo family closes at least
  * two lines: one-off echoes and free verse get no letters, and the scheme is
  * never filled in ahead of the reader.
  */

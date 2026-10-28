@@ -150,6 +150,17 @@ describe('the pencil', () => {
     expect(Array.from(document.querySelectorAll('.verse .echo-2'), (e) => e.textContent)).toEqual(['oul']);
     expect(document.querySelectorAll('.rhyme')).toHaveLength(0);
 
+    // A rhyme sounds in the last syllable: an echo earlier in the last word doesn't close the line.
+    stroke(1, 26, 27); // the ea of feathers
+    stroke(4, 22, 23);
+    expect(Array.from(document.querySelectorAll('[data-line="1"] .rhyme'))).toEqual([]);
+    expect(Array.from(document.querySelectorAll('.rhyme'), (r) => r.textContent)).toEqual(['a', 'a']);
+    stroke(1, 31, 32); // the rs of feathers
+    expect(Array.from(document.querySelectorAll('.rhyme'), (r) => r.textContent)).toEqual(['a', 'a', 'a']);
+    stroke(1, 31, 31);
+    stroke(1, 26, 26);
+    stroke(4, 23, 23);
+
     // A tap on a bare letter underlines just that letter.
     fireEvent.click(screen.getByRole('button', { name: 'dotted underline' }));
     stroke(3, 4, 4);

@@ -4,6 +4,7 @@ export const en = {
   // Contents page
   contents: 'contents',
   contentsEmpty: 'Add a poem you want to know by heart.',
+  interfaceLanguage: 'language of the app',
   addPoem: 'add a poem',
 
   // How a poem is doing

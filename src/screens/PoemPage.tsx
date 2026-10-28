@@ -120,8 +120,10 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
   const letters = useMemo(() => {
     if (!marks) return new Map<number, string>();
     const ends = lines.flatMap((line) => {
+      // A rhyme sounds in the last syllable, so an echo earlier in the word doesn't close the line.
       const word = lastWord(tokens.get(line.number) ?? []);
-      return word ? [{ line: line.number, start: word.start, end: word.start + word.text.length }] : [];
+      const start = word?.syllables[word.syllables.length - 1]?.start ?? word?.start;
+      return word && start !== undefined ? [{ line: line.number, start, end: word.start + word.text.length }] : [];
     });
     return rhymeLetters(marks, ends);
   }, [marks, lines, tokens]);

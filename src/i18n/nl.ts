@@ -4,6 +4,7 @@ import type { Messages } from './index';
 export const nl: Messages = {
   contents: 'inhoud',
   contentsEmpty: 'Voeg een gedicht toe dat je uit je hoofd wilt kennen.',
+  interfaceLanguage: 'taal van de app',
   addPoem: 'voeg een gedicht toe',
 
   stateTakingRoot: 'schiet wortel',

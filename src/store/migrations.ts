@@ -42,6 +42,11 @@ export const migrations: readonly Migration[] = [
       )`,
     ],
   },
+  {
+    // The reader's own choices, such as the interface language, as key and value.
+    version: 4,
+    statements: [`CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`],
+  },
 ];
 
 export const latestVersion = migrations.reduce((v, m) => Math.max(v, m.version), 0);
