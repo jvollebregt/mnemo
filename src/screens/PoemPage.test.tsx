@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createStore, type Store } from '../store';
 import { StoreContext } from '../store/context';
@@ -7,6 +7,7 @@ import { openSqlJs } from '../store/sqljs';
 import { PoemPage } from './PoemPage';
 
 const NOTE = /Turn your phone sideways/;
+const SHEET = { name: 'long lines' };
 
 async function storeWithPoem(text: string) {
   const db = await openSqlJs();
@@ -35,12 +36,17 @@ describe('PoemPage', () => {
     vi.restoreAllMocks();
   });
 
-  it('suggests turning the phone the first time a poem has lines too long for the page, and only once', async () => {
+  it('explains long lines in a sheet the first time a poem has them, and only once', async () => {
     lineWidth = 1200;
     const { store, poem } = await storeWithPoem('A very long line indeed\nand another');
     show(store, poem);
-    expect(await screen.findByText(NOTE)).toBeTruthy();
-    expect(await store.seen.has('turn-phone')).toBe(true);
+    expect(await screen.findByRole('dialog', SHEET)).toBeTruthy();
+    expect(screen.getByText(NOTE)).toBeTruthy();
+    expect(await store.seen.has('long-lines')).toBe(true);
+
+    // A tap outside the sheet puts it away.
+    fireEvent.click(screen.getByRole('button', { name: 'put it away' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
 
     cleanup();
     show(store, poem);
@@ -54,6 +60,6 @@ describe('PoemPage', () => {
     show(store, poem);
     await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByText(NOTE)).toBeNull();
-    expect(await store.seen.has('turn-phone')).toBe(false);
+    expect(await store.seen.has('long-lines')).toBe(false);
   });
 });

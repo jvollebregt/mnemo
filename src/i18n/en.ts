@@ -51,6 +51,11 @@ export const en = {
   closeUp: 'close up the spaces',
   keepIt: 'keep it',
   addedNote: 'It is on the page now, and only on your phone. Open it whenever you have ten quiet minutes.',
-  turnPhoneNote: 'Some lines are longer than the page. Turn your phone sideways to see them whole.',
+  putAway: 'put it away',
+  longLinesTitle: 'long lines',
+  longLines1:
+    'Some lines in this poem are longer than the page is wide. Rather than break them where the poet didn’t, the page lets them turn over: the rest of the line carries on just below, indented, the way a printed book sets a long line.',
+  longLines2: 'It is still one line. The margin counts it once, and when the words fade, it fades as one.',
+  longLines3: 'Turn your phone sideways and the page grows wider, so most long lines fit whole. Turn it back whenever you like.',
   openFailed: 'Your poems could not be opened. Close the app and open it again.',
 } as const;

@@ -56,7 +56,7 @@ export function AddPoem({ onKeep, onCancel }: Props) {
           </button>
         </div>
         <textarea
-          className="sheet"
+          className="paste"
           aria-label={m.pastePlaceholder}
           placeholder={m.pastePlaceholder}
           value={text}

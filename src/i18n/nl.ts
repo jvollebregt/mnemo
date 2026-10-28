@@ -46,6 +46,11 @@ export const nl: Messages = {
   closeUp: 'haal de witregels weg',
   keepIt: 'bewaar het',
   addedNote: 'Het staat nu op de bladzijde, en alleen op je telefoon. Open het wanneer je tien rustige minuten hebt.',
-  turnPhoneNote: 'Sommige regels zijn langer dan de bladzijde. Draai je telefoon een kwartslag om ze heel te zien.',
+  putAway: 'leg het weg',
+  longLinesTitle: 'lange regels',
+  longLines1:
+    'Sommige regels in dit gedicht zijn langer dan de bladzijde breed is. In plaats van ze af te breken waar de dichter dat niet deed, loopt de regel door: het vervolg staat er vlak onder, ingesprongen, zoals een gedrukt boek een lange regel zet.',
+  longLines2: 'Het blijft één regel. De marge telt hem één keer, en als de woorden vervagen, vervaagt hij in zijn geheel.',
+  longLines3: 'Draai je telefoon een kwartslag en de bladzijde wordt breder, zodat de meeste lange regels heel passen. Draai hem terug wanneer je wilt.',
   openFailed: 'Je gedichten konden niet worden geopend. Sluit de app en open hem opnieuw.',
 };
