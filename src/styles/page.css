@@ -741,6 +741,7 @@ body {
   gap: 0 4px;
 }
 
+/* Each numeral in the tone of the contents phrases: not begun, taking root, fading (in pencil), by heart. */
 .folio .action {
   min-width: var(--touch);
   font-size: 15px;
@@ -750,8 +751,23 @@ body {
   color: var(--trace);
 }
 
-.folio .action[aria-pressed='true'] {
+.folio .action.takingRoot {
+  color: var(--grey);
+}
+
+.folio .action.fading {
+  color: var(--pencil);
+}
+
+.folio .action.byHeart {
   color: var(--ink);
+}
+
+/* The stanza on the page is underlined, whatever its tone. */
+.folio .action[aria-pressed='true'] {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
 /* The fade. A trace keeps a word's length without its letters; a peeked word comes back in pencil. */

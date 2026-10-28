@@ -213,6 +213,9 @@ describe('the stages', () => {
     expect(document.querySelector('[data-line="1"]')).toBeNull();
     expect(document.querySelector('[data-line="5"]')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'stanza 2' }).getAttribute('aria-pressed')).toBe('true');
+    // Each numeral in the tone of how its stanza stands: the first taking root, the second not begun.
+    expect(action('stanza 1').className).toContain('takingRoot');
+    expect(action('stanza 2').className).toContain('new');
 
     // The stanza numbers lead back too.
     fireEvent.click(action('stanza 1'));
@@ -222,6 +225,8 @@ describe('the stages', () => {
     for (const name of ['fade the words', 'marks only', 'fade the marks', 'blank page', 'done', 'most of it']) {
       fireEvent.click(action(name));
     }
+    // Only most of it: the stanza's numeral turns to pencil.
+    expect(action('stanza 2').className).toContain('fading');
 
     // The seam: the last line of the first stanza and the first of the second, recited straight away.
     expect(Array.from(document.querySelectorAll('[data-line]'), (l) => l.getAttribute('data-line'))).toEqual(['4', '5']);

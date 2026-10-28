@@ -71,6 +71,7 @@ While marking, *next stanza* moves the pencil on, so the whole poem can be marke
 ## Words in the interface
 
 - The contents page shows one phrase per poem: *taking root* (learning), *fading* (due today, in pencil), or *by heart* (mastered). There are no numbers.
+- The stanza numerals at the foot of a poem take the same states in tone: faint before the first recital, grey while taking root, pencil when fading (due, or last rated *not yet* or *most of it*), ink when by heart. The stanza on the page is underlined (Joos, 2026-10-28).
 - Use the agreed labels: *add a poem*, *mark what you hear*, *fade the words*, *marks only*, *fade the marks*, *blank page*, *beats · echoes · pauses*, *put down*, *next stanza*.
 - English and Dutch from the start. Every string lives in `src/i18n/en.ts` and `src/i18n/nl.ts`, and a test checks they have the same keys. Never hard-code interface text in components.
 - The interface language and a poem's own language are separate settings.

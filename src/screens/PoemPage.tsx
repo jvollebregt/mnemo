@@ -8,11 +8,13 @@ import {
   lineUnit,
   review,
   stanzaGrade,
+  stanzaState,
   stanzaUnit,
   type Card,
   type Unit,
   type Verdict,
 } from '../learn/schedule';
+import type { Grade } from 'ts-fsrs';
 import { firstStart, linesOf, nextStart, reviewStart, stanzasOf, startOf, type Start, type Step } from '../learn/session';
 import { canPeek, nextStage, previousStage, showsMarks, type Stage } from '../learn/stages';
 import { roman } from '../page/fit';
@@ -122,6 +124,8 @@ export function PoemPage({
   const [removing, setRemoving] = useState(false);
   const [marks, setMarks] = useState<PoemMarks | null>(null);
   const [cards, setCards] = useState<ReadonlyMap<Unit, Card> | null>(null);
+  /** The reader's last verdict on each stanza, which colours its numeral as much as the schedule does. */
+  const [lastGrades, setLastGrades] = useState<ReadonlyMap<Unit, Grade>>(new Map());
   /** Nothing shows until the session knows where to begin, so a review never flashes the words. */
   const [started, setStarted] = useState(false);
   /** Stanzas recited well enough in this session not to come back in it. */
@@ -361,8 +365,10 @@ export function PoemPage({
       store.schedule.cards(poem.id),
       store.settings.reciteBy(),
       store.settings.keepRecitals(),
-    ]).then(([stored, scheduled, by, keep]) => {
+      store.schedule.lastGrades(poem.id),
+    ]).then(([stored, scheduled, by, keep, last]) => {
       if (!live) return;
+      setLastGrades(last);
       if (by === 'typing' || (by === 'speaking' && ear.available)) setReciteBy(by);
       setKeepRecitals(keep);
       setMarks(stored);
@@ -400,6 +406,7 @@ export function PoemPage({
     const next = new Map(cards);
     for (const { unit, card } of graded) next.set(unit, card);
     setCards(next);
+    setLastGrades(new Map([...lastGrades, ...graded.map(({ unit, grade }) => [unit, grade] as const)]));
     return next;
   };
 
@@ -580,6 +587,9 @@ export function PoemPage({
     ? (tokenAt(tokens.get(recutting.line) ?? [], recutting.start) as Word | undefined)
     : undefined;
 
+  // Each stanza's numeral is set in the tone of how it stands now.
+  const now = new Date();
+
   return (
     <main className="page poem-page" lang={poem.language} onClick={pencil ? settleActive : undefined}>
       <div className="top">
@@ -672,7 +682,7 @@ export function PoemPage({
               <button
                 type="button"
                 key={i}
-                className="action"
+                className={`action ${cards ? stanzaState(i, stanzaLines, cards, lastGrades, now) : 'new'}`}
                 aria-label={`${m.stanza} ${i + 1}`}
                 aria-pressed={stanzasOf(step).includes(i)}
                 onClick={() =>
