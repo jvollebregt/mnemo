@@ -1,7 +1,8 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Rating, State } from 'ts-fsrs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { review, stanzaUnit } from '../learn/schedule';
+import type { Ear } from '../recite/ear';
 import { createStore, type Store } from '../store';
 import { StoreContext } from '../store/context';
 import { migrate } from '../store/migrations';
@@ -27,12 +28,27 @@ async function storeWithPoem() {
   return { store, poem };
 }
 
-const show = (store: Store, poem: Poem, onBack = () => {}) =>
+const show = (store: Store, poem: Poem, onBack = () => {}, ear?: Ear) =>
   render(
     <StoreContext.Provider value={store}>
-      <PoemPage poem={poem} onBack={onBack} />
+      <PoemPage poem={poem} onBack={onBack} ear={ear} />
     </StoreContext.Provider>,
   );
+
+/** An ear that hears whatever the test says, and can be refused the microphone. */
+function fakeEar() {
+  let heard: ((text: string) => void) | undefined;
+  let stopped: ((problem?: string) => void) | undefined;
+  const ear: Ear = {
+    available: true,
+    listen: (_language, onHeard, onStop) => {
+      heard = onHeard;
+      stopped = onStop;
+      return { stop: () => stopped?.() };
+    },
+  };
+  return { ear, say: (text: string) => act(() => heard?.(text)), refuse: () => act(() => stopped?.('not-allowed')) };
+}
 
 const action = (name: string) => screen.getByRole('button', { name });
 const glyph = (line: number, at: number) => document.querySelector(`[data-line="${line}"] [data-at="${at}"]`)!;
@@ -217,5 +233,37 @@ describe('the stages', () => {
     expect(document.querySelector('[data-line="1"]')).toBeNull();
     expect(document.querySelector('[data-line="5"]')).toBeTruthy();
     expect(action('fade the marks')).toBeTruthy();
+  });
+
+  it('listens to the recital by default, and lets the reader type instead', async () => {
+    const { store, poem } = await storeWithPoem();
+    const { ear, say, refuse } = fakeEar();
+    show(store, poem, () => {}, ear);
+    await ready();
+    fireEvent.click(action('mark what you hear'));
+    await screen.findByRole('dialog', { name: 'beats' });
+    fireEvent.click(action('put it away'));
+    for (const name of ['fade the words', 'marks only', 'fade the marks', 'blank page', 'check']) fireEvent.click(action(name));
+    expect(await screen.findByText(/Say it aloud from memory/)).toBeTruthy();
+    expect(screen.queryByRole('textbox')).toBeNull();
+
+    fireEvent.click(action('say it'));
+    expect(screen.getByText('listening…')).toBeTruthy();
+    say('hope is the thing with feathers that perches');
+    expect(screen.getByText('hope is the thing with feathers that perches')).toBeTruthy();
+    expect(looks(2)[0]).toBe('That:ink');
+
+    // When the microphone is refused, typing takes over, carrying on from what was heard.
+    refuse();
+    expect(screen.getByText(/can’t listen here/)).toBeTruthy();
+    const typing = screen.getByRole('textbox', { name: 'recite' }) as HTMLTextAreaElement;
+    expect(typing.value).toBe('hope is the thing with feathers that perches');
+
+    // The reader can choose either way, and the choice is kept.
+    fireEvent.click(action('speak instead'));
+    fireEvent.click(action('type instead'));
+    await waitFor(async () => expect(await store.settings.reciteBy()).toBe('typing'));
+    fireEvent.click(action('done'));
+    expect(looks(2)).toEqual(['Thatperches:ink', 'inthesoul:peek', '-:ink']);
   });
 });

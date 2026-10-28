@@ -14,6 +14,15 @@ describe('Settings', () => {
     expect(await settings.locale()).toBe('en');
   });
 
+  it('keeps how the reader likes to recite', async () => {
+    const db = await openSqlJs();
+    await migrate(db);
+    const settings = new Settings(db);
+    expect(await settings.reciteBy()).toBeUndefined();
+    await settings.setReciteBy('typing');
+    expect(await settings.reciteBy()).toBe('typing');
+  });
+
   it('ignores a language the app no longer has', async () => {
     const db = await openSqlJs();
     await migrate(db);

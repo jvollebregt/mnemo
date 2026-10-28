@@ -661,8 +661,17 @@ body {
   line-height: 1.5;
 }
 
-.recite::placeholder {
+.recite::placeholder,
+.recite.heard.empty {
   color: var(--trace);
+}
+
+/* What was heard, written out on the same ruled line. */
+.recite.heard {
+  text-align: left;
+  min-height: calc(3 * 1.5em + 12px);
+  max-height: 30vh;
+  overflow-y: auto;
 }
 
 /* While marking, a pencil line sets the tools apart from the poem. */

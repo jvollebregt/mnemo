@@ -37,10 +37,13 @@ import {
 } from '../pencil/marks';
 import { lastWord, tokenize, type Token } from '../pencil/tokens';
 import { parsePoem, type Line } from '../poem/parse';
+import { joinHeard, webEar, type Ear, type Listening } from '../recite/ear';
 import { useStore } from '../store/context';
+import type { ReciteBy } from '../store/settings';
 import type { Poem } from '../store/poems';
 import { LessonSheet } from './LessonSheet';
 import { PencilBar, type Tool } from './PencilBar';
+import { ReciteBox } from './ReciteBox';
 import { RecutSheet } from './RecutSheet';
 
 const LONG_LINES = 'long-lines';
@@ -94,7 +97,9 @@ function hit(target: EventTarget | Element | null): { line: number; at: number }
   return { line: Number(line.getAttribute('data-line')), at: Number(glyph.getAttribute('data-at')) };
 }
 
-export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
+const DEVICE_EAR = webEar();
+
+export function PoemPage({ poem, onBack, ear = DEVICE_EAR }: { poem: Poem; onBack: () => void; ear?: Ear }) {
   const { m, locale } = useI18n();
   const store = useStore();
   const { seen } = store;
@@ -118,6 +123,10 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
   const [typed, setTyped] = useState('');
   const [done, setDone] = useState(false);
   const [granted, setGranted] = useState<ReadonlySet<string>>(new Set());
+  /** Speaking is the default wherever the device can listen; typing always works. */
+  const [reciteBy, setReciteBy] = useState<ReciteBy>(ear.available ? 'speaking' : 'typing');
+  const [hearing, setHearing] = useState(false);
+  const listening = useRef<Listening | null>(null);
   const [tool, setTool] = useState<Tool>('beats');
   const [family, setFamily] = useState<EchoFamily>(1);
   const [activeLine, setActiveLine] = useState<number | null>(null);
@@ -198,7 +207,39 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
 
   const pencil = stage === 'mark';
 
+  const stopListening = () => {
+    listening.current?.stop();
+    listening.current = null;
+    setHearing(false);
+  };
+  useEffect(() => () => listening.current?.stop(), []);
+
+  // Listening goes on until the reader is done; a second start carries on from what was heard.
+  const listen = () => {
+    const before = typed;
+    setHearing(true);
+    listening.current = ear.listen(
+      poem.language,
+      (heard) => setTyped(joinHeard(before, heard)),
+      (problem) => {
+        listening.current = null;
+        setHearing(false);
+        if (problem) {
+          setReciteBy('typing');
+          setNote('noteNoEar');
+        }
+      },
+    );
+  };
+
+  const switchWay = (by: ReciteBy) => {
+    stopListening();
+    setReciteBy(by);
+    void store.settings.setReciteBy(by);
+  };
+
   const go = (next: Stage, quiet = false) => {
+    stopListening();
     settleActive();
     setDrawing(null);
     setNote(null);
@@ -208,7 +249,8 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
     setGranted(new Set());
     if (next === 'mark') pick('beats');
     if (quiet) return;
-    const [key, text] = STAGE_NOTE[next];
+    const [key, note] = STAGE_NOTE[next];
+    const text = next === 'check' && reciteBy === 'typing' ? 'noteCheckTyping' : note;
     once(key, () => setNote(text));
   };
 
@@ -250,8 +292,9 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
 
   useEffect(() => {
     let live = true;
-    void Promise.all([store.marks.get(poem.id), store.schedule.cards(poem.id)]).then(([stored, scheduled]) => {
+    void Promise.all([store.marks.get(poem.id), store.schedule.cards(poem.id), store.settings.reciteBy()]).then(([stored, scheduled, by]) => {
       if (!live) return;
+      if (by === 'typing' || (by === 'speaking' && ear.available)) setReciteBy(by);
       setMarks(stored);
       setCards(scheduled);
       // Begin with what is due, or else the next new stanza.
@@ -307,6 +350,7 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
   };
 
   const finish = () => {
+    stopListening();
     setDone(true);
     once(MISSED_NOTE[0], () => setNote(MISSED_NOTE[1]));
   };
@@ -525,19 +569,15 @@ export function PoemPage({ poem, onBack }: { poem: Poem; onBack: () => void }) {
           />
         )}
         {stage === 'check' && !done && (
-          <textarea
-            className="recite"
-            lang={poem.language}
-            aria-label={m.recite}
-            placeholder={m.recitePlaceholder}
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            rows={3}
-            autoFocus
-            autoCapitalize="off"
-            autoCorrect="off"
-            autoComplete="off"
-            spellCheck={false}
+          <ReciteBox
+            by={reciteBy}
+            canSpeak={ear.available}
+            text={typed}
+            hearing={hearing}
+            language={poem.language}
+            onType={setTyped}
+            onListen={listen}
+            onSwitch={switchWay}
           />
         )}
         <StageActions stage={stage} done={done} ready={ready} onGo={go} onDone={finish} onRate={rate} />

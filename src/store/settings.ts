@@ -2,6 +2,8 @@ import type { Locale } from '../i18n';
 import { locales } from '../i18n';
 import type { Db } from './db';
 
+export type ReciteBy = 'speaking' | 'typing';
+
 /** The reader's own choices. Until one is made, the app follows the phone. */
 export class Settings {
   constructor(private readonly db: Db) {}
@@ -13,6 +15,16 @@ export class Settings {
 
   async setLocale(locale: Locale): Promise<void> {
     await this.set('locale', locale);
+  }
+
+  /** How the reader likes to recite: aloud, or by typing. */
+  async reciteBy(): Promise<ReciteBy | undefined> {
+    const value = await this.get('recite-by');
+    return value === 'speaking' || value === 'typing' ? value : undefined;
+  }
+
+  async setReciteBy(way: ReciteBy): Promise<void> {
+    await this.set('recite-by', way);
   }
 
   private async get(key: string): Promise<string | undefined> {
