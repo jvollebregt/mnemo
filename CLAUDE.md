@@ -84,6 +84,6 @@ From stanza two on, the stanzas so far are chained, with extra practice on the s
 
 ## Working here
 
-- One milestone per PR, as listed in `docs/SPEC.md` §7. Plan first, then build with tests.
+- Work through the milestones in `docs/SPEC.md` §7. Plan first, then build with tests. Run typecheck, lint, test and build locally, and push only when a milestone (or a batch of fixes) is finished, so CI runs once rather than per fix. A new milestone can go on the PR that is still open instead of a new PR (Joos, 2026-10-28).
 - Pure logic (parsing, syllables, marks, fading, scheduling) goes in plain TypeScript modules with unit tests, kept apart from React.
 - Match the existing code: small modules, named exports, comments only where the why isn't obvious.
