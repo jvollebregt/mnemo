@@ -15,6 +15,7 @@ export function Verse({
   className,
   renderLine,
   aside,
+  stanzas,
 }: {
   poem: ParsedPoem;
   onTurnovers?: (any: boolean) => void;
@@ -23,8 +24,11 @@ export function Verse({
   renderLine?: (line: Line) => ReactNode;
   /** Something for the right-hand margin, beside the end of the line. */
   aside?: (line: Line) => ReactNode;
+  /** Which stanzas to set, by index; all of them by default. The type size is always fitted to the whole poem. */
+  stanzas?: readonly number[];
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
+  // Every line's text spans the whole verse column, so the column's width is the measure.
   const columnRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<number>(DEFAULT_FIT.largest);
   const lines = useMemo(() => poem.stanzas.flatMap((s) => s.lines), [poem]);
@@ -54,27 +58,27 @@ export function Verse({
   }, [lines, onTurnovers]);
 
   return (
-    <div className={className ? `verse ${className}` : 'verse'} style={{ fontSize: `${size}px` }}>
+    <div ref={columnRef} className={className ? `verse ${className}` : 'verse'} style={{ fontSize: `${size}px` }}>
       <div ref={measureRef} className="verse-measure" aria-hidden="true">
         {lines.map((line) => (
           <span key={line.number}>{line.text}</span>
         ))}
       </div>
-      {poem.stanzas.map((stanza) => (
+      {poem.stanzas.map((stanza, index) => (stanzas && !stanzas.includes(index) ? null : (
         <div className="stanza" key={stanza.lines[0]?.number}>
           {stanza.lines.map((line) => (
             <div className="line" key={line.number} data-line={line.number}>
               <span className="line-number" aria-hidden="true">
                 {lineLabel(line.number)}
               </span>
-              <div className="line-text" ref={line.number === 1 ? columnRef : undefined}>
+              <div className="line-text">
                 {renderLine ? renderLine(line) : line.text}
               </div>
               {aside?.(line)}
             </div>
           ))}
         </div>
-      ))}
+      )))}
     </div>
   );
 }

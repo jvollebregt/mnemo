@@ -96,6 +96,26 @@ body {
   justify-content: center;
 }
 
+.contents-foot {
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The interface language: quiet, at the foot of the contents. */
+.interface-language {
+  color: var(--trace);
+}
+
+.interface-language .action {
+  font-size: 13px;
+  color: var(--grey);
+  padding-inline: 6px;
+}
+
+.interface-language .action[aria-pressed='true'] {
+  color: var(--ink);
+}
+
 /* A margin note: the app's teaching voice, set in italics beside a pencil rule. */
 .note {
   margin: 20px 0 0;
@@ -590,19 +610,88 @@ body {
 }
 
 .pencil-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/*
+ * The foot of a poem's page: the words that move a stanza through the method,
+ * and the stanza numbers. It stays in reach of the thumb however long the poem.
+ */
+.page.poem-page {
+  padding-bottom: 0;
+}
+
+.stage-foot {
   position: sticky;
   bottom: 0;
   margin-top: auto;
-  padding-bottom: env(safe-area-inset-bottom);
-  border-top: 1px solid var(--trace);
+  padding: 8px 0 calc(10px + env(safe-area-inset-bottom));
   background: var(--paper);
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.page.poem-page:has(.pencil-bar) {
-  padding-bottom: 0;
+/* While marking, a pencil line sets the tools apart from the poem. */
+.stage-foot.pencil-foot {
+  border-top: 1px solid var(--trace);
+}
+
+.stage-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  column-gap: 22px;
+}
+
+.action.soft {
+  color: var(--grey);
+}
+
+.folio {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.folio .action {
+  min-width: var(--touch);
+  font-size: 15px;
+  font-style: italic;
+  font-variant-caps: normal;
+  letter-spacing: 0;
+  color: var(--trace);
+}
+
+.folio .action[aria-pressed='true'] {
+  color: var(--ink);
+}
+
+/* The fade. A trace keeps a word's length without its letters; a peeked word comes back in pencil. */
+.trace {
+  color: transparent;
+  border-bottom: 1px solid var(--trace);
+}
+
+.gone {
+  color: transparent;
+}
+
+.peek {
+  color: var(--pencil);
+}
+
+.verse.peekable {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* A blank page is blank: not even the line numbers. */
+.verse.stage-blank .line-number {
+  visibility: hidden;
 }
 
 .tools,

@@ -53,3 +53,19 @@ export function hasTurnovers({ widths, referenceSize, measure }: Pick<FitOptions
 export function lineLabel(number: number): string {
   return number % 5 === 0 ? String(number) : '';
 }
+
+/** Stanzas are numbered in lower-case roman numerals at the foot of the page, as a book numbers its sections. */
+export function roman(n: number): string {
+  const numerals: [number, string][] = [
+    [1000, 'm'], [900, 'cm'], [500, 'd'], [400, 'cd'], [100, 'c'], [90, 'xc'],
+    [50, 'l'], [40, 'xl'], [10, 'x'], [9, 'ix'], [5, 'v'], [4, 'iv'], [1, 'i'],
+  ];
+  let out = '';
+  for (const [value, numeral] of numerals) {
+    while (n >= value) {
+      out += numeral;
+      n -= value;
+    }
+  }
+  return out;
+}

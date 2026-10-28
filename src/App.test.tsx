@@ -141,4 +141,17 @@ describe('App', () => {
     await screen.findByRole('button', { name: /Stilte/ });
     expect((await store.poems.list())[0]?.language).toBe('nl');
   });
+
+  it('lets the reader choose the interface language, and keeps it', async () => {
+    const store = await freshStore();
+    renderApp(store, 'nl');
+    fireEvent.click(await screen.findByRole('button', { name: 'English' }));
+    expect(screen.getByRole('heading', { name: 'contents' })).toBeTruthy();
+    await waitFor(async () => expect(await store.settings.locale()).toBe('en'));
+
+    cleanup();
+    renderApp(store, 'nl');
+    expect(await screen.findByRole('button', { name: 'add a poem' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'English' }).getAttribute('aria-pressed')).toBe('true');
+  });
 });

@@ -1,3 +1,4 @@
+import { LANGUAGE_NAMES, locales, type Locale } from '../i18n';
 import { useI18n } from '../i18n/context';
 import type { Poem } from '../store/poems';
 
@@ -6,10 +7,11 @@ interface Props {
   justAdded: boolean;
   onOpen: (poem: Poem) => void;
   onAdd: () => void;
+  onLocale: (locale: Locale) => void;
 }
 
-export function Contents({ poems, justAdded, onOpen, onAdd }: Props) {
-  const { m } = useI18n();
+export function Contents({ poems, justAdded, onOpen, onAdd, onLocale }: Props) {
+  const { m, locale } = useI18n();
 
   return (
     <main className="page">
@@ -31,10 +33,20 @@ export function Contents({ poems, justAdded, onOpen, onAdd }: Props) {
         </ul>
       )}
       {justAdded && <p className="note">{m.addedNote}</p>}
-      <div className="foot">
+      <div className="foot contents-foot">
         <button type="button" className="action" onClick={onAdd}>
           {m.addPoem}
         </button>
+        <div className="interface-language" role="group" aria-label={m.interfaceLanguage}>
+          {locales.map((l, i) => (
+            <span key={l}>
+              {i > 0 && <span aria-hidden="true">·</span>}
+              <button type="button" className="action" aria-pressed={l === locale} lang={l} onClick={() => onLocale(l)}>
+                {LANGUAGE_NAMES[l]}
+              </button>
+            </span>
+          ))}
+        </div>
       </div>
     </main>
   );

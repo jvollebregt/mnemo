@@ -134,15 +134,32 @@ export function syllableBreaks(word: string, language: PoemLanguage, counts?: Sy
   }
 
   // Too few: add vowel-group breaks where a piece still holds two vowel sounds.
-  for (const b of vowelBreaks(lower, found)) {
+  // When the dictionary hears fewer sounds than there are vowels, a lone e in
+  // the middle usually goes unsounded (ev'ning), so the cuts go around the rest.
+  const sounded = language === 'en' && found.length > target ? dropUnsoundedE(lower, found, found.length - target) : found;
+  for (const b of vowelBreaks(lower, sounded)) {
     if (breaks.length >= target - 1) break;
     if (breaks.includes(b)) continue;
     const next = [...breaks, b].sort((x, y) => x - y);
-    if (everyPieceSounds(next, found, lower)) breaks = next;
+    if (everyPieceSounds(next, sounded, lower)) breaks = next;
   }
   // Too many: the dictionary hears fewer syllables, so drop breaks from the end.
   while (breaks.length > target - 1) breaks = breaks.slice(0, -1);
   return breaks;
+}
+
+/** Drops up to `count` lone e's, never the first or last vowel sound. */
+function dropUnsoundedE(word: string, found: readonly Nucleus[], count: number): Nucleus[] {
+  const kept = [...found];
+  for (let k = 1; k < kept.length - 1 && count > 0; k += 1) {
+    const n = kept[k]!;
+    if (word.slice(n.start, n.end) === 'e') {
+      kept.splice(k, 1);
+      k -= 1;
+      count -= 1;
+    }
+  }
+  return kept;
 }
 
 /** The word cut at the given breaks. */

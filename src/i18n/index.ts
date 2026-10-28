@@ -11,6 +11,9 @@ const catalogs: Record<Locale, Messages> = { en, nl };
 
 export const locales = Object.keys(catalogs) as Locale[];
 
+/** Language names are always written in their own language. */
+export const LANGUAGE_NAMES: Record<Locale, string> = { en: 'English', nl: 'Nederlands' };
+
 export function getMessages(locale: Locale): Messages {
   return catalogs[locale];
 }

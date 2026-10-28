@@ -7,11 +7,15 @@ const pieceClass = (piece: Piece) => {
 };
 
 const runClass = (run: Run, active?: EchoFamily) =>
-  run.echo
-    ? ['echo', `echo-${run.echo}`, run.preview && 'preview', active && !run.preview && run.echo !== active && 'dim']
-        .filter(Boolean)
-        .join(' ')
-    : undefined;
+  [
+    run.echo && 'echo',
+    run.echo && `echo-${run.echo}`,
+    run.echo && run.preview && 'preview',
+    run.echo && active && !run.preview && run.echo !== active && 'dim',
+    run.look,
+  ]
+    .filter(Boolean)
+    .join(' ') || undefined;
 
 /**
  * A line set with the reader's marks. Every letter is its own element, so a
