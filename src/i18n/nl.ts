@@ -16,6 +16,15 @@ export const nl: Messages = {
   stageFadeMarks: 'laat de tekens vervagen',
   stageBlank: 'lege bladzijde',
   stageCheck: 'controleer',
+  stanza: 'strofe',
+
+  noteRead: 'Lees het hardop, langzaam, twee keer. Jezelf het horen zeggen is het halve werk.',
+  noteFadeWords: 'De woorden vervagen; je tekens blijven. Beginletters en ritme zijn genoeg om een regel terug te halen.',
+  noteMarksOnly: 'Alleen je tekens nog. Bouw elke regel weer op uit zijn klemtonen, zijn echo’s en zijn pauzes.',
+  noteFadeMarks: 'Nu gaan ook de tekens. Alleen de vorm van de regels blijft over.',
+  noteBlank: 'Een lege bladzijde, zoals wanneer je het iemand voordraagt. Zeg het uit je hoofd en controleer dan.',
+  notePeek: 'Spieken mag. Tik een vervaagd woord aan en het komt terug in potlood. De woorden waar je naar spiekt, zijn de woorden om op terug te komen.',
+  noteCheck: 'De woorden waar je naar spiekte staan in potlood. Een woord missen is nuttig: daar wordt het geheugen gebouwd.',
 
   toolBeats: 'klemtonen',
   toolEchoes: "echo's",

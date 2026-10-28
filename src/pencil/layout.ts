@@ -3,6 +3,7 @@
  * (syllables, spaces, punctuation), each carrying the reader's marks, down to
  * the single letters an echo underlines. The page renders this as it is.
  */
+import { lookOf, type Look, type Stage } from '../learn/stages';
 import { echoAt, markKey, type EchoFamily, type PoemMarks } from './marks';
 import type { Token } from './tokens';
 
@@ -20,6 +21,8 @@ export interface Run {
   echo?: EchoFamily;
   /** Part of the stroke the reader is drawing right now. */
   preview?: boolean;
+  /** Faded, or peeked at; in ink when absent. */
+  look?: Exclude<Look, 'ink'>;
   glyphs: Glyph[];
 }
 
@@ -39,22 +42,46 @@ export interface Stroke {
   end: number;
 }
 
-export function layoutLine(tokens: readonly Token[], marks: PoemMarks, line: number, stroke?: Stroke): Piece[] {
+/** Where in the method the stanza is, and which words the reader has peeked at (by the offset of the word). */
+export interface Fade {
+  stage: Stage;
+  peeked: ReadonlySet<number>;
+}
+
+interface Context {
+  word?: Extract<Token, { kind: 'word' }>;
+  pause?: boolean;
+}
+
+export function layoutLine(
+  tokens: readonly Token[],
+  marks: PoemMarks,
+  line: number,
+  stroke?: Stroke,
+  fade?: Fade,
+): Piece[] {
   const syllableStarts = tokens.flatMap((t) => (t.kind === 'word' ? t.syllables.map((s) => s.start) : []));
   const hasBeat = syllableStarts.some((at) => marks.beats.includes(markKey(line, at)));
   // A settled line shows a light mark on every unmarked syllable, once it has a beat to count from.
   const light = hasBeat && marks.settled.includes(line);
 
-  const runsOf = (text: string, start: number): Run[] => {
+  const runsOf = (text: string, start: number, context: Context = {}): Run[] => {
+    const { word, pause } = context;
+    const firstLetter = word ? word.start + [...word.text].findIndex(isLetter) : -1;
     const runs: Run[] = [];
     let at = start;
     for (const ch of text) {
       const letter = isLetter(ch);
       const preview = letter && !!stroke && at >= stroke.start && at < stroke.end;
       const echo = !letter ? undefined : preview ? stroke.family : echoAt(marks, line, at)?.family;
+      // A space has no shape to trace: the gaps between the traces are what show the words.
+      const seen = fade && !/\s/u.test(ch)
+        ? lookOf(fade.stage, { letter, first: at === firstLetter, peeked: !!word && fade.peeked.has(word.start), pause })
+        : 'ink';
+      const look = seen === 'ink' ? undefined : seen;
       const last = runs[runs.length - 1];
-      if (last && last.echo === echo && !!last.preview === preview) last.glyphs.push({ at, ch });
-      else runs.push({ ...(echo ? { echo } : {}), ...(preview ? { preview } : {}), glyphs: [{ at, ch }] });
+      if (last && last.echo === echo && !!last.preview === preview && last.look === look) last.glyphs.push({ at, ch });
+      else runs.push({ ...(echo ? { echo } : {}), ...(preview ? { preview } : {}), ...(look ? { look } : {}), glyphs: [{ at, ch }] });
       at += ch.length;
     }
     return runs;
@@ -63,13 +90,15 @@ export function layoutLine(tokens: readonly Token[], marks: PoemMarks, line: num
   return tokens.flatMap((token): Piece[] => {
     if (token.kind !== 'word') {
       const pause = marks.pauses.includes(markKey(line, token.start));
-      return [{ kind: token.kind, start: token.start, ...(pause ? { pause } : {}), runs: runsOf(token.text, token.start) }];
+      return [{ kind: token.kind, start: token.start, ...(pause ? { pause } : {}), runs: runsOf(token.text, token.start, { pause }) }];
     }
-    if (token.syllables.length === 0) return [{ kind: 'word', start: token.start, runs: runsOf(token.text, token.start) }];
+    if (token.syllables.length === 0) {
+      return [{ kind: 'word', start: token.start, runs: runsOf(token.text, token.start, { word: token }) }];
+    }
     return token.syllables.map((s) => {
       const beat = marks.beats.includes(markKey(line, s.start));
       const mark = beat ? 'beat' : light ? 'light' : undefined;
-      return { kind: 'syllable', start: s.start, ...(mark ? { mark } : {}), runs: runsOf(s.text, s.start) };
+      return { kind: 'syllable', start: s.start, ...(mark ? { mark } : {}), runs: runsOf(s.text, s.start, { word: token }) };
     });
   });
 }

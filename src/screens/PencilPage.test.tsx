@@ -104,9 +104,14 @@ describe('the pencil', () => {
     expect(syllables(2, 'light').length).toBeGreaterThan(0);
 
     await waitFor(async () => expect((await store.marks.get(poem.id)).settled).toEqual([1, 2]));
+    // Reading shows the poem clean; taking up the pencil again brings the marks back.
     cleanup();
     show(store, poem);
-    await waitFor(() => expect(syllables(1, 'beat')).toEqual(['Hope', 'feath']));
+    const mark = await screen.findByRole('button', { name: 'mark what you hear' });
+    await waitFor(() => expect((mark as HTMLButtonElement).disabled).toBe(false), { timeout: 5000 });
+    expect(syllables(1, 'beat')).toEqual([]);
+    fireEvent.click(mark);
+    expect(syllables(1, 'beat')).toEqual(['Hope', 'feath']);
   });
 
   it('marks pauses on punctuation, or after the word tapped', async () => {

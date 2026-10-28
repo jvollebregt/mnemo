@@ -18,6 +18,16 @@ export const en = {
   stageFadeMarks: 'fade the marks',
   stageBlank: 'blank page',
   stageCheck: 'check',
+  stanza: 'stanza',
+
+  // Margin notes, each shown once, the first time its stage is reached
+  noteRead: 'Read it aloud, slowly, twice. Hearing yourself say it is half the work.',
+  noteFadeWords: 'The words fade; your marks stay. First letters and rhythm are enough to pull a line back.',
+  noteMarksOnly: 'Only your marks now. Rebuild each line from its beats, its echoes and its pauses.',
+  noteFadeMarks: 'Now the marks go too. Only the shape of the lines is left.',
+  noteBlank: 'A blank page, as when you recite to someone. Say it from memory, then check.',
+  notePeek: 'Peeking is fine. Tap a faded word and it comes back in pencil. The words you peek at are the ones to come back to.',
+  noteCheck: 'The words you peeked at are in pencil. Missing a word is useful: that is where memory is built.',
 
   // The pencil
   toolBeats: 'beats',

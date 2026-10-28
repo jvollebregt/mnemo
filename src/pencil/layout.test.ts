@@ -49,6 +49,24 @@ describe('layoutLine', () => {
   });
 });
 
+describe('fading', () => {
+  const looks = (pieces: ReturnType<typeof layoutLine>) =>
+    pieces.flatMap((p) => p.runs.map((r) => `${r.glyphs.map((g) => g.ch).join('')}:${r.look ?? 'ink'}`));
+
+  it('keeps each word\'s first letter, a marked pause and the reader\'s echoes', () => {
+    const m = marks((x) => togglePause(x, 2, 25), (x) => addEcho(x, { family: 1, line: 2, start: 21, end: 24 }));
+    const pieces = layoutLine(tokens, m, 2, undefined, { stage: 'fadeWords', peeked: new Set() });
+    expect(looks(pieces).slice(0, 4)).toEqual(['T:ink', 'hat:trace', ' :ink', 'p:ink']);
+    expect(looks(pieces).slice(-4)).toEqual(['s:ink', 'oul:trace', ' :ink', '—:ink']);
+    expect(pieces.flatMap((p) => p.runs.filter((r) => r.echo).map((r) => r.echo))).toEqual([1]);
+  });
+
+  it('brings a peeked word back whole', () => {
+    const pieces = layoutLine(tokens, emptyMarks(), 2, undefined, { stage: 'blank', peeked: new Set([20]) });
+    expect(looks(pieces).filter((l) => !l.endsWith(':gone') && !/^\s+:/.test(l))).toEqual(['soul:peek']);
+  });
+});
+
 describe('finding the target of a tap', () => {
   it('finds the syllable under the finger', () => {
     expect(syllableAt(tokens, 11)).toBe(10);

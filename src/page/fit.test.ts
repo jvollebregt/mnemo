@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitSize, hasTurnovers, lineLabel } from './fit';
+import { fitSize, hasTurnovers, lineLabel, roman } from './fit';
 
 describe('fitSize', () => {
   it('uses the largest size when every line fits', () => {
@@ -39,5 +39,11 @@ describe('hasTurnovers', () => {
 describe('lineLabel', () => {
   it('numbers every fifth line', () => {
     expect([1, 4, 5, 9, 10, 15].map(lineLabel)).toEqual(['', '', '5', '', '10', '15']);
+  });
+});
+
+describe('roman', () => {
+  it('numbers stanzas as a book does', () => {
+    expect([1, 2, 3, 4, 9, 14, 40].map(roman)).toEqual(['i', 'ii', 'iii', 'iv', 'ix', 'xiv', 'xl']);
   });
 });
