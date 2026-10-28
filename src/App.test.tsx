@@ -61,7 +61,8 @@ describe('App', () => {
       'When I Heard the Learn’d Astronomer',
     );
     expect((screen.getByRole('textbox', { name: 'poet' }) as HTMLInputElement).value).toBe('Walt Whitman');
-    expect(screen.getByRole('button', { name: 'English' }).getAttribute('aria-pressed')).toBe('true');
+    // The words make the language plain, so the reader isn't asked.
+    expect(screen.queryByText('Is this poem in English or Dutch?')).toBeNull();
 
     // The broken line is pointed out but not joined until the reader taps it.
     expect(screen.getByText(/One line looks broken/)).toBeTruthy();
@@ -114,13 +115,30 @@ describe('App', () => {
   });
 
   it('speaks Dutch on a Dutch phone and guesses a Dutch poem', async () => {
-    renderApp(await freshStore(), 'nl');
+    const store = await freshStore();
+    renderApp(store, 'nl');
     fireEvent.click(await screen.findByRole('button', { name: 'voeg een gedicht toe' }));
     fireEvent.change(screen.getByRole('textbox'), {
       target: { value: 'Het Eenzame Vogeltje\n\nIk hoor een vogeltje fluiten,\nin het verre, verre woud' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'zet de bladzijde' }));
-    expect(screen.getByRole('button', { name: 'Nederlands' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: 'bewaar het' })).toBeTruthy();
+    expect(screen.queryByText('Is dit gedicht in het Engels of in het Nederlands?')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'bewaar het' }));
+    await screen.findByRole('button', { name: /Het Eenzame Vogeltje/ });
+    expect((await store.poems.list())[0]?.language).toBe('nl');
+  });
+
+  it('asks the language only when the words leave it unclear', async () => {
+    const store = await freshStore();
+    renderApp(store);
+    fireEvent.click(await screen.findByRole('button', { name: 'add a poem' }));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Stilte\n\nwind\nwater\nlicht' } });
+    fireEvent.click(screen.getByRole('button', { name: 'set the page' }));
+    expect(screen.getByText('Is this poem in English or Dutch?')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'English' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Nederlands' }));
+    fireEvent.click(screen.getByRole('button', { name: 'keep it' }));
+    await screen.findByRole('button', { name: /Stilte/ });
+    expect((await store.poems.list())[0]?.language).toBe('nl');
   });
 });

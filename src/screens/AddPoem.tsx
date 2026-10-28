@@ -17,6 +17,8 @@ interface Proof {
   title: string;
   poet: string;
   language: PoemLanguage;
+  /** Ask the reader, because the words didn't make the language clear. */
+  askLanguage: boolean;
   lines: string[];
   joins: Set<number>;
   lastJoined: boolean;
@@ -35,9 +37,11 @@ export function AddPoem({ onKeep, onCancel }: Props) {
 
   const setPage = () => {
     const pasted = readPasted(text);
+    const guess = guessLanguage(pasted.lines.join('\n'), locale);
     setProof({
       ...pasted,
-      language: guessLanguage(pasted.lines.join('\n'), locale),
+      language: guess.language,
+      askLanguage: !guess.sure,
       joins: new Set(),
       lastJoined: false,
     });
@@ -52,7 +56,7 @@ export function AddPoem({ onKeep, onCancel }: Props) {
           </button>
         </div>
         <textarea
-          className="sheet"
+          className="paste"
           aria-label={m.pastePlaceholder}
           placeholder={m.pastePlaceholder}
           value={text}
@@ -108,23 +112,25 @@ export function AddPoem({ onKeep, onCancel }: Props) {
         value={proof.poet}
         onChange={(e) => update({ poet: e.target.value })}
       />
-      <div className="written-in">
-        <span>{m.writtenIn}</span>
-        {poemLanguages.map((language, i) => (
-          <span key={language} className="written-in">
-            {i > 0 && <span aria-hidden="true">·</span>}
-            <button
-              type="button"
-              className="action"
-              aria-pressed={proof.language === language}
-              lang={language}
-              onClick={() => update({ language })}
-            >
-              {LANGUAGE_NAMES[language]}
-            </button>
-          </span>
-        ))}
-      </div>
+      {proof.askLanguage && (
+        <div className="which-language">
+          <span>{m.languageQuestion}</span>
+          {poemLanguages.map((language, i) => (
+            <span key={language}>
+              {i > 0 && <span aria-hidden="true">·</span>}
+              <button
+                type="button"
+                className="action"
+                aria-pressed={proof.language === language}
+                lang={language}
+                onClick={() => update({ language })}
+              >
+                {LANGUAGE_NAMES[language]}
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
       <ProofLines lines={proof.lines} joins={proof.joins} language={proof.language} onToggle={toggle} />
       <ProofNotes
         proof={proof}
@@ -184,14 +190,10 @@ function ProofLines({
     <div className="proof" lang={language}>
       {shown.map((line) => (
         <div key={line.pieces[0]?.index} className={line.stanzaStart && line.number > 1 ? 'line stanza-start' : 'line'}>
-          <span className="line-number" aria-hidden="true">
-            {lineLabel(line.number)}
+          {/* A line that looks broken carries the mark in the margin, where its number would go. */}
+          <span className={line.suspect ? 'line-number suspect-mark' : 'line-number'} aria-hidden="true">
+            {line.suspect ? '⁀' : lineLabel(line.number)}
           </span>
-          {line.suspect && (
-            <span className="suspect-mark" aria-hidden="true">
-              ⁀
-            </span>
-          )}
           <div className="line-text">
             {line.pieces.map((piece) => (
               <button

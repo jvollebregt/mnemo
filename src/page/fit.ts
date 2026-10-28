@@ -43,6 +43,12 @@ export function fitSize({
   return smallest;
 }
 
+/** Whether any line is still too long at `size` and must turn over. */
+export function hasTurnovers({ widths, referenceSize, measure }: Pick<FitOptions, 'widths' | 'referenceSize' | 'measure'>, size: number): boolean {
+  if (measure <= 0) return false;
+  return widths.some((w) => (w * size) / referenceSize > measure);
+}
+
 /** The margin shows the number of every fifth line, counting only the poet's lines. */
 export function lineLabel(number: number): string {
   return number % 5 === 0 ? String(number) : '';

@@ -39,7 +39,7 @@ export const en = {
   setPage: 'set the page',
   titlePlaceholder: 'title',
   poetPlaceholder: 'poet',
-  writtenIn: 'written in',
+  languageQuestion: 'Is this poem in English or Dutch?',
   brokenNoteOne:
     'One line looks broken by the page it came from: it is marked ⁀ in the margin. If the poet didn’t break it there, tap it to join it to the line above. The app never joins lines by itself.',
   brokenNoteMany:
@@ -51,5 +51,11 @@ export const en = {
   closeUp: 'close up the spaces',
   keepIt: 'keep it',
   addedNote: 'It is on the page now, and only on your phone. Open it whenever you have ten quiet minutes.',
+  putAway: 'put it away',
+  longLinesTitle: 'long lines',
+  longLines1:
+    'Some lines in this poem are longer than the page is wide. Rather than break them where the poet didn’t, the page lets them turn over: the rest of the line carries on just below, indented, the way a printed book sets a long line.',
+  longLines2: 'It is still one line. The margin counts it once, and when the words fade, it fades as one.',
+  longLines3: 'Turn your phone sideways and the page grows wider, so most long lines fit whole. Turn it back whenever you like.',
   openFailed: 'Your poems could not be opened. Close the app and open it again.',
 } as const;

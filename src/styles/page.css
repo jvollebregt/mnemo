@@ -228,7 +228,7 @@ body {
 }
 
 /* Adding a poem */
-.sheet {
+.paste {
   flex-grow: 1;
   min-height: 40vh;
   margin-top: 28px;
@@ -243,7 +243,7 @@ body {
   line-height: 1.5;
 }
 
-.sheet::placeholder,
+.paste::placeholder,
 .field::placeholder {
   color: var(--trace);
   font-style: italic;
@@ -284,20 +284,33 @@ body {
   color: var(--grey);
 }
 
-.written-in {
+/* Asked only when the words don't make the poem's language clear. */
+.which-language {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
+  column-gap: 2px;
+  margin-top: 8px;
   font-size: 15px;
+  font-style: italic;
   color: var(--grey);
 }
 
-.written-in .action {
+.which-language > span:first-child {
+  flex-basis: 100%;
+}
+
+.which-language .action {
   color: var(--grey);
+  font-style: normal;
   padding-inline: 4px;
 }
 
-.written-in .action[aria-pressed='true'] {
+.which-language > span:nth-child(2) .action {
+  padding-left: 0;
+}
+
+.which-language .action[aria-pressed='true'] {
   color: var(--pencil);
   text-decoration: underline;
   text-underline-offset: 5px;
@@ -353,13 +366,9 @@ body {
   font-size: 13px;
 }
 
-.suspect-mark {
-  position: absolute;
-  left: 4px;
-  top: -0.7em;
+.line-number.suspect-mark {
   color: var(--pencil);
-  opacity: 0.6;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .foot.split {
@@ -378,4 +387,64 @@ body {
 
 .note-action {
   padding-left: 12px;
+}
+
+/*
+ * A sheet slides up from the bottom of the page for a lesson or an
+ * explanation. It has no close button: a tap anywhere outside it puts it away.
+ */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgb(30 27 23 / 8%);
+  cursor: default;
+}
+
+.sheet {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 11;
+  max-height: 80dvh;
+  overflow-y: auto;
+  margin: 0 auto;
+  max-width: var(--measure);
+  padding: 28px var(--gutter) calc(32px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--trace);
+  background: var(--paper);
+  animation: sheet-in 220ms ease-out;
+}
+
+.sheet:focus {
+  outline: none;
+}
+
+.sheet h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  font-variant-caps: all-small-caps;
+  color: var(--grey);
+}
+
+.sheet p {
+  margin: 0 0 12px;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+  }
 }
