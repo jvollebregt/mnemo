@@ -69,8 +69,18 @@ describe('the pencil', () => {
   it('teaches beats the first time it is taken up, and only then', async () => {
     const { store, poem } = await storeWithPoem();
     show(store, poem);
-    await takeUpPencil();
+    const mark = await screen.findByRole('button', { name: 'mark what you hear' });
+    await waitFor(() => expect((mark as HTMLButtonElement).disabled).toBe(false), { timeout: 5000 });
+    fireEvent.click(mark);
+    await screen.findByRole('dialog', { name: 'beats' });
+    // Opened by itself, it says so, and where to find it again.
+    expect(screen.getByText(/only the first time\. To read it again, tap about beats/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'put it away' }));
     expect(await store.seen.has('lesson:beats')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'about beats' }));
+    await screen.findByRole('dialog', { name: 'beats' });
+    expect(screen.queryByText(/only the first time/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'put it away' }));
     fireEvent.click(screen.getByRole('button', { name: 'put down' }));
     fireEvent.click(screen.getByRole('button', { name: 'mark what you hear' }));
     await new Promise((r) => setTimeout(r, 20));
@@ -144,6 +154,8 @@ describe('the pencil', () => {
     stroke(4, 22, 23); // the ll of all
     expect(Array.from(document.querySelectorAll('.verse .echo-2'), (e) => e.textContent)).toEqual(['oul', 'll']);
     expect(Array.from(document.querySelectorAll('.rhyme'), (r) => r.textContent)).toEqual(['a', 'a']);
+    // The pen stays in one family, so the first time it spans two lines, say how to start another.
+    expect(await screen.findByText(/For a different sound, first pick another line below/)).toBeTruthy();
 
     // One tap on an underline rubs out the whole echo, and the letters go with it.
     stroke(4, 23, 23);

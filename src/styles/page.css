@@ -605,7 +605,21 @@ body {
 
 /* A pause the reader heard: the stop is inked in pencil, a breath between words gets a stroke. */
 .stop.pause {
+  position: relative;
   color: var(--pencil);
+}
+
+/* A coloured comma is easy to miss on a phone, so a marked stop gets the same stroke, just after it, taking no room. */
+.stop.pause::after {
+  content: '/';
+  position: absolute;
+  left: 100%;
+  top: 0.05em;
+  margin-left: 0.1em;
+  font-size: 0.85em;
+  text-indent: 0;
+  color: var(--pencil);
+  pointer-events: none;
 }
 
 .gap.pause {
@@ -731,6 +745,13 @@ body {
 
 .action.soft {
   color: var(--grey);
+}
+
+/* Under the stanza being marked, set to the right like a catchword at the foot of a printed page. */
+.next-stanza {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
 }
 
 /* A long poem's numerals turn over onto a second row rather than run off the page. */
@@ -864,6 +885,12 @@ body {
   gap: 22px;
   padding: 4px 0 calc(12px + env(safe-area-inset-bottom));
   background: var(--paper);
+}
+
+.lesson-once {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--grey);
 }
 
 .sheet-foot .action {

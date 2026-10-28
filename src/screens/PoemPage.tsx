@@ -73,6 +73,7 @@ const STAGE_NOTE: Record<Stage, [string, MessageKey]> = {
 };
 const PEEK_NOTE: [string, MessageKey] = ['note:peek', 'notePeek'];
 const MISSED_NOTE: [string, MessageKey] = ['note:missed', 'noteMissed'];
+const FAMILY_NOTE: [string, MessageKey] = ['note:echo-family', 'noteEchoFamily'];
 const STEP_NOTE: Partial<Record<Step['kind'], [string, MessageKey]>> = {
   seam: ['note:seam', 'noteSeam'],
   chain: ['note:chain', 'noteChain'],
@@ -154,6 +155,8 @@ export function PoemPage({
   const [activeLine, setActiveLine] = useState<number | null>(null);
   const [drawing, setDrawing] = useState<Drawing | null>(null);
   const [lesson, setLesson] = useState<LessonKey | null>(null);
+  /** The lesson opened by itself, the first time its tool was picked, rather than from *about …*. */
+  const [lessonFirst, setLessonFirst] = useState(false);
   const [recutting, setRecutting] = useState<{ line: number; start: number } | null>(null);
   const [note, setNote] = useState<MessageKey | null>(null);
   const press = useRef<{ x: number; y: number; timer: number } | null>(null);
@@ -224,7 +227,10 @@ export function PoemPage({
   const pick = (next: Tool) => {
     settleActive();
     setTool(next);
-    once(`lesson:${next}`, () => setLesson(next));
+    once(`lesson:${next}`, () => {
+      setLesson(next);
+      setLessonFirst(true);
+    });
   };
 
   const pencil = stage === 'mark';
@@ -540,7 +546,11 @@ export function PoemPage({
       return;
     }
     const range = strokeRange(lineText(line), from, to);
-    if (range) update((marks) => addEcho(marks, { family, line, ...range }));
+    if (!range) return;
+    update((marks) => addEcho(marks, { family, line, ...range }));
+    // Once a family echoes across two lines, say how to start another sound: the pen stays in this one.
+    const lines = new Set(marks?.echoes.filter((e) => e.family === family).map((e) => e.line));
+    if (lines.size >= 2 || (lines.size === 1 && !lines.has(line))) once(FAMILY_NOTE[0], () => setNote(FAMILY_NOTE[1]));
   };
 
   const onPointerCancel = () => {
@@ -632,6 +642,14 @@ export function PoemPage({
           only={started ? inView : new Set()}
         />
       </div>
+      {/* Right under the stanza, as a page turns: the pencil moves on before anything fades. */}
+      {pencil && step.kind === 'stanza' && step.stanza + 1 < parsed.stanzas.length && (
+        <div className="next-stanza" lang={locale}>
+          <button type="button" className="action" onClick={markNextStanza}>
+            {m.nextStanza}
+          </button>
+        </div>
+      )}
       {note && (
         <p className="note" lang={locale}>
           {m[note]}
@@ -644,7 +662,10 @@ export function PoemPage({
             family={family}
             onTool={pick}
             onFamily={setFamily}
-            onAbout={() => setLesson(tool)}
+            onAbout={() => {
+              setLesson(tool);
+              setLessonFirst(false);
+            }}
             onPutDown={() => goOn('read')}
           />
         )}
@@ -674,7 +695,6 @@ export function PoemPage({
           onGo={goOn}
           onDone={finish}
           onRate={rate}
-          onNextStanza={pencil && step.kind === 'stanza' && step.stanza + 1 < parsed.stanzas.length ? markNextStanza : undefined}
         />
         {parsed.stanzas.length > 1 && (
           <div className="folio" role="group" aria-label={m.stanza}>
@@ -704,7 +724,17 @@ export function PoemPage({
           </button>
         )}
       </div>
-      {lesson && <LessonSheet lesson={lesson} onOpen={setLesson} onClose={() => setLesson(null)} />}
+      {lesson && (
+        <LessonSheet
+          lesson={lesson}
+          first={lessonFirst}
+          onOpen={(key) => {
+            setLesson(key);
+            setLessonFirst(false);
+          }}
+          onClose={() => setLesson(null)}
+        />
+      )}
       {recutting && recutWord && marks && (
         <RecutSheet
           word={recutWord.text}
@@ -739,7 +769,6 @@ function StageActions({
   onGo,
   onDone,
   onRate,
-  onNextStanza,
 }: {
   stage: Stage;
   done: boolean;
@@ -747,8 +776,6 @@ function StageActions({
   onGo: (stage: Stage) => void;
   onDone: () => void;
   onRate: (verdict: Verdict) => void;
-  /** While marking, the pencil can move on before anything fades. */
-  onNextStanza?: () => void;
 }) {
   const { m } = useI18n();
   if (stage === 'blank' && done) {
@@ -774,11 +801,6 @@ function StageActions({
       {back && stage !== 'mark' && (
         <button type="button" className="action soft" onClick={() => onGo(back)}>
           {m.back}
-        </button>
-      )}
-      {onNextStanza && (
-        <button type="button" className="action" onClick={onNextStanza}>
-          {m.nextStanza}
         </button>
       )}
       {next && (
