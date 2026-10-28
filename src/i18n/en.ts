@@ -30,4 +30,26 @@ export const en = {
   rateNotYet: 'not yet',
   rateMost: 'most of it',
   rateAll: 'all of it',
+
+  // Adding a poem
+  back: 'back',
+  pastePlaceholder: 'Paste the poem here, as it is printed.',
+  pasteNote:
+    'Paste it as it is printed, title and all. Blank lines between stanzas are kept. On the next page you can set right anything the pasting got wrong.',
+  setPage: 'set the page',
+  titlePlaceholder: 'title',
+  poetPlaceholder: 'poet',
+  writtenIn: 'written in',
+  brokenNoteOne:
+    'One line looks broken by the page it came from: it is marked ⁀ in the margin. If the poet didn’t break it there, tap it to join it to the line above. The app never joins lines by itself.',
+  brokenNoteMany:
+    'Some lines look broken by the page they came from: they are marked ⁀ in the margin. If the poet didn’t break them there, tap one to join it to the line above. The app never joins lines by itself.',
+  joinedNote:
+    'Joined. The line now turns over, indented, the way a book sets a long line, and it counts as one line. Tap it again to split it.',
+  doubleSpacedNote:
+    'There is a blank line after every line. That is usually how the web page was spaced, not how the poem is divided.',
+  closeUp: 'close up the spaces',
+  keepIt: 'keep it',
+  addedNote: 'It is on the page now, and only on your phone. Open it whenever you have ten quiet minutes.',
+  openFailed: 'Your poems could not be opened. Close the app and open it again.',
 } as const;

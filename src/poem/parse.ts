@@ -23,7 +23,7 @@ export interface ParsedPoem {
 }
 
 // Unicode line and paragraph separators turn up in text copied from web pages and PDFs.
-const LINE_BREAK = /\r\n|\r|\n|\u2028|\u2029/;
+export const LINE_BREAK = /\r\n|\r|\n|\u2028|\u2029/;
 
 export function parsePoem(text: string): ParsedPoem {
   const stanzas: Stanza[] = [];

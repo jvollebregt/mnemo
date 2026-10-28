@@ -21,7 +21,8 @@ CI runs typecheck, lint, test and build on every PR. Keep them green.
 
 - React + TypeScript + Vite, packaged with Capacitor as a paid iOS/Android store app. Native projects are added in M7.
 - No accounts, no server, no Supabase. Everything lives on the phone: SQLite for poems, marks and schedule, and audio in the app's own storage. Backup is the OS backup plus an export file.
-- Every change to stored data ships with a migration and a test that migrates real old data.
+- Every change to stored data ships with a migration in `src/store/migrations.ts` and a test in `migrations.test.ts` that migrates real data from the version before. Migrations are only ever added, never edited.
+- Storage goes through the small `Db` interface (`src/store/db.ts`): the Capacitor SQLite plugin on the phone, sql.js in the browser build and in tests.
 - `ts-fsrs` for scheduling, per line and per stanza.
 - Vitest for unit tests. Playwright later for flows.
 - `docs/archive/` is history; don't build from it. The old Bolt app is a reference only and is not in this repo. Never commit a `.env` or any key.
