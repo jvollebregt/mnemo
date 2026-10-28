@@ -31,6 +31,17 @@ export const migrations: readonly Migration[] = [
     version: 2,
     statements: [`CREATE TABLE seen_notes (key TEXT PRIMARY KEY, seen_at TEXT NOT NULL)`],
   },
+  {
+    // The reader's pencil marks, one JSON record per poem (see src/pencil/marks.ts).
+    version: 3,
+    statements: [
+      `CREATE TABLE marks (
+        poem_id TEXT PRIMARY KEY REFERENCES poems (id) ON DELETE CASCADE,
+        data TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+    ],
+  },
 ];
 
 export const latestVersion = migrations.reduce((v, m) => Math.max(v, m.version), 0);

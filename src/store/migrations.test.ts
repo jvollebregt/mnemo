@@ -63,6 +63,20 @@ describe('migrations', () => {
     expect(await db.all('SELECT key FROM seen_notes')).toEqual([]);
   });
 
+  it('add the marks record in version 3, keeping poems and seen notes', async () => {
+    const db = await openSqlJs();
+    await migrate(db, 2);
+    await db.run(
+      `INSERT INTO poems (id, title, poet, language, text, created_at, updated_at)
+       VALUES ('p1', 'Hope', '', 'en', 'a line', '2026-10-28T12:00:00.000Z', '2026-10-28T12:00:00.000Z')`,
+    );
+    await db.run("INSERT INTO seen_notes (key, seen_at) VALUES ('long-lines', '2026-10-28T12:00:00.000Z')");
+    expect(await migrate(db, 3)).toBe(2);
+    expect(await db.all('SELECT id FROM poems')).toEqual([{ id: 'p1' }]);
+    expect(await db.all('SELECT key FROM seen_notes')).toEqual([{ key: 'long-lines' }]);
+    expect(await db.all('SELECT poem_id FROM marks')).toEqual([]);
+  });
+
   it('survive saving and reopening the database file', async () => {
     const db = await openSqlJs();
     await migrate(db);
