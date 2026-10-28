@@ -56,7 +56,6 @@ const STAGE_ACTION: Record<Stage, MessageKey> = {
   marksOnly: 'stageMarksOnly',
   fadeMarks: 'stageFadeMarks',
   blank: 'stageBlank',
-  check: 'stageCheck',
 };
 
 /** The margin note each stage gets, once ever, with the key that remembers it was seen. */
@@ -66,8 +65,7 @@ const STAGE_NOTE: Record<Stage, [string, MessageKey]> = {
   fadeWords: ['note:fade-words', 'noteFadeWords'],
   marksOnly: ['note:marks-only', 'noteMarksOnly'],
   fadeMarks: ['note:fade-marks', 'noteFadeMarks'],
-  blank: ['note:blank', 'noteBlank'],
-  check: ['note:check', 'noteCheck'],
+  blank: ['note:recite', 'noteBlank'],
 };
 const PEEK_NOTE: [string, MessageKey] = ['note:peek', 'notePeek'];
 const MISSED_NOTE: [string, MessageKey] = ['note:missed', 'noteMissed'];
@@ -119,7 +117,7 @@ export function PoemPage({ poem, onBack, ear = DEVICE_EAR }: { poem: Poem; onBac
   /** Words showing in pencil, as "line:offset" of the word, and every word peeked at in this step, which still counts once faded again. */
   const [peeked, setPeeked] = useState<ReadonlySet<string>>(new Set());
   const [looked, setLooked] = useState<ReadonlySet<string>>(new Set());
-  /** At the check: what the reader typed, whether they are done, and the words they say they did have. */
+  /** On the blank page: what the reader typed, whether they are done, and the words they say they did have. */
   const [typed, setTyped] = useState('');
   const [done, setDone] = useState(false);
   const [granted, setGranted] = useState<ReadonlySet<string>>(new Set());
@@ -250,7 +248,7 @@ export function PoemPage({ poem, onBack, ear = DEVICE_EAR }: { poem: Poem; onBac
     if (next === 'mark') pick('beats');
     if (quiet) return;
     const [key, note] = STAGE_NOTE[next];
-    const text = next === 'check' && reciteBy === 'typing' ? 'noteCheckTyping' : note;
+    const text = next === 'blank' && reciteBy === 'typing' ? 'noteBlankTyping' : note;
     once(key, () => setNote(text));
   };
 
@@ -269,7 +267,7 @@ export function PoemPage({ poem, onBack, ear = DEVICE_EAR }: { poem: Poem; onBac
     [lines, inView, tokens],
   );
   const recalledKeys = useMemo(() => {
-    if (stage !== 'check') return new Set<string>();
+    if (stage !== 'blank') return new Set<string>();
     const found = recalled(
       words.map((w) => w.word),
       typedWords(typed, done),
@@ -370,7 +368,7 @@ export function PoemPage({ poem, onBack, ear = DEVICE_EAR }: { poem: Poem; onBac
   const onTap = (e: MouseEvent) => {
     if (!marks) return;
     const at = hit(e.target);
-    if (at && stage === 'check' && done) {
+    if (at && stage === 'blank' && done) {
       // Once done, a tap on a word in pencil says the reader did have it, unless they peeked at it.
       const word = tokenAt(tokens.get(at.line) ?? [], at.at);
       const key = word?.kind === 'word' ? markKey(at.line, word.start) : undefined;
@@ -568,7 +566,7 @@ export function PoemPage({ poem, onBack, ear = DEVICE_EAR }: { poem: Poem; onBac
             onPutDown={() => go('read')}
           />
         )}
-        {stage === 'check' && !done && (
+        {stage === 'blank' && !done && (
           <ReciteBox
             by={reciteBy}
             canSpeak={ear.available}
@@ -648,7 +646,7 @@ function StageActions({
   onRate: (verdict: Verdict) => void;
 }) {
   const { m } = useI18n();
-  if (stage === 'check' && done) {
+  if (stage === 'blank' && done) {
     return (
       <div className="stage-actions">
         <button type="button" className="action soft" onClick={() => onRate('notYet')}>
@@ -678,7 +676,7 @@ function StageActions({
           {m[STAGE_ACTION[next]]}
         </button>
       )}
-      {stage === 'check' && (
+      {stage === 'blank' && (
         <button type="button" className="action" onClick={onDone}>
           {m.reciteDone}
         </button>

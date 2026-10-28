@@ -10,7 +10,7 @@ import { dueStanzas, firstNewStanza, lineUnit, returnStage, stanzaUnit, type Car
 import type { Stage } from './stages';
 
 export type Step =
-  /** One stanza, from reading it to the check; or, when it comes back for review, from its marks. */
+  /** One stanza, from reading it to the blank page; or, when it comes back for review, from its marks. */
   | { kind: 'stanza'; stanza: number; review?: boolean }
   /** The last line of the stanza before, and the first line of this one. */
   | { kind: 'seam'; stanza: number }
@@ -26,9 +26,9 @@ export interface Start {
   stage: Stage;
 }
 
-/** Where a step begins: a new stanza from reading it, a seam or a chain from reciting. */
+/** Where a step begins: a new stanza from reading it, a seam or a chain from the blank page. */
 export function startOf(step: Step): Start {
-  if (step.kind !== 'stanza') return { step, stage: 'check' };
+  if (step.kind !== 'stanza') return { step, stage: 'blank' };
   return { step, stage: step.review ? 'marksOnly' : 'read' };
 }
 

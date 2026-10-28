@@ -48,8 +48,7 @@ CI runs typecheck, lint, test and build on every PR. Keep them green.
 3. **Fade the words** to first letters, with the rest a faint trace of the same length. Marks and *marked* pauses stay. Unmarked punctuation fades with the words.
 4. **Marks only.**
 5. **Fade the marks**, leaving only traces of the line shapes.
-6. **Blank page.**
-7. **Check:** recite, then rate *not yet · most of it · all of it*.
+6. **Blank page**, which is also the check: recite aloud (or type), words come back in ink as you get them and misses in pencil, then rate *not yet · most of it · all of it*. There is no separate check step (Joos, 2026-10-28).
 
 From stanza two on, the stanzas so far are chained, with extra practice on the seams. A peek is always possible and counts against the schedule. Whatever the user didn't mark never appears during the fade.
 
@@ -72,7 +71,7 @@ From stanza two on, the stanzas so far are chained, with extra practice on the s
 ## Words in the interface
 
 - The contents page shows one phrase per poem: *taking root* (learning), *fading* (due today, in pencil), or *by heart* (mastered). There are no numbers.
-- Use the agreed labels: *add a poem*, *mark what you hear*, *fade the words*, *marks only*, *fade the marks*, *blank page*, *check*, *beats · echoes · pauses*, *put down*.
+- Use the agreed labels: *add a poem*, *mark what you hear*, *fade the words*, *marks only*, *fade the marks*, *blank page*, *beats · echoes · pauses*, *put down*.
 - English and Dutch from the start. Every string lives in `src/i18n/en.ts` and `src/i18n/nl.ts`, and a test checks they have the same keys. Never hard-code interface text in components.
 - The interface language and a poem's own language are separate settings.
 - Dutch lessons are rewritten with Dutch public-domain examples (Gezelle, Gorter, Kloos), not translated.

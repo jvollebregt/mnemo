@@ -15,7 +15,7 @@ interface Props {
 }
 
 /**
- * Where the reader recites at the check: aloud, with what was heard written
+ * Where the reader recites on the blank page: aloud, with what was heard written
  * out on the ruled line, or typed onto it. Either way works fully.
  */
 export function ReciteBox({ by, canSpeak, text, hearing, language, onType, onListen, onSwitch }: Props) {

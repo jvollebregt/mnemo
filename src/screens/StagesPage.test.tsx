@@ -118,7 +118,7 @@ describe('the stages', () => {
     expect(looks(2)).toEqual(['Thatperchesinthesoul-:trace']);
   });
 
-  it('brings a faded word back in pencil, and keeps it marked in the check', async () => {
+  it('brings a faded word back in pencil, and keeps it marked when the recital is done', async () => {
     const { store, poem } = await storeWithPoem();
     show(store, poem);
     await ready();
@@ -135,8 +135,6 @@ describe('the stages', () => {
     fireEvent.click(glyph(2, 22));
     expect(looks(2)).toEqual(['Thatperchesinthesoul-:gone']);
 
-    fireEvent.click(action('check'));
-    expect(looks(2)).toEqual(['Thatperchesinthesoul-:gone']);
     fireEvent.click(action('done'));
     expect(looks(2)).toEqual(['Thatperchesinthesoul:peek', '-:ink']);
     expect(await store.seen.has('note:peek')).toBe(true);
@@ -150,9 +148,8 @@ describe('the stages', () => {
     await screen.findByRole('dialog', { name: 'beats' });
     fireEvent.click(action('put it away'));
     for (const name of ['fade the words', 'marks only', 'fade the marks', 'blank page']) fireEvent.click(action(name));
-    fireEvent.click(glyph(2, 22)); // a peek at soul
-    fireEvent.click(action('check'));
     expect(await screen.findByText(/Type it from memory/)).toBeTruthy();
+    fireEvent.click(glyph(2, 22)); // a peek at soul
 
     const recite = screen.getByRole('textbox', { name: 'recite' });
     fireEvent.change(recite, { target: { value: 'Hope is the thing with feathers - that perches in soul' } });
@@ -180,12 +177,12 @@ describe('the stages', () => {
     fireEvent.click(action('mark what you hear'));
     await screen.findByRole('dialog', { name: 'beats' });
     fireEvent.click(action('put it away'));
-    for (const name of ['fade the words', 'marks only', 'fade the marks', 'blank page', 'check', 'done']) fireEvent.click(action(name));
+    for (const name of ['fade the words', 'marks only', 'fade the marks', 'blank page', 'done']) fireEvent.click(action(name));
 
     fireEvent.click(action('not yet'));
     expect(screen.getByRole('button', { name: 'marks only' })).toBeTruthy();
 
-    for (const name of ['marks only', 'fade the marks', 'blank page', 'check', 'done', 'all of it']) fireEvent.click(action(name));
+    for (const name of ['marks only', 'fade the marks', 'blank page', 'done', 'all of it']) fireEvent.click(action(name));
     expect(document.querySelector('[data-line="1"]')).toBeNull();
     expect(document.querySelector('[data-line="5"]')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'stanza 2' }).getAttribute('aria-pressed')).toBe('true');
@@ -195,7 +192,7 @@ describe('the stages', () => {
     expect(document.querySelector('[data-line="1"]')).toBeTruthy();
     fireEvent.click(action('stanza 2'));
     fireEvent.click(action('mark what you hear'));
-    for (const name of ['fade the words', 'marks only', 'fade the marks', 'blank page', 'check', 'done', 'most of it']) {
+    for (const name of ['fade the words', 'marks only', 'fade the marks', 'blank page', 'done', 'most of it']) {
       fireEvent.click(action(name));
     }
 
@@ -250,7 +247,7 @@ describe('the stages', () => {
     fireEvent.click(action('mark what you hear'));
     await screen.findByRole('dialog', { name: 'beats' });
     fireEvent.click(action('put it away'));
-    for (const name of ['fade the words', 'marks only', 'fade the marks', 'blank page', 'check']) fireEvent.click(action(name));
+    for (const name of ['fade the words', 'marks only', 'fade the marks', 'blank page']) fireEvent.click(action(name));
     expect(await screen.findByText(/Say it aloud from memory/)).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
 

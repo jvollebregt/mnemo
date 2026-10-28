@@ -26,9 +26,9 @@ MNEMO is a single sheet of paper that slowly forgets the poem, so that you have 
 | **Words fade** | The words drop to first letters (the rest becomes a faint trace of the same length, so the line keeps its shape). Your marks stay, including the pauses you marked. Punctuation you didn't mark fades with the words, so marking pauses is what makes you notice them. | *"The words fade; your marks stay. First letters and rhythm are enough to pull a line back."* |
 | **Marks only** | Only your marks (beats, echoes, pauses) remain over blank traces. | *"Rebuild each line from its beats, its sounds and its pauses."* |
 | **Marks fade** | Only faint traces show the shape of the lines and words. | *"Now the marks go too. Only the shape of the lines is left."* |
-| **Blank page** | Nothing at all, not even the traces: the real condition of reciting to someone. | *"A blank page, as when you recite to someone."* |
+| **Blank page** | Nothing at all, not even the traces: the real condition of reciting to someone. This is also the check (see *Recite*), so the empty page is never a step you could just as well do with the book closed (Joos, 2026-10-28). | *"A blank page, as when you recite to someone."* |
 | **Peek** | Tap a faded word and it comes back in pencil. | First peek: *"Peeking is fine. The words you peek at are the ones we'll come back to."* |
-| **Recite** | A blank stanza. Say it (or type it). Words reappear in ink as you get them right, and missed ones appear in pencil. | First time: *"Missing a word is useful. That's where memory is built."* |
+| **Recite** | On the blank page. Say it (or type it). Words reappear in ink as you get them right, and missed ones appear in pencil. | First time: *"Missing a word is useful. That's where memory is built."* |
 | **Chain** | After stanza 2, stanzas 1 and 2 together, then 1 to 3. The join between stanzas gets its own practice. | *"Now the two together. The seam between stanzas is where recitals usually break."* |
 | **Stop** | After about 10 minutes: *"That's enough for today. Tomorrow it will feel half-gone. That's the point."* | Why spacing works, in one sentence. |
 | **Return** | The contents page: titles with dotted leaders and one word each (*taking root*, *fading*, *by heart*). Opening a *fading* poem starts with recall, never rereading. | *"Try it before you look. Remembering is what makes it stick."* |
@@ -82,7 +82,7 @@ Rhyme is treated as part of *sound*, following Mary Oliver's handbooks: allitera
 4. **M3 Fade → peek:** the stages (fade the words, marks only, fade the marks, blank page), honouring which kinds the user marked, with margin notes and a "seen once" record.
 5. **M4 Recite + chain:** typed recall first, then cumulative stanzas and seam practice.
 6. **M5 Schedule + contents page:** FSRS per line and stanza, and the *taking root / fading / by heart* contents page. A stanza that comes back opens where the schedule thinks the reader still is: *blank page* when it is likely still known, then *fade the marks*, *marks only* or *fade the words* the longer it has been left (Joos, 2026-10-28).
-7. **M6 Spoken recall:** speaking aloud becomes the default way to recite at the check. Typing always stays available as an option, so the app works fully for anyone who can't or would rather not speak (Joos, 2026-10-28).
+7. **M6 Spoken recall:** speaking aloud becomes the default way to recite on the blank page. Typing always stays available as an option, so the app works fully for anyone who can't or would rather not speak (Joos, 2026-10-28).
 8. **M7 Store build:** Capacitor iOS and Android projects, OS backup plus export/import file, the quiet settings page (default mark kinds, space used by recordings, *clear recordings*), store listing.
 
 Each milestone is one PR. The prompt can be as short as: *"Read CLAUDE.md and docs/SPEC.md, plan M2, then build it with tests and open a PR."*

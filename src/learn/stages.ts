@@ -3,11 +3,11 @@
  * words fade first and the reader's marks stay; then the marks fade, leaving
  * only the shapes of the lines; then nothing. Whatever the reader didn't mark
  * never appears during the fade, and a peek brings a word back in pencil.
- * At the check the page starts blank and each word comes back in ink as the
- * reader recalls it; once they are done, the rest shows in pencil.
+ * The blank page is the check: each word comes back in ink as the reader
+ * recalls it, and once they are done, the rest shows in pencil.
  */
 
-export const STAGES = ['read', 'mark', 'fadeWords', 'marksOnly', 'fadeMarks', 'blank', 'check'] as const;
+export const STAGES = ['read', 'mark', 'fadeWords', 'marksOnly', 'fadeMarks', 'blank'] as const;
 export type Stage = (typeof STAGES)[number];
 
 /** How a character is set: in ink, as a faint trace of its width, not at all, or peeked at, in pencil. */
@@ -31,20 +31,17 @@ export interface Character {
   peeked?: boolean;
   /** Punctuation the reader marked as a pause. */
   pause?: boolean;
-  /** At the check: its word has been recalled. */
+  /** On the blank page: its word has been recalled. */
   recalled?: boolean;
 }
 
-/** `done`: at the check, the reader has finished reciting. */
+/** `done`: on the blank page, the reader has finished reciting. */
 export function lookOf(stage: Stage, c: Character, done = false): Look {
   if (c.letter && c.peeked && canPeek(stage)) return 'peek';
   switch (stage) {
     case 'read':
     case 'mark':
       return 'ink';
-    case 'check':
-      if (!c.letter) return done ? 'ink' : 'gone';
-      return c.recalled ? 'ink' : done ? 'peek' : 'gone';
     case 'fadeWords':
       if (c.letter) return c.first ? 'ink' : 'trace';
       return c.pause ? 'ink' : 'trace';
@@ -53,6 +50,7 @@ export function lookOf(stage: Stage, c: Character, done = false): Look {
     case 'fadeMarks':
       return 'trace';
     case 'blank':
-      return 'gone';
+      if (!c.letter) return done ? 'ink' : 'gone';
+      return c.recalled ? 'ink' : done ? 'peek' : 'gone';
   }
 }

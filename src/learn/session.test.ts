@@ -33,11 +33,11 @@ describe('the order of practice', () => {
     expect(starts.map(({ step, stage }) => `${JSON.stringify(step)} ${stage}`)).toEqual([
       '{"kind":"stanza","stanza":0} read',
       '{"kind":"stanza","stanza":1} read',
-      '{"kind":"seam","stanza":1} check',
-      '{"kind":"chain","through":1} check',
+      '{"kind":"seam","stanza":1} blank',
+      '{"kind":"chain","through":1} blank',
       '{"kind":"stanza","stanza":2} read',
-      '{"kind":"seam","stanza":2} check',
-      '{"kind":"chain","through":2} check',
+      '{"kind":"seam","stanza":2} blank',
+      '{"kind":"chain","through":2} blank',
     ]);
   });
 

@@ -1,5 +1,5 @@
 /**
- * Checking a recital against the poem. The reader types (and later says) the
+ * Checking a recital against the poem. The reader says or types the
  * stanza from memory; their words are lined up with the poem's in order, so
  * a skipped line or an extra word doesn't throw the rest off. Case, accents
  * and punctuation don't count: only the words do.
