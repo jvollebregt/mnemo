@@ -50,7 +50,7 @@ CI runs typecheck, lint, test and build on every PR. Keep them green.
 5. **Fade the marks**, leaving only traces of the line shapes.
 6. **Blank page**, which is also the check: recite aloud (or type), words come back in ink as you get them and misses in pencil, then rate *not yet · most of it · all of it*. There is no separate check step (Joos, 2026-10-28).
 
-While marking, the whole poem is on the page: the stanza in hand in ink, the others faint, each with its numeral in the margin. Tapping a faint stanza moves the pencil there (no *next stanza* label; Joos, 2026-10-29), so the whole poem can be marked first; fading and the blank page then go stanza by stanza from the first (Joos, 2026-10-28). From stanza two on, the stanzas so far are chained, with extra practice on the seams. A peek is always possible and counts against the schedule. Whatever the user didn't mark never appears during the fade.
+While marking, the whole poem is on the page: the stanza in hand in ink, the others faint, each with its numeral in the margin. Tapping a faint stanza moves the pencil there (no *next stanza* label; Joos, 2026-10-29), so the whole poem can be marked first (Joos, 2026-10-28). *fade the words* fades the stanza in hand; after it, the app goes on with the first stanza not yet learned, and seams and chains join only stanzas already learned (Joos, 2026-10-29). From stanza two on, the stanzas so far are chained, with extra practice on the seams. A peek is always possible and counts against the schedule. Whatever the user didn't mark never appears during the fade.
 
 ## The pencil
 
