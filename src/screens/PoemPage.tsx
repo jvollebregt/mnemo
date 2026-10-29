@@ -29,6 +29,7 @@ import {
   echoAt,
   emptyMarks,
   eraseEcho,
+  markedLines,
   markKey,
   recut,
   rhymeLetters,
@@ -83,6 +84,9 @@ const STEP_NOTE: Partial<Record<Step['kind'], [string, MessageKey]>> = {
 };
 const RETURN_NOTE: [string, MessageKey] = ['note:return', 'noteReturn'];
 const LONG_PRESS_MS = 550;
+// How far below the top, and above the foot, a stanza scrolled into view comes to rest.
+const SCROLL_TOP = 72;
+const SCROLL_FOOT = 24;
 const PRESS_SLOP_PX = 10;
 
 /** A stroke being drawn under letters: from the letter where the finger went down to the one under it now. */
@@ -125,6 +129,7 @@ export function PoemPage({
   const { seen } = store;
   const parsed = useMemo(() => parsePoem(poem.text), [poem.text]);
   const lines = useMemo(() => parsed.stanzas.flatMap((s) => s.lines), [parsed]);
+  const stanzaLines = useMemo(() => parsed.stanzas.map((s) => s.lines.map((l) => l.number)), [parsed]);
   const syllabifier = useSyllabifier(poem.language);
 
   const [explainLongLines, setExplainLongLines] = useState(false);
@@ -138,7 +143,6 @@ export function PoemPage({
   /** Stanzas recited well enough in this session not to come back in it. */
   const practised = useRef(new Set<number>());
   /** While the pencil moves on through the poem, the stanza that the fading comes back to. */
-  const markingFrom = useRef<Step | null>(null);
   const [step, setStep] = useState<Step>({ kind: 'stanza', stanza: 0 });
   const [stage, setStage] = useState<Stage>('read');
   /** Words showing in pencil, as "line:offset" of the word, and every word peeked at in this step, which still counts once faded again. */
@@ -325,36 +329,45 @@ export function PoemPage({
 
   /** The pencil moves to another stanza, so the whole poem can be marked before any of it fades. */
   const markStanza = (stanza: number) => {
-    markingFrom.current ??= step;
     settleActive();
     setDrawing(null);
     setNote(null);
     setStep({ kind: 'stanza', stanza });
   };
 
-  /** Leaving the pencil goes back to the stanza being learned, wherever the marking got to. */
+  /**
+   * On through the method with the stanza in hand. The pencil opens where the
+   * marking is still to do: this stanza if it has unmarked lines, else the first that has.
+   */
   const goOn = (next: Stage) => {
-    if (markingFrom.current) {
-      setStep(markingFrom.current);
-      markingFrom.current = null;
+    if (next === 'mark' && marks && step.kind === 'stanza') {
+      const done = markedLines(marks);
+      const open = (i: number) => (stanzaLines[i] ?? []).some((line) => !done.has(line));
+      const to = open(step.stanza) ? step.stanza : stanzaLines.findIndex((_, i) => open(i));
+      if (to >= 0 && to !== step.stanza) setStep({ kind: 'stanza', stanza: to });
     }
     go(next);
   };
 
   const inView = useMemo(() => new Set(linesOf(step, parsed)), [step, parsed]);
 
-  // The stanza in hand scrolls up into place when the reader, or the pencil, moves on, as a page is read on.
+  // When the reader, or the pencil, moves to another stanza, the page scrolls just enough to bring it
+  // into view between the top and the foot, and not at all if it is already there.
   const verseRef = useRef<HTMLDivElement>(null);
+  const footRef = useRef<HTMLDivElement>(null);
   const inHand = stanzasOf(step)[0] ?? 0;
   const lastInHand = useRef(inHand);
   useEffect(() => {
     const from = lastInHand.current;
     lastInHand.current = inHand;
-    if (from === inHand) return;
+    const box = verseRef.current?.querySelector(`[data-stanza="${inHand}"]`)?.getBoundingClientRect();
+    if (from === inHand || !box) return;
+    const top = SCROLL_TOP;
+    const bottom = (footRef.current?.getBoundingClientRect().top ?? window.innerHeight) - SCROLL_FOOT;
+    const by = box.top < top ? box.top - top : box.bottom > bottom ? Math.min(box.bottom - bottom, box.top - top) : 0;
+    if (by === 0) return;
     const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    verseRef.current
-      ?.querySelector('.stanza:not(.faint)')
-      ?.scrollIntoView?.({ block: 'start', behavior: still ? 'auto' : 'smooth' });
+    window.scrollBy?.({ top: by, behavior: still ? 'auto' : 'smooth' });
   }, [inHand]);
 
   // The words of the lines in view, in order, to line up with what the reader types.
@@ -378,11 +391,8 @@ export function PoemPage({
     return new Set([...granted, ...[...found].map((i) => words[i]!.key)]);
   }, [stage, words, typed, done, granted]);
 
-  const stanzaLines = useMemo(() => parsed.stanzas.map((s) => s.lines.map((l) => l.number)), [parsed]);
-
   // A new stanza starts from reading it, a review from the marks, a seam or a chain from reciting.
   const open = ({ step: next, stage: first }: Start) => {
-    markingFrom.current = null;
     setStep(next);
     setPeeked(new Set());
     setLooked(new Set());
@@ -483,13 +493,11 @@ export function PoemPage({
 
   const onTap = (e: MouseEvent) => {
     if (!marks) return;
-    // A tap on a faint stanza takes the reader, or the pencil, there. While fading, the traces stay still.
-    const other = wholePoem ? (e.target as Element).closest('.stanza.faint') : null;
+    // A tap on a faint stanza takes the pencil there. While fading, the traces stay still.
+    const other = pencil ? (e.target as Element).closest('.stanza.faint') : null;
     if (other) {
       e.stopPropagation();
-      const i = Number(other.getAttribute('data-stanza'));
-      if (pencil) markStanza(i);
-      else openStanza(i);
+      markStanza(Number(other.getAttribute('data-stanza')));
       return;
     }
     const found = hit(e.target);
@@ -718,7 +726,8 @@ export function PoemPage({
           aside={ready ? aside : undefined}
           // The whole poem is on the page, the lines in hand in ink and the rest faint.
           only={started ? undefined : new Set()}
-          focus={inView}
+          // On the first page the whole poem is in ink, to read through.
+          focus={stage === 'read' ? undefined : inView}
           numeral={parsed.stanzas.length > 1 ? numeral : undefined}
         />
       </div>
@@ -727,7 +736,7 @@ export function PoemPage({
           {m[note]}
         </p>
       )}
-      <div className={pencil ? 'stage-foot pencil-foot' : 'stage-foot'} lang={locale}>
+      <div ref={footRef} className={pencil ? 'stage-foot pencil-foot' : 'stage-foot'} lang={locale}>
         {pencil && (
           <PencilBar
             tool={tool}

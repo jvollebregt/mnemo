@@ -4,6 +4,7 @@ import {
   echoAt,
   emptyMarks,
   eraseEcho,
+  markedLines,
   readMarks,
   recut,
   rhymeLetters,
@@ -120,5 +121,12 @@ describe('stored marks', () => {
     const partial = readMarks(JSON.stringify({ beats: ['1:0', 3], echoes: [{ family: 9, line: 1, start: 0, end: 1 }] }));
     expect(partial.beats).toEqual(['1:0']);
     expect(partial.echoes).toEqual([]);
+  });
+});
+
+describe('marked lines', () => {
+  it('counts a line with any mark, or one moved on from', () => {
+    const marks = { ...emptyMarks(), settled: [1], beats: ['2:0'], pauses: ['4:3'], echoes: [{ family: 1 as const, line: 6, start: 0, end: 2 }] };
+    expect([...markedLines(marks)].sort()).toEqual([1, 2, 4, 6]);
   });
 });

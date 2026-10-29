@@ -691,8 +691,11 @@ body {
 .stage-foot {
   position: sticky;
   bottom: 0;
+  z-index: 1;
   margin-top: auto;
-  padding: 8px 0 calc(10px + env(safe-area-inset-bottom));
+  /* Out over the gutters, so the stanza numerals in the margin pass under it too. */
+  margin-inline: calc(-1 * var(--gutter));
+  padding: 8px var(--gutter) calc(10px + env(safe-area-inset-bottom));
   background: var(--paper);
   display: flex;
   flex-direction: column;

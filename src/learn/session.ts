@@ -61,7 +61,10 @@ export function nextStart(
   now: Date,
   practised: ReadonlySet<number>,
 ): Start | undefined {
-  if (step.kind === 'stanza' && !step.review && step.stanza > 0) return startOf({ kind: 'seam', stanza: step.stanza });
+  // A seam and a chain join only stanzas already learned: one learned out of order waits for those before it.
+  const learnedBefore = (stanza: number) => Array.from({ length: stanza }, (_, i) => cards.has(stanzaUnit(i))).every(Boolean);
+  if (step.kind === 'stanza' && !step.review && step.stanza > 0 && learnedBefore(step.stanza))
+    return startOf({ kind: 'seam', stanza: step.stanza });
   if (step.kind === 'seam') return startOf({ kind: 'chain', through: step.stanza });
   return pick(stanzaLines, cards, now, practised);
 }

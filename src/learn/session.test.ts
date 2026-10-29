@@ -41,6 +41,18 @@ describe('the order of practice', () => {
     ]);
   });
 
+  it('lets a stanza learned out of order wait for the ones before it to join', () => {
+    const cards = new Map<Unit, Card>([[stanzaUnit(2), learned(new Date(2026, 9, 31))]]);
+    // The third stanza went first: no seam with an unlearned second, on to the first new one.
+    expect(nextStart({ kind: 'stanza', stanza: 2 }, STANZAS, cards, NOW, new Set([2]))).toEqual({
+      step: { kind: 'stanza', stanza: 0 },
+      stage: 'read',
+    });
+    cards.set(stanzaUnit(0), learned(new Date(2026, 9, 31)));
+    cards.set(stanzaUnit(1), learned(new Date(2026, 9, 31)));
+    expect(nextStart({ kind: 'stanza', stanza: 1 }, STANZAS, cards, NOW, new Set([0, 1, 2]))?.step).toEqual({ kind: 'seam', stanza: 1 });
+  });
+
   it('brings due stanzas back first, from the marks, then goes on with a new one', () => {
     const cards = new Map<Unit, Card>([
       [stanzaUnit(0), learned(new Date(2026, 9, 30))],

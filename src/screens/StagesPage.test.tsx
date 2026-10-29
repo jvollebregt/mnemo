@@ -88,9 +88,8 @@ describe('the stages', () => {
     show(store, poem);
     await ready();
     expect(screen.getByText(/Read it aloud/)).toBeTruthy();
-    // The whole poem, the stanza in hand in ink and the next one faint.
-    expect(stanza(0).className).toContain('in-focus');
-    expect(stanza(1).className).toContain('faint');
+    // The whole poem, all in ink, to read through.
+    expect(inHand()).toEqual(['1', '2', '3', '4', '5', '6']);
 
     fireEvent.click(action('mark what you hear'));
     await screen.findByRole('dialog', { name: 'beats' });
@@ -124,7 +123,7 @@ describe('the stages', () => {
     expect(looks(2)).toEqual(['Thatperchesinthesoul-:trace']);
   });
 
-  it('marks the whole poem stanza by stanza, then fades from the first', async () => {
+  it('marks the whole poem stanza by stanza, and fades the stanza in hand', async () => {
     const { store, poem } = await storeWithPoem();
     show(store, poem);
     await ready();
@@ -147,15 +146,18 @@ describe('the stages', () => {
     fireEvent.click(glyph(6, 4)); // sweet
     expect(document.querySelectorAll('[data-line="6"] .syl.beat')).toHaveLength(1);
 
-    // Fading starts from the stanza being learned, with the marks made on the way.
+    // Fading takes the stanza in hand, with its marks; the rest of the poem is only traces of its line shapes.
     fireEvent.click(action('fade the words'));
-    expect(inHand()).toEqual(['1', '2', '3', '4']);
-    expect(looks(2)[0]).toBe('T:ink');
-    // The next stanza is only the traces of its line shapes now, with no marks.
-    expect(looks(6).every((run) => run.endsWith(':trace'))).toBe(true);
-    expect(document.querySelectorAll('[data-line="6"] .syl.beat')).toHaveLength(0);
-    expect(document.querySelectorAll('[data-line="2"] .syl.beat')).toHaveLength(1);
+    expect(inHand()).toEqual(['5', '6']);
+    expect(looks(6)[0]).toBe('A:ink');
+    expect(document.querySelectorAll('[data-line="6"] .syl.beat')).toHaveLength(1);
+    expect(looks(2).every((run) => run.endsWith(':trace'))).toBe(true);
+    expect(document.querySelectorAll('[data-line="2"] .syl.beat')).toHaveLength(0);
     expect((await store.marks.get(poem.id)).settled).toEqual(expect.arrayContaining([2, 6]));
+
+    // Back to the pencil: it stays with the stanza in hand while that has lines still unmarked.
+    fireEvent.click(action('back'));
+    expect(stanza(1).className).toContain('in-focus');
   });
 
   it('brings a faded word back in pencil, and keeps it marked when the recital is done', async () => {
@@ -209,6 +211,16 @@ describe('the stages', () => {
     expect(looks(2)).toEqual(['Thatperchesinthe:ink', 'soul:peek', '-:ink']);
   });
 
+  it('opens the pencil on the first stanza with lines still to mark', async () => {
+    const { store, poem } = await storeWithPoem();
+    await store.marks.save(poem.id, { ...(await store.marks.get(poem.id)), settled: [1, 2, 3, 4] });
+    show(store, poem);
+    await ready();
+    fireEvent.click(action('mark what you hear'));
+    expect(stanza(1).className).toContain('in-focus');
+    expect(stanza(0).className).toContain('faint');
+  });
+
   it('moves on to the next stanza, then the seam, then both together', async () => {
     const { store, poem } = await storeWithPoem();
     const onBack = vi.fn();
@@ -225,8 +237,6 @@ describe('the stages', () => {
     // While fading, the next stanza is only traces.
     expect(looks(5).every((run) => run.endsWith(':trace'))).toBe(true);
     for (const name of ['marks only', 'fade the marks', 'blank page', 'done', 'all of it']) fireEvent.click(action(name));
-    expect(stanza(0).className).toContain('faint');
-    expect(stanza(1).className).toContain('in-focus');
     expect(screen.getByRole('button', { name: 'stanza 2' }).getAttribute('aria-pressed')).toBe('true');
     // Each numeral in the tone of how its stanza stands: the first taking root, the second not begun.
     expect(action('stanza 1').className).toContain('takingRoot');
@@ -238,9 +248,9 @@ describe('the stages', () => {
     expect(looks(5).every((run) => run.endsWith(':trace'))).toBe(true);
     fireEvent.click(action('stanza 1'));
     expect(looks(5)[0]).toMatch(/:ink$/);
-    fireEvent.click(stanza(1));
-    expect(stanza(1).className).toContain('in-focus');
+    fireEvent.click(action('stanza 2'));
     fireEvent.click(action('mark what you hear'));
+    expect(stanza(1).className).toContain('in-focus');
     for (const name of ['fade the words', 'marks only', 'fade the marks', 'blank page', 'done', 'most of it']) {
       fireEvent.click(action(name));
     }
