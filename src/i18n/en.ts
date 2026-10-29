@@ -97,7 +97,7 @@ export const en = {
   longLinesTitle: 'long lines',
   longLines1:
     'Some lines in this poem are longer than the page is wide. Rather than break them where the poet didn’t, the page lets them turn over: the rest of the line carries on just below, indented, the way a printed book sets a long line.',
-  longLines2: 'It is still one line. The margin counts it once, and when the words fade, it fades as one.',
+  longLines2: 'It is still one line: when the words fade, it fades as one.',
   longLines3: 'Turn your phone sideways and the page grows wider, so most long lines fit whole. Turn it back whenever you like.',
   // Settings
   settingsReciting: 'reciting',
@@ -113,6 +113,7 @@ export const en = {
   recitalsNone: 'No recitals are kept.',
   clearRecordings: 'clear recordings',
   clearRecordingsSure: 'yes, clear them',
+  correctPoem: 'correct this poem',
   removePoem: 'remove this poem',
   removePoemSure: 'yes, remove it',
   settingsYourPoems: 'your poems',

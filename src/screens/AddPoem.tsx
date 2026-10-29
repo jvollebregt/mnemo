@@ -4,9 +4,11 @@ import { useI18n } from '../i18n/context';
 import { canJoin, closeUp, guessLanguage, looksDoubleSpaced, mend, readPasted, suspectBreaks } from '../poem/intake';
 import { lineLabel } from '../page/fit';
 import { poemLanguages, type PoemLanguage } from '../poem/language';
-import type { NewPoem } from '../store/poems';
+import type { NewPoem, Poem } from '../store/poems';
 
 interface Props {
+  /** A poem kept before, to correct: its text comes back onto the sheet, its title and poet onto the proof. */
+  correcting?: Poem;
   onKeep: (poem: NewPoem) => Promise<void>;
   onCancel: () => void;
 }
@@ -27,13 +29,19 @@ interface Proof {
  * proof, where the reader checks the title and poet and mends any line the
  * source page broke. Nothing is changed without the reader's tap.
  */
-export function AddPoem({ onKeep, onCancel }: Props) {
+export function AddPoem({ correcting, onKeep, onCancel }: Props) {
   const { m, locale } = useI18n();
-  const [text, setText] = useState('');
+  const [text, setText] = useState(correcting?.text ?? '');
   const [proof, setProof] = useState<Proof | null>(null);
   const [saving, setSaving] = useState(false);
 
   const setPage = () => {
+    if (correcting) {
+      // The text is the poem's own, so its first line is never taken for a title.
+      const { title, poet, language } = correcting;
+      setProof({ title, poet, language, askLanguage: false, lines: readPasted(text, false).lines, joins: new Set(), lastJoined: false });
+      return;
+    }
     const pasted = readPasted(text);
     const guess = guessLanguage(pasted.lines.join('\n'), locale);
     setProof({
@@ -50,7 +58,7 @@ export function AddPoem({ onKeep, onCancel }: Props) {
       <main className="page">
         <div className="top">
           <button type="button" className="action" onClick={onCancel}>
-            {m.contents}
+            {correcting ? m.back : m.contents}
           </button>
         </div>
         <textarea
@@ -60,7 +68,7 @@ export function AddPoem({ onKeep, onCancel }: Props) {
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
-        <p className="note">{m.pasteNote}</p>
+        {!correcting && <p className="note">{m.pasteNote}</p>}
         <div className="foot">
           <button type="button" className="action" disabled={!text.trim()} onClick={setPage}>
             {m.setPage}

@@ -64,6 +64,29 @@ describe('App', () => {
     expect((await store.poems.list()).map((p) => p.title)).toEqual(['Stone']);
   });
 
+  it('corrects a kept poem from its first page', async () => {
+    const store = await freshStore();
+    await store.poems.add({ title: 'The Fall of Rome', poet: 'W.H. Ayden', language: 'en', text: 'The piers are pummelled\nby the waves' });
+    renderApp(store);
+
+    fireEvent.click(await screen.findByRole('button', { name: /^The Fall of Rome/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'correct this poem' }));
+    // The poem's own text comes back to set right, its first line not taken for a title.
+    const sheet = screen.getByRole('textbox') as HTMLTextAreaElement;
+    expect(sheet.value).toBe('The piers are pummelled\nby the waves');
+    fireEvent.change(sheet, { target: { value: 'The piers are pummelled by the waves;' } });
+    fireEvent.click(screen.getByRole('button', { name: 'set the page' }));
+    expect((screen.getByRole('textbox', { name: 'title' }) as HTMLInputElement).value).toBe('The Fall of Rome');
+    fireEvent.change(screen.getByRole('textbox', { name: 'poet' }), { target: { value: 'W.H. Auden' } });
+    fireEvent.click(screen.getByRole('button', { name: 'keep it' }));
+
+    // Back on the poem, corrected.
+    expect(await screen.findByText('W.H. Auden')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'The Fall of Rome' })).toBeTruthy();
+    const [poem] = await store.poems.list();
+    expect(poem).toMatchObject({ poet: 'W.H. Auden', text: 'The piers are pummelled by the waves;' });
+  });
+
   it('adds a pasted poem, mending a broken line, and opens it', async () => {
     const store = await freshStore();
     renderApp(store);

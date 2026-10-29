@@ -42,10 +42,11 @@ export function nameCase(text: string): string {
  * A first line counts as the title when a blank line or a byline follows it.
  * A line starting with "by" (or Dutch "door") right after it counts as the poet.
  */
-export function readPasted(text: string): Pasted {
+export function readPasted(text: string, withTitle = true): Pasted {
   let lines = dropLeadingBlanks(text.split(LINE_BREAK).map((l) => l.replace(/\s+$/u, '')));
   let title = '';
   let poet = '';
+  if (!withTitle) return { title, poet, lines: dropTrailingBlanks(lines) };
 
   const first = lines[0];
   const second = lines[1];

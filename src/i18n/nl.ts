@@ -91,7 +91,7 @@ export const nl: Messages = {
   longLinesTitle: 'lange regels',
   longLines1:
     'Sommige regels in dit gedicht zijn langer dan de bladzijde breed is. In plaats van ze af te breken waar de dichter dat niet deed, loopt de regel door: het vervolg staat er vlak onder, ingesprongen, zoals een gedrukt boek een lange regel zet.',
-  longLines2: 'Het blijft één regel. De marge telt hem één keer, en als de woorden vervagen, vervaagt hij in zijn geheel.',
+  longLines2: 'Het blijft één regel: als de woorden vervagen, vervaagt hij in zijn geheel.',
   longLines3: 'Draai je telefoon een kwartslag en de bladzijde wordt breder, zodat de meeste lange regels heel passen. Draai hem terug wanneer je wilt.',
   // Instellingen
   settingsReciting: 'opzeggen',
@@ -107,6 +107,7 @@ export const nl: Messages = {
   recitalsNone: 'Er zijn geen voordrachten bewaard.',
   clearRecordings: 'wis opnames',
   clearRecordingsSure: 'ja, wis ze',
+  correctPoem: 'verbeter dit gedicht',
   removePoem: 'haal dit gedicht weg',
   removePoemSure: 'ja, haal het weg',
   settingsYourPoems: 'je gedichten',

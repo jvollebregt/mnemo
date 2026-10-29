@@ -10,7 +10,10 @@ import { SettingsPage } from './screens/SettingsPage';
 import { useStore } from './store/context';
 import type { NewPoem, Poem } from './store/poems';
 
-type View = { name: 'contents'; justAdded?: boolean } | { name: 'add' } | { name: 'poem'; poem: Poem } | { name: 'settings' };
+type View =
+  | { name: 'contents'; justAdded?: boolean }
+  | { name: 'add'; correcting?: Poem }
+  | { name: 'poem'; poem: Poem } | { name: 'settings' };
 
 export function App() {
   const { poems, schedule, settings, recordings } = useStore();
@@ -49,6 +52,11 @@ export function App() {
     await toContents();
   };
 
+  const correct = async (before: Poem, poem: NewPoem) => {
+    const corrected = await poems.correct(before, poem);
+    setView({ name: 'poem', poem: corrected });
+  };
+
   const keep = async (poem: NewPoem) => {
     await poems.add(poem);
     setList(await poems.list());
@@ -63,6 +71,16 @@ export function App() {
   const screen = () => {
     switch (view.name) {
       case 'add':
+        if (view.correcting) {
+          const before = view.correcting;
+          return (
+            <AddPoem
+              correcting={before}
+              onKeep={(poem) => correct(before, poem)}
+              onCancel={() => setView({ name: 'poem', poem: before })}
+            />
+          );
+        }
         return <AddPoem onKeep={keep} onCancel={() => setView({ name: 'contents' })} />;
       case 'settings':
         return (
@@ -75,7 +93,16 @@ export function App() {
           />
         );
       case 'poem':
-        return <PoemPage poem={view.poem} onBack={() => void toContents()} onRemove={() => void remove(view.poem)} />;
+        return (
+          <PoemPage
+            // A corrected poem is a fresh page, with its marks and schedule read again.
+            key={`${view.poem.id}:${view.poem.updatedAt}`}
+            poem={view.poem}
+            onBack={() => void toContents()}
+            onRemove={() => void remove(view.poem)}
+            onCorrect={() => setView({ name: 'add', correcting: view.poem })}
+          />
+        );
       case 'contents':
         // Wait for the list rather than flashing the empty page.
         return list ? (

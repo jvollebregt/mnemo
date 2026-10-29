@@ -107,6 +107,7 @@ export function PoemPage({
   poem,
   onBack,
   onRemove,
+  onCorrect,
   ear = deviceEar,
   recorder = deviceRecorder,
 }: {
@@ -114,6 +115,8 @@ export function PoemPage({
   onBack: () => void;
   /** Lets the poem go, with its marks and schedule, after a second tap to be sure. */
   onRemove?: () => void;
+  /** Opens the poem's text, title and poet again to set right a mistake. */
+  onCorrect?: () => void;
   ear?: Ear;
   recorder?: Recorder;
 }) {
@@ -617,9 +620,14 @@ export function PoemPage({
         <button type="button" className="action" onClick={back}>
           {m.contents}
         </button>
-        <span className="byline">{poem.poet}</span>
+        {/* On the first page, a tap on the poet or the title opens them to correct. */}
+        <span className="byline" onClick={stage === 'read' ? onCorrect : undefined}>
+          {poem.poet}
+        </span>
       </div>
-      <h1 className="poem-title">{poem.title}</h1>
+      <h1 className="poem-title" onClick={stage === 'read' ? onCorrect : undefined}>
+        {poem.title}
+      </h1>
       {drawing && (
         <div className="loupe" aria-hidden="true">
           <MarkedLine
@@ -733,10 +741,19 @@ export function PoemPage({
             ))}
           </div>
         )}
-        {onRemove && stage === 'read' && (
-          <button type="button" className="action quiet" onClick={() => (removing ? onRemove() : setRemoving(true))}>
-            {removing ? m.removePoemSure : m.removePoem}
-          </button>
+        {stage === 'read' && (onCorrect || onRemove) && (
+          <div className="poem-care">
+            {onCorrect && !removing && (
+              <button type="button" className="action quiet" onClick={onCorrect}>
+                {m.correctPoem}
+              </button>
+            )}
+            {onRemove && (
+              <button type="button" className="action quiet" onClick={() => (removing ? onRemove() : setRemoving(true))}>
+                {removing ? m.removePoemSure : m.removePoem}
+              </button>
+            )}
+          </div>
         )}
       </div>
       {lesson && (

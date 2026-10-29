@@ -101,6 +101,13 @@ body {
   align-items: center;
 }
 
+/* Looking after a poem, quietly, on its first page. */
+.poem-care {
+  display: flex;
+  justify-content: center;
+  gap: 0 20px;
+}
+
 /* Settings: quiet, at the foot of the contents. */
 .action.quiet {
   font-size: 13px;
@@ -619,14 +626,14 @@ body {
 }
 
 .gap.pause::after {
-  content: '/';
+  /* A thin upright stroke: a slash in quoted verse would read as a line break. */
+  content: '';
   position: absolute;
   left: 50%;
-  top: 0.05em;
-  font-size: 0.85em;
+  top: 0.3em;
+  height: 0.75em;
+  border-left: 1.25px solid var(--pencil);
   transform: translateX(-50%);
-  text-indent: 0;
-  color: var(--pencil);
   pointer-events: none;
 }
 
@@ -634,7 +641,8 @@ body {
 .gap.end.pause::after {
   position: static;
   display: inline-block;
-  margin-left: 0.3em;
+  vertical-align: -0.05em;
+  margin-left: 0.35em;
   transform: none;
 }
 

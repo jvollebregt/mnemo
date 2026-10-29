@@ -4,8 +4,8 @@ import { Sheet } from '../page/Sheet';
 
 /** A short lesson, opened the first time a pencil tool is picked, or from *about …* under the tools. */
 export function LessonSheet({ lesson, onOpen, onClose }: { lesson: LessonKey; onOpen: (key: LessonKey) => void; onClose: () => void }) {
-  const { m, locale } = useI18n();
-  const shown = getLessons(locale)[lesson];
+  const { m, locale, spelling } = useI18n();
+  const shown = getLessons(locale, spelling)[lesson];
   return (
     <div lang={locale}>
       <Sheet
