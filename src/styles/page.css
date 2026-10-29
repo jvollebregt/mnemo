@@ -760,6 +760,12 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   gap: 0 4px;
+  /* Apart from the action above, so the numerals don't read as what it asks for. */
+  margin-top: 14px;
+}
+
+.action.to-pencil {
+  color: var(--pencil);
 }
 
 /* Each numeral in the tone of the contents phrases: not begun, taking root, fading (in pencil), by heart. */

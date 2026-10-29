@@ -839,7 +839,8 @@ function StageActions({
         </button>
       )}
       {next && (
-        <button type="button" className="action" disabled={!ready} onClick={() => onGo(next)}>
+        // The one word that hands over the pencil is written in it.
+        <button type="button" className={next === 'mark' ? 'action to-pencil' : 'action'} disabled={!ready} onClick={() => onGo(next)}>
           {m[STAGE_ACTION[next]]}
         </button>
       )}
