@@ -25,6 +25,7 @@ import { useSyllabifier } from '../page/useSyllabifier';
 import { isLetter, layoutLine, pauseAfter, strokeRange, syllableAt, tokenAt, type Stroke } from '../pencil/layout';
 import {
   addEcho,
+  ECHO_FAMILIES,
   echoAt,
   emptyMarks,
   eraseEcho,
@@ -73,7 +74,9 @@ const STAGE_NOTE: Record<Stage, [string, MessageKey]> = {
 };
 const PEEK_NOTE: [string, MessageKey] = ['note:peek', 'notePeek'];
 const MISSED_NOTE: [string, MessageKey] = ['note:missed', 'noteMissed'];
-const FAMILY_NOTE: [string, MessageKey] = ['note:echo-family', 'noteEchoFamily'];
+/** Shown once, without words: the next fresh underline, when one pen first spans two lines. */
+const FAMILY_HINT = 'hint:echo-family';
+const BECKON_MS = 3000;
 const STEP_NOTE: Partial<Record<Step['kind'], [string, MessageKey]>> = {
   seam: ['note:seam', 'noteSeam'],
   chain: ['note:chain', 'noteChain'],
@@ -157,6 +160,13 @@ export function PoemPage({
   const [lesson, setLesson] = useState<LessonKey | null>(null);
   /** The lesson opened by itself, the first time its tool was picked, rather than from *about …*. */
   const [lessonFirst, setLessonFirst] = useState(false);
+  /** Something at the foot that draws the eye once: a fresh underline, or *about …* after a first lesson. */
+  const [beckon, setBeckon] = useState<EchoFamily | 'about' | null>(null);
+  useEffect(() => {
+    if (!beckon) return;
+    const timer = window.setTimeout(() => setBeckon(null), BECKON_MS);
+    return () => window.clearTimeout(timer);
+  }, [beckon]);
   const [recutting, setRecutting] = useState<{ line: number; start: number } | null>(null);
   const [note, setNote] = useState<MessageKey | null>(null);
   const press = useRef<{ x: number; y: number; timer: number } | null>(null);
@@ -548,9 +558,10 @@ export function PoemPage({
     const range = strokeRange(lineText(line), from, to);
     if (!range) return;
     update((marks) => addEcho(marks, { family, line, ...range }));
-    // Once a family echoes across two lines, say how to start another sound: the pen stays in this one.
+    // Once a family echoes across two lines, point to a fresh underline for another sound: the pen stays in this one.
     const lines = new Set(marks?.echoes.filter((e) => e.family === family).map((e) => e.line));
-    if (lines.size >= 2 || (lines.size === 1 && !lines.has(line))) once(FAMILY_NOTE[0], () => setNote(FAMILY_NOTE[1]));
+    const fresh = ECHO_FAMILIES.find((f) => f !== family && !marks?.echoes.some((e) => e.family === f));
+    if (fresh && (lines.size >= 2 || (lines.size === 1 && !lines.has(line)))) once(FAMILY_HINT, () => setBeckon(fresh));
   };
 
   const onPointerCancel = () => {
@@ -661,7 +672,11 @@ export function PoemPage({
             tool={tool}
             family={family}
             onTool={pick}
-            onFamily={setFamily}
+            onFamily={(f) => {
+              setBeckon(null);
+              setFamily(f);
+            }}
+            beckon={beckon ?? undefined}
             onAbout={() => {
               setLesson(tool);
               setLessonFirst(false);
@@ -727,12 +742,15 @@ export function PoemPage({
       {lesson && (
         <LessonSheet
           lesson={lesson}
-          first={lessonFirst}
           onOpen={(key) => {
             setLesson(key);
             setLessonFirst(false);
           }}
-          onClose={() => setLesson(null)}
+          onClose={() => {
+            // A lesson that opened by itself shows, as it goes, where it can be found again.
+            if (lessonFirst) setBeckon('about');
+            setLesson(null);
+          }}
         />
       )}
       {recutting && recutWord && marks && (

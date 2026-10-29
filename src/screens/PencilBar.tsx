@@ -22,11 +22,14 @@ export function PencilBar({
   family,
   onTool,
   onFamily,
+  beckon,
   onAbout,
   onPutDown,
 }: {
   tool: Tool;
   family: EchoFamily;
+  /** Draws the eye once to a fresh underline, or to *about …* where a lesson lives. */
+  beckon?: EchoFamily | 'about';
   onTool: (tool: Tool) => void;
   onFamily: (family: EchoFamily) => void;
   onAbout: () => void;
@@ -51,7 +54,7 @@ export function PencilBar({
             <button
               type="button"
               key={f}
-              className="family"
+              className={beckon === f ? 'family beckon' : 'family'}
               aria-label={m[FAMILY_LABEL[f]]}
               aria-pressed={family === f}
               onClick={() => onFamily(f)}
@@ -65,7 +68,7 @@ export function PencilBar({
         </div>
       )}
       <div className="minor">
-        <button type="button" className="action" onClick={onAbout}>
+        <button type="button" className={beckon === 'about' ? 'action beckon' : 'action'} onClick={onAbout}>
           {m[ABOUT_LABEL[tool]]}
         </button>
         <button type="button" className="action" onClick={onPutDown}>

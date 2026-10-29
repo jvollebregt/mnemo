@@ -605,21 +605,13 @@ body {
 
 /* A pause the reader heard: the stop is inked in pencil, a breath between words gets a stroke. */
 .stop.pause {
-  position: relative;
+  display: inline-block;
   color: var(--pencil);
-}
-
-/* A coloured comma is easy to miss on a phone, so a marked stop gets the same stroke, just after it, taking no room. */
-.stop.pause::after {
-  content: '/';
-  position: absolute;
-  left: 100%;
-  top: 0.05em;
-  margin-left: 0.1em;
-  font-size: 0.85em;
+  /* Set a little larger, so a marked comma reads as marked on a phone, and stays the comma it is. */
+  transform: scale(1.35);
+  transform-origin: 30% 80%;
+  /* An inline block takes the line's hanging indent unless told not to. */
   text-indent: 0;
-  color: var(--pencil);
-  pointer-events: none;
 }
 
 .gap.pause {
@@ -865,6 +857,39 @@ body {
   text-decoration-color: var(--pencil);
 }
 
+/* Once, without words: a fresh underline for another sound, or where a lesson put away lives. */
+.family.beckon .echo {
+  animation: beckon-line 1.4s ease-in-out 2;
+}
+
+.action.beckon {
+  animation: beckon-word 1.4s ease-in-out 2;
+}
+
+@keyframes beckon-line {
+  50% {
+    text-decoration-color: var(--pencil);
+  }
+}
+
+@keyframes beckon-word {
+  50% {
+    color: var(--pencil);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .family.beckon .echo {
+    animation: none;
+    text-decoration-color: var(--pencil);
+  }
+
+  .action.beckon {
+    animation: none;
+    color: var(--pencil);
+  }
+}
+
 .sheet .try-it {
   font-style: italic;
   color: var(--pencil);
@@ -885,12 +910,6 @@ body {
   gap: 22px;
   padding: 4px 0 calc(12px + env(safe-area-inset-bottom));
   background: var(--paper);
-}
-
-.lesson-once {
-  font-size: 14px;
-  font-style: italic;
-  color: var(--grey);
 }
 
 .sheet-foot .action {

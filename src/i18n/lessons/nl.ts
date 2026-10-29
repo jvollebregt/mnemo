@@ -35,7 +35,7 @@ export const nl: Lessons = {
       'Geef elke familie van echo’s een eigen soort onderstreping. Aan het eind van een regel leunt het geheugen het meest op een echo: als je de regel ophaalt, vertelt hij je welk woord er moet komen.',
     ],
     tryIt:
-      'Probeer het: kies een onderstreping en trek hem onder de letters die echoën, alleen de z van zee, of de uid van geluid. De regel waarop je tekent staat groot bovenaan, zodat je vinger hem nooit bedekt. Tik een onderstreping aan om hem uit te gummen.',
+      'Probeer het: kies een onderstreping en trek hem onder de letters die echoën, alleen de z van zee, of de uid van geluid. Voor een andere klank kies je een andere onderstreping. De regel waarop je tekent staat groot bovenaan, zodat je vinger hem nooit bedekt. Tik een onderstreping aan om hem uit te gummen.',
     draft: true,
   },
   pauses: {
