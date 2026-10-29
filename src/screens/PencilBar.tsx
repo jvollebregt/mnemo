@@ -48,6 +48,8 @@ export function PencilBar({
           </Fragment>
         ))}
       </div>
+      {/* The underlines' row keeps its place for every tool, so the bar never jumps. */}
+      {tool !== 'echoes' && <div className="families" aria-hidden="true" />}
       {tool === 'echoes' && (
         <div className="families" role="group" aria-label={m.underlines}>
           {ECHO_FAMILIES.map((f) => (

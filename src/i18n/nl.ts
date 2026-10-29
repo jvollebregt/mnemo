@@ -18,7 +18,6 @@ export const nl: Messages = {
   stageFadeMarks: 'laat de tekens vervagen',
   stageBlank: 'lege bladzijde',
   stanza: 'strofe',
-  nextStanza: 'volgende strofe',
 
   noteRead: 'Lees het hardop, langzaam, twee keer. Jezelf het horen zeggen is het halve werk.',
   noteFadeWords: 'De woorden vervagen; je tekens blijven. Beginletters en ritme zijn genoeg om een regel terug te halen.',

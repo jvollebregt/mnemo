@@ -50,7 +50,7 @@ CI runs typecheck, lint, test and build on every PR. Keep them green.
 5. **Fade the marks**, leaving only traces of the line shapes.
 6. **Blank page**, which is also the check: recite aloud (or type), words come back in ink as you get them and misses in pencil, then rate *not yet · most of it · all of it*. There is no separate check step (Joos, 2026-10-28).
 
-While marking, *next stanza* moves the pencil on, so the whole poem can be marked first; fading and the blank page then go stanza by stanza from the first (Joos, 2026-10-28). From stanza two on, the stanzas so far are chained, with extra practice on the seams. A peek is always possible and counts against the schedule. Whatever the user didn't mark never appears during the fade.
+While marking, the whole poem is on the page: the stanza in hand in ink, the others faint, each with its numeral in the margin. Tapping a faint stanza moves the pencil there (no *next stanza* label; Joos, 2026-10-29), so the whole poem can be marked first; fading and the blank page then go stanza by stanza from the first (Joos, 2026-10-28). From stanza two on, the stanzas so far are chained, with extra practice on the seams. A peek is always possible and counts against the schedule. Whatever the user didn't mark never appears during the fade.
 
 ## The pencil
 
@@ -72,7 +72,7 @@ While marking, *next stanza* moves the pencil on, so the whole poem can be marke
 
 - The contents page shows one phrase per poem: *taking root* (learning), *fading* (due today, in pencil), or *by heart* (mastered). There are no numbers.
 - The stanza numerals at the foot of a poem take the same states in tone: faint before the first recital, grey while taking root, pencil when fading (due, or last rated *not yet* or *most of it*), ink when by heart. The stanza on the page is underlined (Joos, 2026-10-28).
-- Use the agreed labels: *add a poem*, *mark what you hear*, *fade the words*, *marks only*, *fade the marks*, *blank page*, *beats · echoes · pauses*, *put down*, *next stanza*.
+- Use the agreed labels: *add a poem*, *mark what you hear*, *fade the words*, *marks only*, *fade the marks*, *blank page*, *beats · echoes · pauses*, *put down*.
 - English and Dutch from the start. Every string lives in `src/i18n/en.ts` and `src/i18n/nl.ts`, and a test checks they have the same keys. Never hard-code interface text in components.
 - The interface language and a poem's own language are separate settings.
 - Dutch lessons are rewritten with Dutch public-domain examples (Gezelle, Gorter, Kloos), not translated.

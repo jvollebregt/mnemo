@@ -321,14 +321,13 @@ export function PoemPage({
     once(key, () => setNote(text));
   };
 
-  /** The pencil moves on to the next stanza, so the whole poem can be marked before any of it fades. */
-  const markNextStanza = () => {
-    if (step.kind !== 'stanza') return;
+  /** The pencil moves to another stanza, so the whole poem can be marked before any of it fades. */
+  const markStanza = (stanza: number) => {
     markingFrom.current ??= step;
     settleActive();
     setDrawing(null);
     setNote(null);
-    setStep({ kind: 'stanza', stanza: step.stanza + 1 });
+    setStep({ kind: 'stanza', stanza });
   };
 
   /** Leaving the pencil goes back to the stanza being learned, wherever the marking got to. */
@@ -341,6 +340,20 @@ export function PoemPage({
   };
 
   const inView = useMemo(() => new Set(linesOf(step, parsed)), [step, parsed]);
+
+  // While marking, the stanza the pencil moves to scrolls up into place, as a page is read on.
+  const verseRef = useRef<HTMLDivElement>(null);
+  const markedStanza = pencil && step.kind === 'stanza' ? step.stanza : null;
+  const lastMarked = useRef<number | null>(null);
+  useEffect(() => {
+    const from = lastMarked.current;
+    lastMarked.current = markedStanza;
+    if (markedStanza === null || from === null || from === markedStanza) return;
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    verseRef.current
+      ?.querySelector(`[data-stanza="${markedStanza}"]`)
+      ?.scrollIntoView?.({ block: 'start', behavior: still ? 'auto' : 'smooth' });
+  }, [markedStanza]);
 
   // The words of the lines in view, in order, to line up with what the reader types.
   const words = useMemo(
@@ -376,6 +389,9 @@ export function PoemPage({
     const stepNote = review ? RETURN_NOTE : STEP_NOTE[next.kind];
     if (stepNote) once(stepNote[0], () => setNote(stepNote[1]));
   };
+
+  const openStanza = (i: number) =>
+    open(cards?.has(stanzaUnit(i)) ? reviewStart(i, stanzaLines, cards, new Date()) : startOf({ kind: 'stanza', stanza: i }));
 
   useEffect(() => {
     let live = true;
@@ -465,6 +481,15 @@ export function PoemPage({
 
   const onTap = (e: MouseEvent) => {
     if (!marks) return;
+    // A tap on a faint stanza takes the reader, or the pencil, there.
+    const other = (e.target as Element).closest('.stanza.faint');
+    if (other) {
+      e.stopPropagation();
+      const i = Number(other.getAttribute('data-stanza'));
+      if (pencil) markStanza(i);
+      else openStanza(i);
+      return;
+    }
     const at = hit(e.target);
     if (at && stage === 'blank' && done) {
       // Once done, a tap on a word in pencil says the reader did have it, unless they peeked at it.
@@ -492,7 +517,7 @@ export function PoemPage({
       once(PEEK_NOTE[0], () => setNote(PEEK_NOTE[1]));
       return;
     }
-    if (!pencil || !at) return; // Empty paper: let it settle the line.
+    if (!pencil || !at || !inView.has(at.line)) return; // Empty paper: let it settle the line.
     e.stopPropagation();
     if (pressed.current) {
       pressed.current = false;
@@ -515,7 +540,7 @@ export function PoemPage({
     pressed.current = false;
     if (!pencil || !marks) return;
     const at = hit(e.target);
-    if (!at) return;
+    if (!at || !inView.has(at.line)) return;
     if (tool === 'echoes') {
       if (!isLetter(lineText(at.line)[at.at] ?? '')) return;
       e.preventDefault();
@@ -611,8 +636,30 @@ export function PoemPage({
     ? (tokenAt(tokens.get(recutting.line) ?? [], recutting.start) as Word | undefined)
     : undefined;
 
-  // Each stanza's numeral is set in the tone of how it stands now.
+  // Each stanza's numeral, in the margin beside it, is set in the tone of how it stands now.
   const now = new Date();
+  const wholePoem = stage === 'read' || pencil;
+  const numeral = (i: number) => {
+    const className = `stanza-numeral ${cards ? stanzaState(i, stanzaLines, cards, lastGrades, now) : 'new'}`;
+    // While marking, a tap anywhere on a stanza moves the pencil, numeral and all.
+    if (pencil) return <span className={className}>{roman(i + 1)}</span>;
+    return (
+      <button
+        type="button"
+        className={`action ${className}`}
+        aria-label={`${m.stanza} ${i + 1}`}
+        aria-pressed={stanzasOf(step).includes(i)}
+        // On the first page it opens the stanza; from fading on, it leads back to the whole poem.
+        onClick={(e) => {
+          e.stopPropagation();
+          if (stage === 'read') openStanza(i);
+          else go('read');
+        }}
+      >
+        {roman(i + 1)}
+      </button>
+    );
+  };
 
   return (
     <main className="page poem-page" lang={poem.language} onClick={pencil ? settleActive : undefined}>
@@ -637,6 +684,7 @@ export function PoemPage({
         </div>
       )}
       <div
+        ref={verseRef}
         className="pencil-area"
         onClick={onTap}
         onPointerDown={onPointerDown}
@@ -658,17 +706,13 @@ export function PoemPage({
             .join(' ')}
           renderLine={ready ? renderLine : undefined}
           aside={ready ? aside : undefined}
-          only={started ? inView : new Set()}
+          // Reading and marking, the whole poem is on the page, the stanza in hand in ink and the rest faint.
+          // From fading on, the stanza being learned is alone.
+          only={!started ? new Set() : wholePoem ? undefined : inView}
+          focus={wholePoem ? inView : undefined}
+          numeral={parsed.stanzas.length > 1 ? numeral : undefined}
         />
       </div>
-      {/* Right under the stanza, as a page turns: the pencil moves on before anything fades. */}
-      {pencil && step.kind === 'stanza' && step.stanza + 1 < parsed.stanzas.length && (
-        <div className="next-stanza" lang={locale}>
-          <button type="button" className="action" onClick={markNextStanza}>
-            {m.nextStanza}
-          </button>
-        </div>
-      )}
       {note && (
         <p className="note" lang={locale}>
           {m[note]}
@@ -719,28 +763,6 @@ export function PoemPage({
           onDone={finish}
           onRate={rate}
         />
-        {parsed.stanzas.length > 1 && (
-          <div className="folio" role="group" aria-label={m.stanza}>
-            {parsed.stanzas.map((_, i) => (
-              <button
-                type="button"
-                key={i}
-                className={`action ${cards ? stanzaState(i, stanzaLines, cards, lastGrades, now) : 'new'}`}
-                aria-label={`${m.stanza} ${i + 1}`}
-                aria-pressed={stanzasOf(step).includes(i)}
-                onClick={() =>
-                  open(
-                    cards?.has(stanzaUnit(i))
-                      ? reviewStart(i, stanzaLines, cards, new Date())
-                      : startOf({ kind: 'stanza', stanza: i }),
-                  )
-                }
-              >
-                {roman(i + 1)}
-              </button>
-            ))}
-          </div>
-        )}
         {stage === 'read' && (onCorrect || onRemove) && (
           <div className="poem-care">
             {onCorrect && !removing && (
