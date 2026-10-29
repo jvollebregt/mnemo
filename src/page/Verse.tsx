@@ -28,7 +28,7 @@ export function Verse({
   aside?: (line: Line) => ReactNode;
   /** Which lines to set, by number; all of them by default. The type size is always fitted to the whole poem. */
   only?: ReadonlySet<number>;
-  /** The lines being worked on. Stanzas with none of them are set faint around them. */
+  /** The lines being worked on. The others are set faint around them. */
   focus?: ReadonlySet<number>;
   /** Something for the left-hand margin beside a stanza's first line, such as its numeral. */
   numeral?: (stanza: number) => ReactNode;
@@ -80,7 +80,7 @@ export function Verse({
             data-stanza={index}
           >
             {shown.map((line, i) => (
-              <div className="line" key={line.number} data-line={line.number}>
+              <div className={focus && !focus.has(line.number) ? 'line faint' : 'line'} key={line.number} data-line={line.number}>
                 {/* While learning a poem the reader goes by stanza, not by line number. */}
                 <span className="line-number" aria-hidden={i === 0 && numeral ? undefined : true}>
                   {i === 0 ? numeral?.(index) : null}

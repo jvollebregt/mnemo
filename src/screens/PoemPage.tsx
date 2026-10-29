@@ -247,6 +247,8 @@ export function PoemPage({
   };
 
   const pencil = stage === 'mark';
+  // Reading and marking, the poem around the stanza in hand is there in faint words; from fading on, only in traces.
+  const wholePoem = stage === 'read' || pencil;
 
   /** Ends a recording. Only a finished recital is kept; one broken off is let go. */
   const endTake = (keep: boolean) => {
@@ -341,19 +343,19 @@ export function PoemPage({
 
   const inView = useMemo(() => new Set(linesOf(step, parsed)), [step, parsed]);
 
-  // While marking, the stanza the pencil moves to scrolls up into place, as a page is read on.
+  // The stanza in hand scrolls up into place when the reader, or the pencil, moves on, as a page is read on.
   const verseRef = useRef<HTMLDivElement>(null);
-  const markedStanza = pencil && step.kind === 'stanza' ? step.stanza : null;
-  const lastMarked = useRef<number | null>(null);
+  const inHand = stanzasOf(step)[0] ?? 0;
+  const lastInHand = useRef(inHand);
   useEffect(() => {
-    const from = lastMarked.current;
-    lastMarked.current = markedStanza;
-    if (markedStanza === null || from === null || from === markedStanza) return;
+    const from = lastInHand.current;
+    lastInHand.current = inHand;
+    if (from === inHand) return;
     const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     verseRef.current
-      ?.querySelector(`[data-stanza="${markedStanza}"]`)
+      ?.querySelector('.stanza:not(.faint)')
       ?.scrollIntoView?.({ block: 'start', behavior: still ? 'auto' : 'smooth' });
-  }, [markedStanza]);
+  }, [inHand]);
 
   // The words of the lines in view, in order, to line up with what the reader types.
   const words = useMemo(
@@ -481,8 +483,8 @@ export function PoemPage({
 
   const onTap = (e: MouseEvent) => {
     if (!marks) return;
-    // A tap on a faint stanza takes the reader, or the pencil, there.
-    const other = (e.target as Element).closest('.stanza.faint');
+    // A tap on a faint stanza takes the reader, or the pencil, there. While fading, the traces stay still.
+    const other = wholePoem ? (e.target as Element).closest('.stanza.faint') : null;
     if (other) {
       e.stopPropagation();
       const i = Number(other.getAttribute('data-stanza'));
@@ -490,7 +492,9 @@ export function PoemPage({
       else openStanza(i);
       return;
     }
-    const at = hit(e.target);
+    const found = hit(e.target);
+    // Only the lines in hand answer a tap; the rest of the poem is there to keep one's place.
+    const at = found && inView.has(found.line) ? found : undefined;
     if (at && stage === 'blank' && done) {
       // Once done, a tap on a word in pencil says the reader did have it, unless they peeked at it.
       const word = tokenAt(tokens.get(at.line) ?? [], at.at);
@@ -517,7 +521,7 @@ export function PoemPage({
       once(PEEK_NOTE[0], () => setNote(PEEK_NOTE[1]));
       return;
     }
-    if (!pencil || !at || !inView.has(at.line)) return; // Empty paper: let it settle the line.
+    if (!pencil || !at) return; // Empty paper: let it settle the line.
     e.stopPropagation();
     if (pressed.current) {
       pressed.current = false;
@@ -611,15 +615,22 @@ export function PoemPage({
   const shown = marks && showsMarks(stage) ? marks : emptyMarks();
   const onLine = (keys: ReadonlySet<string>, line: number) =>
     new Set([...keys].filter((key) => key.startsWith(`${line}:`)).map((key) => Number(key.split(':')[1])));
+  // From fading on, the lines not in hand are only the traces of their shapes, so nothing gives the words away.
   const renderLine = (line: Line) => (
     <MarkedLine
-      pieces={layoutLine(tokens.get(line.number) ?? [], shown, line.number, stroke(line.number), {
-        stage,
-        // Once the recital is done, every word looked at shows in pencil.
-        peeked: onLine(done ? looked : peeked, line.number),
-        recalled: onLine(recalledKeys, line.number),
-        done,
-      })}
+      pieces={layoutLine(
+        tokens.get(line.number) ?? [],
+        inView.has(line.number) || wholePoem ? shown : emptyMarks(),
+        line.number,
+        stroke(line.number),
+        {
+          stage: inView.has(line.number) || wholePoem ? stage : 'fadeMarks',
+          // Once the recital is done, every word looked at shows in pencil.
+          peeked: onLine(done ? looked : peeked, line.number),
+          recalled: onLine(recalledKeys, line.number),
+          done,
+        },
+      )}
       activeFamily={activeFamily}
     />
   );
@@ -638,7 +649,6 @@ export function PoemPage({
 
   // Each stanza's numeral, in the margin beside it, is set in the tone of how it stands now.
   const now = new Date();
-  const wholePoem = stage === 'read' || pencil;
   const numeral = (i: number) => {
     const className = `stanza-numeral ${cards ? stanzaState(i, stanzaLines, cards, lastGrades, now) : 'new'}`;
     // While marking, a tap anywhere on a stanza moves the pencil, numeral and all.
@@ -706,10 +716,9 @@ export function PoemPage({
             .join(' ')}
           renderLine={ready ? renderLine : undefined}
           aside={ready ? aside : undefined}
-          // Reading and marking, the whole poem is on the page, the stanza in hand in ink and the rest faint.
-          // From fading on, the stanza being learned is alone.
-          only={!started ? new Set() : wholePoem ? undefined : inView}
-          focus={wholePoem ? inView : undefined}
+          // The whole poem is on the page, the lines in hand in ink and the rest faint.
+          only={started ? undefined : new Set()}
+          focus={inView}
           numeral={parsed.stanzas.length > 1 ? numeral : undefined}
         />
       </div>

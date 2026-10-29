@@ -760,12 +760,12 @@ body {
 }
 
 /* Under the stanza being marked, set to the right like a catchword at the foot of a printed page. */
-/* While marking, the stanzas not in hand stay on the page, faint, and a tap takes the pencil there. */
-.verse .stanza {
+/* The lines not in hand stay on the page, faint: in words while reading and marking, in traces from fading on. */
+.verse .line {
   transition: opacity 0.4s ease;
 }
 
-.verse .stanza.faint {
+.verse .line.faint {
   opacity: 0.3;
 }
 
@@ -817,7 +817,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .verse .stanza {
+  .verse .line {
     transition: none;
   }
 }

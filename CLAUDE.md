@@ -71,7 +71,7 @@ While marking, the whole poem is on the page: the stanza in hand in ink, the oth
 ## Words in the interface
 
 - The contents page shows one phrase per poem: *taking root* (learning), *fading* (due today, in pencil), or *by heart* (mastered). There are no numbers.
-- Each stanza's numeral sits in the margin beside it (no row at the foot; Joos, 2026-10-29) and takes the same states in tone: faint before the first recital, grey while taking root, pencil when fading (due, or last rated *not yet* or *most of it*), ink when by heart. The stanza in hand is underlined (Joos, 2026-10-28). Reading and marking show the whole poem with the other stanzas faint; from fading on, the stanza is alone and its numeral leads back to the whole poem.
+- Each stanza's numeral sits in the margin beside it (no row at the foot; Joos, 2026-10-29) and takes the same states in tone: faint before the first recital, grey while taking root, pencil when fading (due, or last rated *not yet* or *most of it*), ink when by heart. The stanza in hand is underlined (Joos, 2026-10-28). Reading and marking show the whole poem with the other stanzas faint; from fading on, the other stanzas are only faint traces of their line shapes (no words, no marks), and the stanza's numeral leads back to the whole poem (Joos, 2026-10-29).
 - Use the agreed labels: *add a poem*, *mark what you hear*, *fade the words*, *marks only*, *fade the marks*, *blank page*, *beats · echoes · pauses*, *put down*.
 - English and Dutch from the start. Every string lives in `src/i18n/en.ts` and `src/i18n/nl.ts`, and a test checks they have the same keys. Never hard-code interface text in components.
 - The interface language and a poem's own language are separate settings.

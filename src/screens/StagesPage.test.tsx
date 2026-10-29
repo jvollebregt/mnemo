@@ -64,6 +64,8 @@ const looks = (line: number) =>
       return runs;
     }, []);
 
+/** The lines set in full, not faint around them. */
+const inHand = () => Array.from(document.querySelectorAll('[data-line]:not(.faint)'), (l) => l.getAttribute('data-line'));
 const stanza = (n: number) => document.querySelector(`[data-stanza="${n}"]`)!;
 
 async function ready() {
@@ -147,8 +149,11 @@ describe('the stages', () => {
 
     // Fading starts from the stanza being learned, with the marks made on the way.
     fireEvent.click(action('fade the words'));
-    expect(document.querySelector('[data-line="6"]')).toBeNull();
+    expect(inHand()).toEqual(['1', '2', '3', '4']);
     expect(looks(2)[0]).toBe('T:ink');
+    // The next stanza is only the traces of its line shapes now, with no marks.
+    expect(looks(6).every((run) => run.endsWith(':trace'))).toBe(true);
+    expect(document.querySelectorAll('[data-line="6"] .syl.beat')).toHaveLength(0);
     expect(document.querySelectorAll('[data-line="2"] .syl.beat')).toHaveLength(1);
     expect((await store.marks.get(poem.id)).settled).toEqual(expect.arrayContaining([2, 6]));
   });
@@ -217,8 +222,8 @@ describe('the stages', () => {
     fireEvent.click(action('not yet'));
     expect(screen.getByRole('button', { name: 'marks only' })).toBeTruthy();
 
-    // While fading, the stanza is alone on the page.
-    expect(document.querySelector('[data-line="5"]')).toBeNull();
+    // While fading, the next stanza is only traces.
+    expect(looks(5).every((run) => run.endsWith(':trace'))).toBe(true);
     for (const name of ['marks only', 'fade the marks', 'blank page', 'done', 'all of it']) fireEvent.click(action(name));
     expect(stanza(0).className).toContain('faint');
     expect(stanza(1).className).toContain('in-focus');
@@ -229,10 +234,10 @@ describe('the stages', () => {
 
     // The stanza numbers lead back too, and from the fading a numeral leads back to the whole poem.
     fireEvent.click(action('stanza 1'));
-    expect(document.querySelector('[data-line="1"]')).toBeTruthy();
-    expect(document.querySelector('[data-line="5"]')).toBeNull();
+    expect(inHand()).toEqual(['1', '2', '3', '4']);
+    expect(looks(5).every((run) => run.endsWith(':trace'))).toBe(true);
     fireEvent.click(action('stanza 1'));
-    expect(document.querySelector('[data-line="5"]')).toBeTruthy();
+    expect(looks(5)[0]).toMatch(/:ink$/);
     fireEvent.click(stanza(1));
     expect(stanza(1).className).toContain('in-focus');
     fireEvent.click(action('mark what you hear'));
@@ -243,7 +248,7 @@ describe('the stages', () => {
     expect(action('stanza 2').className).toContain('fading');
 
     // The seam: the last line of the first stanza and the first of the second, recited straight away.
-    expect(Array.from(document.querySelectorAll('[data-line]'), (l) => l.getAttribute('data-line'))).toEqual(['4', '5']);
+    expect(inHand()).toEqual(['4', '5']);
     expect(screen.getByRole('textbox', { name: 'recite' })).toBeTruthy();
     expect(await screen.findByText(/join between two stanzas/)).toBeTruthy();
     expect(['stanza 1', 'stanza 2'].map((name) => action(name).getAttribute('aria-pressed'))).toEqual(['true', 'true']);
@@ -251,7 +256,7 @@ describe('the stages', () => {
     fireEvent.click(action('all of it'));
 
     // Then both stanzas together.
-    expect(document.querySelectorAll('[data-line]')).toHaveLength(6);
+    expect(inHand()).toHaveLength(6);
     expect(await screen.findByText(/stanzas so far, together/)).toBeTruthy();
     fireEvent.click(action('done'));
     fireEvent.click(action('most of it'));
@@ -279,8 +284,7 @@ describe('the stages', () => {
     show(store, poem);
 
     expect(await screen.findByText(/Try it before you look/)).toBeTruthy();
-    expect(document.querySelector('[data-line="1"]')).toBeNull();
-    expect(document.querySelector('[data-line="5"]')).toBeTruthy();
+    expect(inHand()).toEqual(['5', '6']);
     // It opens on the marks alone, so the way on is to fade them.
     expect(action('fade the marks')).toBeTruthy();
   });
