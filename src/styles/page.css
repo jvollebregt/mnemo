@@ -300,6 +300,7 @@ body {
 .paste {
   flex-grow: 1;
   min-height: 40vh;
+  overflow: hidden;
   margin-top: 28px;
   padding: 0;
   border: 0;

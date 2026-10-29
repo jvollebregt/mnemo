@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LANGUAGE_NAMES } from '../i18n';
 import { useI18n } from '../i18n/context';
 import { canJoin, closeUp, guessLanguage, looksDoubleSpaced, mend, readPasted, suspectBreaks } from '../poem/intake';
@@ -34,6 +34,15 @@ export function AddPoem({ correcting, onKeep, onCancel }: Props) {
   const [text, setText] = useState(correcting?.text ?? '');
   const [proof, setProof] = useState<Proof | null>(null);
   const [saving, setSaving] = useState(false);
+  // The sheet grows with the text rather than scrolling inside itself, so a selection can be drawn
+  // across many lines with the page scrolling under the finger.
+  const sheet = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = sheet.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [text, proof]);
 
   const setPage = () => {
     if (correcting) {
@@ -62,6 +71,7 @@ export function AddPoem({ correcting, onKeep, onCancel }: Props) {
           </button>
         </div>
         <textarea
+          ref={sheet}
           className="paste"
           aria-label={m.pastePlaceholder}
           placeholder={m.pastePlaceholder}
