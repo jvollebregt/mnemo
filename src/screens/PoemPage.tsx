@@ -29,7 +29,6 @@ import {
   echoAt,
   emptyMarks,
   eraseEcho,
-  markedLines,
   markKey,
   recut,
   rhymeLetters,
@@ -337,11 +336,12 @@ export function PoemPage({
 
   /**
    * On through the method with the stanza in hand. The pencil opens where the
-   * marking is still to do: this stanza if it has unmarked lines, else the first that has.
+   * beats are still to do: this stanza if it has lines not yet settled, else the
+   * first that has. Echoes and pauses have no such end: a line may have none.
    */
   const goOn = (next: Stage) => {
     if (next === 'mark' && marks && step.kind === 'stanza') {
-      const done = markedLines(marks);
+      const done = new Set(marks.settled);
       const open = (i: number) => (stanzaLines[i] ?? []).some((line) => !done.has(line));
       const to = open(step.stanza) ? step.stanza : stanzaLines.findIndex((_, i) => open(i));
       if (to >= 0 && to !== step.stanza) setStep({ kind: 'stanza', stanza: to });

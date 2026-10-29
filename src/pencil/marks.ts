@@ -77,17 +77,6 @@ export function setSplit(marks: PoemMarks, line: number, wordStart: number, brea
   };
 }
 
-/** Lines the reader has marked anything on, or moved on from. */
-export function markedLines(marks: PoemMarks): Set<number> {
-  const line = (key: string) => Number(key.split(':')[0]);
-  return new Set([
-    ...marks.settled,
-    ...marks.beats.map(line),
-    ...marks.pauses.map(line),
-    ...marks.echoes.map((e) => e.line),
-  ]);
-}
-
 /**
  * The reader re-cuts a word. Beats left on what is no longer the start of a
  * syllable would hang in the air, so they go.

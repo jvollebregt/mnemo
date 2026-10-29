@@ -155,7 +155,7 @@ describe('the stages', () => {
     expect(document.querySelectorAll('[data-line="2"] .syl.beat')).toHaveLength(0);
     expect((await store.marks.get(poem.id)).settled).toEqual(expect.arrayContaining([2, 6]));
 
-    // Back to the pencil: it stays with the stanza in hand while that has lines still unmarked.
+    // Back to the pencil: it stays with the stanza in hand while that has lines whose beats are still to do.
     fireEvent.click(action('back'));
     expect(stanza(1).className).toContain('in-focus');
   });
@@ -211,7 +211,7 @@ describe('the stages', () => {
     expect(looks(2)).toEqual(['Thatperchesinthe:ink', 'soul:peek', '-:ink']);
   });
 
-  it('opens the pencil on the first stanza with lines still to mark', async () => {
+  it('opens the pencil on the first stanza with beats still to do', async () => {
     const { store, poem } = await storeWithPoem();
     await store.marks.save(poem.id, { ...(await store.marks.get(poem.id)), settled: [1, 2, 3, 4] });
     show(store, poem);
