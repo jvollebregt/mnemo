@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
 import type { MessageKey } from '../i18n';
 import { useI18n } from '../i18n/context';
 import type { LessonKey } from '../i18n/lessons';
@@ -19,6 +19,7 @@ import { firstStart, linesOf, nextStart, reviewStart, stanzasOf, startOf, type S
 import { canPeek, nextStage, previousStage, showsMarks, type Stage } from '../learn/stages';
 import { roman } from '../page/fit';
 import { MarkedLine } from '../page/MarkedLine';
+import { READING_LINE, stanzaAt } from '../page/reading';
 import { Sheet } from '../page/Sheet';
 import { Verse } from '../page/Verse';
 import { useSyllabifier } from '../page/useSyllabifier';
@@ -29,6 +30,7 @@ import {
   echoAt,
   emptyMarks,
   eraseEcho,
+  markedStanzaNear,
   markKey,
   recut,
   rhymeLetters,
@@ -334,17 +336,11 @@ export function PoemPage({
     setStep({ kind: 'stanza', stanza });
   };
 
-  /**
-   * On through the method with the stanza in hand. The pencil opens where the
-   * beats are still to do: this stanza if it has lines not yet settled, else the
-   * first that has. Echoes and pauses have no such end: a line may have none.
-   */
+  /** On through the method. From the pencil, the words fade on the stanza in hand, or the nearest one marked. */
   const goOn = (next: Stage) => {
-    if (next === 'mark' && marks && step.kind === 'stanza') {
-      const done = new Set(marks.settled);
-      const open = (i: number) => (stanzaLines[i] ?? []).some((line) => !done.has(line));
-      const to = open(step.stanza) ? step.stanza : stanzaLines.findIndex((_, i) => open(i));
-      if (to >= 0 && to !== step.stanza) setStep({ kind: 'stanza', stanza: to });
+    if (pencil && next === 'fadeWords' && marks && step.kind === 'stanza') {
+      const to = markedStanzaNear(step.stanza, stanzaLines, marks);
+      if (to !== step.stanza) setStep({ kind: 'stanza', stanza: to });
     }
     go(next);
   };
@@ -352,23 +348,61 @@ export function PoemPage({
   const inView = useMemo(() => new Set(linesOf(step, parsed)), [step, parsed]);
 
   // When the reader, or the pencil, moves to another stanza, the page scrolls just enough to bring it
-  // into view between the top and the foot, and not at all if it is already there.
+  // into view between the top and the foot, and not at all if it is already there or came there by scrolling.
   const verseRef = useRef<HTMLDivElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
   const inHand = stanzasOf(step)[0] ?? 0;
   const lastInHand = useRef(inHand);
-  useEffect(() => {
-    const from = lastInHand.current;
-    lastInHand.current = inHand;
+  const scrolledTo = useRef(false);
+  const bringIntoView = useEffectEvent(() => {
     const box = verseRef.current?.querySelector(`[data-stanza="${inHand}"]`)?.getBoundingClientRect();
-    if (from === inHand || !box) return;
+    if (!box) return;
     const top = SCROLL_TOP;
     const bottom = (footRef.current?.getBoundingClientRect().top ?? window.innerHeight) - SCROLL_FOOT;
     const by = box.top < top ? box.top - top : box.bottom > bottom ? Math.min(box.bottom - bottom, box.top - top) : 0;
     if (by === 0) return;
     const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     window.scrollBy?.({ top: by, behavior: still ? 'auto' : 'smooth' });
+  });
+  useEffect(() => {
+    const from = lastInHand.current;
+    lastInHand.current = inHand;
+    const followed = scrolledTo.current;
+    scrolledTo.current = false;
+    if (from !== inHand && !followed) bringIntoView();
   }, [inHand]);
+  // Taking up the pencil starts from the stanza in hand, wherever the page was.
+  useEffect(() => {
+    if (pencil) bringIntoView();
+  }, [pencil]);
+
+  // While marking, the stanza in hand follows the scroll: the one across the reading line turns to ink.
+  const follow = useEffectEvent(() => {
+    if (drawing || step.kind !== 'stanza') return;
+    const stanzas = Array.from(verseRef.current?.querySelectorAll('[data-stanza]') ?? []);
+    const foot = footRef.current?.getBoundingClientRect().top ?? window.innerHeight;
+    const at = stanzaAt(
+      stanzas.map((el) => el.getBoundingClientRect()),
+      SCROLL_TOP + (foot - SCROLL_TOP) * READING_LINE,
+    );
+    const index = at === undefined ? undefined : Number(stanzas[at]!.getAttribute('data-stanza'));
+    if (index === undefined || index === step.stanza) return;
+    scrolledTo.current = true;
+    markStanza(index);
+  });
+  useEffect(() => {
+    if (!pencil) return;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(follow);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [pencil]);
 
   // The words of the lines in view, in order, to line up with what the reader types.
   const words = useMemo(
@@ -751,7 +785,7 @@ export function PoemPage({
               setLesson(tool);
               setLessonFirst(false);
             }}
-            onPutDown={() => goOn('read')}
+            onPutDown={() => go('read')}
           />
         )}
         {stage === 'blank' && !done && (

@@ -4,6 +4,7 @@ import {
   echoAt,
   emptyMarks,
   eraseEcho,
+  markedStanzaNear,
   readMarks,
   recut,
   rhymeLetters,
@@ -120,5 +121,16 @@ describe('stored marks', () => {
     const partial = readMarks(JSON.stringify({ beats: ['1:0', 3], echoes: [{ family: 9, line: 1, start: 0, end: 1 }] }));
     expect(partial.beats).toEqual(['1:0']);
     expect(partial.echoes).toEqual([]);
+  });
+});
+
+describe('the stanza to fade from the pencil', () => {
+  const stanzas = [[1, 2], [3, 4], [5, 6], [7, 8]];
+  it('is the one in hand when it has marks, else the nearest marked one above, else below', () => {
+    const marks = { ...emptyMarks(), beats: ['3:0'], echoes: [{ family: 1 as const, line: 8, start: 0, end: 2 }] };
+    expect(markedStanzaNear(1, stanzas, marks)).toBe(1);
+    expect(markedStanzaNear(2, stanzas, marks)).toBe(1);
+    expect(markedStanzaNear(0, stanzas, marks)).toBe(1);
+    expect(markedStanzaNear(0, stanzas, emptyMarks())).toBe(0);
   });
 });

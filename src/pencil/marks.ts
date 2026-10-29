@@ -77,6 +77,26 @@ export function setSplit(marks: PoemMarks, line: number, wordStart: number, brea
   };
 }
 
+/** Lines the reader has marked anything on, or moved on from. */
+export function markedLines(marks: PoemMarks): Set<number> {
+  const line = (key: string) => Number(key.split(':')[0]);
+  return new Set([...marks.settled, ...marks.beats.map(line), ...marks.pauses.map(line), ...marks.echoes.map((e) => e.line)]);
+}
+
+/**
+ * The stanza to fade from the pencil: the one in hand if the reader marked
+ * anything on it, else the nearest marked one above it, else below it.
+ * Fading a stanza with no marks would leave the page all but empty.
+ */
+export function markedStanzaNear(stanza: number, stanzaLines: readonly (readonly number[])[], marks: PoemMarks): number {
+  const marked = markedLines(marks);
+  const has = (i: number) => (stanzaLines[i] ?? []).some((line) => marked.has(line));
+  if (has(stanza)) return stanza;
+  for (let i = stanza - 1; i >= 0; i -= 1) if (has(i)) return i;
+  for (let i = stanza + 1; i < stanzaLines.length; i += 1) if (has(i)) return i;
+  return stanza;
+}
+
 /**
  * The reader re-cuts a word. Beats left on what is no longer the start of a
  * syllable would hang in the air, so they go.

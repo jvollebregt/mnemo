@@ -528,6 +528,8 @@ body {
 }
 
 .verse.pencil {
+  /* Room below the last stanza, so it too can scroll up to the reading line and come into hand. */
+  padding-bottom: 35vh;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;

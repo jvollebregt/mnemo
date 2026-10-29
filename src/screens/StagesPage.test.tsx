@@ -211,14 +211,18 @@ describe('the stages', () => {
     expect(looks(2)).toEqual(['Thatperchesinthe:ink', 'soul:peek', '-:ink']);
   });
 
-  it('opens the pencil on the first stanza with beats still to do', async () => {
+  it('fades the nearest marked stanza when the one in hand has no marks yet', async () => {
     const { store, poem } = await storeWithPoem();
     await store.marks.save(poem.id, { ...(await store.marks.get(poem.id)), settled: [1, 2, 3, 4] });
     show(store, poem);
     await ready();
     fireEvent.click(action('mark what you hear'));
+    // The pencil opens on the stanza in hand, wherever the marking got to.
+    expect(stanza(0).className).toContain('in-focus');
+    fireEvent.click(stanza(1));
     expect(stanza(1).className).toContain('in-focus');
-    expect(stanza(0).className).toContain('faint');
+    fireEvent.click(action('fade the words'));
+    expect(inHand()).toEqual(['1', '2', '3', '4']);
   });
 
   it('moves on to the next stanza, then the seam, then both together', async () => {
