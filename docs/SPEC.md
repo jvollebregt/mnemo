@@ -31,7 +31,7 @@ MNEMO is a single sheet of paper that slowly forgets the poem, so that you have 
 | **Recite** | On the blank page. Say it (or type it). Words reappear in ink as you get them right, and missed ones appear in pencil. | First time: *"Missing a word is useful. That's where memory is built."* |
 | **Chain** | After stanza 2, stanzas 1 and 2 together, then 1 to 3. The join between stanzas gets its own practice. | *"Now the two together. The seam between stanzas is where recitals usually break."* |
 | **Stop** | After about 10 minutes: *"That's enough for today. Tomorrow it will feel half-gone. That's the point."* | Why spacing works, in one sentence. |
-| **Return** | The contents page: titles with dotted leaders and one word each (*taking root*, *fading*, *by heart*). Opening a *fading* poem starts with recall, never rereading. Inside a poem, the stanza numerals at the foot show the same states in tone (pencil for a stanza that is due or that you last said you had only most of), so you can go straight to the stanzas that need you (Joos, 2026-10-28). | *"Try it before you look. Remembering is what makes it stick."* |
+| **Return** | The contents page: titles with dotted leaders and one word each (*taking root*, *fading*, *by heart*). Opening a *fading* poem starts with recall, never rereading. Inside a poem, the stanza numerals in the margin show the same states in tone (pencil for a stanza that is due or that you last said you had only most of), so you can go straight to the stanzas that need you (Joos, 2026-10-28). | *"Try it before you look. Remembering is what makes it stick."* |
 | **By heart** | A stanza that's recalled cleanly on several days is *by heart*. Its reviews spread out to weeks and months. | |
 
 ## 4. Long lines without false enjambment
