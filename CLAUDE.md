@@ -29,7 +29,7 @@ CI runs typecheck, lint, test and build on every PR. Keep them green.
 
 ## The page (look and feel)
 
-- It should look like a printed page, not an app. Paper `--paper #FCFBF7` (light, near-white, never brown), ink `--ink #1E1B17`, one pencil colour `--pencil #A8432F`, grey `--grey #6B6358`, traces `--trace #B9B1A3`. These tokens live in `src/styles/page.css`.
+- It should look like a printed page, not an app. Paper `--paper #FCFBF7` (light, near-white, never brown), ink `--ink #1E1B17`, one pencil colour, blue `--pencil #2E5A88` (Joos, 2026-10-29: red read as a correction), grey `--grey #6B6358`, traces `--trace #B9B1A3`. These tokens live in `src/styles/page.css`.
 - Type is EB Garamond. Actions are lower-case words set in small capitals, with no boxes.
 - No cards, icons, emoji, badges, pills, gradients, shadows, progress rings, streaks or percentages. If a screen needs one of these to make sense, rethink the screen.
 - Mobile first: design at 390px wide, with 44px touch targets and safe-area insets. Larger screens just get more margin.

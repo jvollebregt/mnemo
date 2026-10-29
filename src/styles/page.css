@@ -5,7 +5,7 @@
 :root {
   --paper: #fcfbf7;
   --ink: #1e1b17;
-  --pencil: #a8432f;
+  --pencil: #2e5a88;
   --grey: #6b6358;
   --trace: #b9b1a3;
 
@@ -602,12 +602,12 @@ body {
 }
 
 .echo.preview {
-  text-decoration-color: rgb(168 67 47 / 50%);
+  text-decoration-color: rgb(46 90 136 / 50%);
 }
 
 /* While one family is being drawn, the others step back. */
 .echo.dim {
-  text-decoration-color: rgb(168 67 47 / 25%);
+  text-decoration-color: rgb(46 90 136 / 25%);
 }
 
 /* A pause the reader heard: the stop is inked in pencil, a breath between words gets a stroke. */

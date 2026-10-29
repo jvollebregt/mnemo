@@ -9,7 +9,7 @@ MNEMO is a single sheet of paper that slowly forgets the poem, so that you have 
 ## 2. Design principles
 
 1. **The page is the interface.** One column of text with real margins, the way a poem is printed in a good book. Controls are words in small caps at the foot of the page or notes in the margin, never buttons, pills, toggles or icons.
-2. **Ink and pencil.** A light, near-white paper (not an old brown book). Two materials only: black ink for the poem, and a muted red "pencil" for corrections, marks and anything you did. Faded text is literally lighter ink. Nothing glows, slides or bounces.
+2. **Ink and pencil.** A light, near-white paper (not an old brown book). Two materials only: black ink for the poem, and a blue "pencil" for marks and anything you did (blue rather than red, so it never reads as a correction; Joos, 2026-10-29). Faded text is literally lighter ink. Nothing glows, slides or bounces.
 3. **Teach in the margin, once.** Each technique is introduced by a single italic margin note the first time it matters ("The first letters stay. They're enough to pull a line back."). It never repeats once you've used the technique. No tutorial, no onboarding carousel.
 4. **The poet's lines are sacred.** A line of verse is never broken into something that looks like two lines (see §4).
 5. **Quiet about progress.** No streaks, percentages or progress rings. The contents page says one word or phrase per poem: *taking root* (learning), *fading* (due for review today), or *by heart* (mastered). The schedule does its work out of sight.
@@ -53,7 +53,7 @@ There is no perfect syllable detector, and the pencil must not depend on one.
 
 ## 4b. Sound families on paper
 
-Rhyme is treated as part of *sound*, following Mary Oliver's handbooks: alliteration, assonance, consonance and rhyme are all echoes. One poem can hold several families, so instead of colour each family gets its own pencil underline: dotted, dashed, double, wavy or solid. When you mark a sound that closes a line, its letter (a, b, c) appears in the right margin, but only once that same sound closes at least two lines, so poems without end rhyme never get letters. Unmarked lines get no letter, so the scheme is never filled in ahead of you; it builds up as you hear it. While you work on one family, the others go pale. If five underline styles ever prove too few, a single second pencil colour (blue) is the limit.
+Rhyme is treated as part of *sound*, following Mary Oliver's handbooks: alliteration, assonance, consonance and rhyme are all echoes. One poem can hold several families, so instead of colour each family gets its own pencil underline: dotted, dashed, double, wavy or solid. When you mark a sound that closes a line, its letter (a, b, c) appears in the right margin, but only once that same sound closes at least two lines, so poems without end rhyme never get letters. Unmarked lines get no letter, so the scheme is never filled in ahead of you; it builds up as you hear it. While you work on one family, the others go pale. If five underline styles ever prove too few, a single second pencil colour is the limit.
 
 ## 5. Memory science underneath (now out of sight)
 
