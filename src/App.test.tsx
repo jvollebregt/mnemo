@@ -165,6 +165,25 @@ describe('App', () => {
     expect(await store.poems.list()).toEqual([]);
   });
 
+  it('goes back with a swipe in from the left edge, from the proof to the sheet and on to the contents', async () => {
+    const swipe = () => {
+      fireEvent.touchStart(window, { touches: [{ clientX: 6, clientY: 300 }] });
+      fireEvent.touchEnd(window, { changedTouches: [{ clientX: 160, clientY: 310 }] });
+    };
+    renderApp(await freshStore());
+    fireEvent.click(await screen.findByRole('button', { name: 'add a poem' }));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Stone\n\na stone' } });
+    fireEvent.click(screen.getByRole('button', { name: 'set the page' }));
+    swipe();
+    expect(((await screen.findByRole('textbox')) as HTMLTextAreaElement).value).toBe('Stone\n\na stone');
+    swipe();
+    expect(await screen.findByRole('heading', { name: 'contents' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'settings' }));
+    await screen.findByText('reciting');
+    swipe();
+    expect(await screen.findByRole('heading', { name: 'contents' })).toBeTruthy();
+  });
+
   it('offers to close up a poem pasted with a blank line after every line', async () => {
     renderApp(await freshStore());
     fireEvent.click(await screen.findByRole('button', { name: 'add a poem' }));

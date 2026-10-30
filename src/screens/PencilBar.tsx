@@ -34,7 +34,6 @@ export function PencilBar({
   onFamily,
   beckon,
   onAbout,
-  onPutDown,
 }: {
   tool: Tool;
   family: EchoFamily;
@@ -49,7 +48,6 @@ export function PencilBar({
   onTool: (tool: Tool) => void;
   onFamily: (family: EchoFamily) => void;
   onAbout: () => void;
-  onPutDown: () => void;
 }) {
   const { m } = useI18n();
   return (
@@ -94,9 +92,6 @@ export function PencilBar({
       <div className="minor">
         <button type="button" className={beckon === 'about' ? 'action beckon' : 'action'} onClick={onAbout}>
           {m[ABOUT_LABEL[tool]]}
-        </button>
-        <button type="button" className="action" onClick={onPutDown}>
-          {m.putDown}
         </button>
       </div>
     </div>

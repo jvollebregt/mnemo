@@ -4,6 +4,7 @@ import { useI18n } from '../i18n/context';
 import { readClipboard } from '../poem/clipboard';
 import { canJoin, closeUp, guessLanguage, looksDoubleSpaced, mend, readPasted, suspectBreaks } from '../poem/intake';
 import { lineLabel } from '../page/fit';
+import { useSwipeBack } from '../page/swipe';
 import { poemLanguages, type PoemLanguage } from '../poem/language';
 import type { NewPoem, Poem } from '../store/poems';
 
@@ -45,6 +46,8 @@ export function AddPoem({ correcting, onKeep, onCancel, onContents = onCancel, o
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
   const titleField = useRef<HTMLInputElement>(null);
+  // From the proof, a swipe back goes to the sheet, keeping the words, rather than throwing them away.
+  useSwipeBack(proof ? () => setProof(null) : onCancel);
   /** A *paste* that found nothing copied says so for a moment, in the sheet itself. */
   const [nothingCopied, setNothingCopied] = useState(false);
   useEffect(() => {

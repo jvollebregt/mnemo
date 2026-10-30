@@ -19,8 +19,10 @@ import { firstStart, linesOf, nextStart, reviewStart, stanzasOf, startOf, type S
 import { canPeek, nextStage, previousStage, showsMarks, type Stage } from '../learn/stages';
 import { roman } from '../page/fit';
 import { MarkedLine } from '../page/MarkedLine';
+import { letterNear } from '../page/reach';
 import { READING_LINE, stanzaAt } from '../page/reading';
 import { Sheet } from '../page/Sheet';
+import { useSwipeBack } from '../page/swipe';
 import { Verse } from '../page/Verse';
 import { useSyllabifier } from '../page/useSyllabifier';
 import { isLetter, layoutLine, pauseAfter, strokeRange, syllableAt, tokenAt, type Stroke } from '../pencil/layout';
@@ -119,6 +121,24 @@ function hit(target: EventTarget | Element | null): { line: number; at: number }
   const line = target.closest('[data-line]');
   if (!glyph || !line) return undefined;
   return { line: Number(line.getAttribute('data-line')), at: Number(glyph.getAttribute('data-at')) };
+}
+
+/** For a beats tap that missed the letters: the letter of a line in hand nearest the finger, if it fell near one. */
+function nearHit(verse: Element | null, inHand: ReadonlySet<number>, x: number, y: number) {
+  if (!verse) return undefined;
+  const lines = Array.from(verse.querySelectorAll('[data-line]'))
+    .filter((el) => inHand.has(Number(el.getAttribute('data-line'))))
+    .map((el) => ({
+      line: Number(el.getAttribute('data-line')),
+      letters: Array.from(el.querySelectorAll('.syl [data-at], .word [data-at]')).map((g) => {
+        const { left, right, top, bottom } = g.getBoundingClientRect();
+        return { at: Number(g.getAttribute('data-at')), left, right, top, bottom };
+      }),
+    }));
+  // A beat stands about a letter's height above the line; the reach either side is half that.
+  const first = lines.find((l) => l.letters.length > 0)?.letters[0];
+  const height = first ? first.bottom - first.top : 0;
+  return letterNear(lines, x, y, { above: height, beside: height / 2 });
 }
 
 export function PoemPage({
@@ -537,6 +557,7 @@ export function PoemPage({
     settleActive();
     onBack();
   };
+  useSwipeBack(back);
 
   const lineText = (line: number) => lines.find((l) => l.number === line)?.text ?? '';
 
@@ -591,6 +612,23 @@ export function PoemPage({
       once(PEEK_NOTE[0], () => setNote(PEEK_NOTE[1]));
       return;
     }
+    if (pencil && tool === 'beats') {
+      // A beat is tapped above its syllable or near it, so a tap that misses the letters goes to the nearest one.
+      const onSyllable = at && syllableAt(tokens.get(at.line) ?? [], at.at) !== undefined;
+      const on = onSyllable ? at : nearHit(verseRef.current, inView, e.clientX, e.clientY);
+      if (!on) return; // Empty paper: let it settle the line.
+      e.stopPropagation();
+      if (pressed.current) {
+        pressed.current = false;
+        return;
+      }
+      const syllable = syllableAt(tokens.get(on.line) ?? [], on.at);
+      if (syllable === undefined) return;
+      const leaving = activeLine !== null && activeLine !== on.line ? activeLine : null;
+      update((marks) => toggleBeat(leaving === null ? marks : settle(marks, leaving), on.line, syllable));
+      setActiveLine(on.line);
+      return;
+    }
     if (!pencil || !at) return; // Empty paper: let it settle the line.
     e.stopPropagation();
     if (pressed.current) {
@@ -598,13 +636,7 @@ export function PoemPage({
       return;
     }
     const lineTokens = tokens.get(at.line) ?? [];
-    if (tool === 'beats') {
-      const syllable = syllableAt(lineTokens, at.at);
-      if (syllable === undefined) return;
-      const leaving = activeLine !== null && activeLine !== at.line ? activeLine : null;
-      update((marks) => toggleBeat(leaving === null ? marks : settle(marks, leaving), at.line, syllable));
-      setActiveLine(at.line);
-    } else if (tool === 'pauses') {
+    if (tool === 'pauses') {
       const slot = pauseAfter(lineTokens, at.at);
       if (slot !== undefined) update((marks) => togglePause(marks, at.line, slot));
     }
@@ -838,7 +870,6 @@ export function PoemPage({
               setLesson(tool);
               setLessonFirst(false);
             }}
-            onPutDown={() => go('read')}
           />
         )}
         {stage === 'blank' && !done && (
@@ -953,7 +984,7 @@ function StageActions({
   return (
     <div className="stage-actions">
       {/* While marking, *back* on the pencil's bar is the way back. */}
-      {back && stage !== 'mark' && (
+      {back && (
         <button type="button" className="action soft" onClick={() => onGo(back)}>
           {m.back}
         </button>

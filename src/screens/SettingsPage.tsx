@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { fill, LANGUAGE_NAMES, locales, type Locale, type MessageKey } from '../i18n';
 import { useI18n } from '../i18n/context';
+import { useSwipeBack } from '../page/swipe';
 import { useStore } from '../store/context';
 import { ImportError } from '../store/exchange';
 import type { ReciteBy } from '../store/settings';
@@ -61,6 +62,7 @@ export function SettingsPage({ canSpeak, canRecord, onLocale, onBack, onImported
   const [clearing, setClearing] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const picker = useRef<HTMLInputElement>(null);
+  useSwipeBack(onBack);
 
   useEffect(() => {
     let live = true;

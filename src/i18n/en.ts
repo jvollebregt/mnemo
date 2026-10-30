@@ -41,7 +41,6 @@ export const en = {
   toolBeats: 'beats',
   toolEchoes: 'echoes',
   toolPauses: 'pauses',
-  putDown: 'back',
   moreAboutThis: 'more about this',
   pencil: 'pencil',
   aboutBeats: 'about beats',
