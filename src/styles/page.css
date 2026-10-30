@@ -176,6 +176,12 @@ body {
   color: var(--grey);
 }
 
+/* A note set in the foot of the page, just above the pencil's bar. */
+.note.foot-note {
+  align-self: stretch;
+  margin: 0 0 6px;
+}
+
 /* Top of a page: a way back on the left, a running head in the middle. */
 .top {
   display: grid;
@@ -883,8 +889,9 @@ body {
   color: var(--ink);
 }
 
-/* The stanza in hand is underlined, whatever its tone. */
-.stanza.in-focus .stanza-numeral {
+/* The stanza in hand is underlined, whatever its tone, on the first page as well. */
+.stanza.in-focus .stanza-numeral,
+.action.stanza-numeral[aria-pressed='true'] {
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;

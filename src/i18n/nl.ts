@@ -28,6 +28,7 @@ export const nl: Messages = {
   noteBlankTyping: 'Een lege bladzijde, zoals wanneer je het iemand voordraagt. Typ het uit je hoofd; elk woord komt in inkt terug zodra je het hebt.',
   noteNoEar: 'Ik kan hier nu niet luisteren, dus typ het maar. Je kunt het altijd opnieuw hardop proberen.',
   noteMissed: 'Wat je miste staat in potlood. Een woord missen is nuttig: daar wordt het geheugen gebouwd. Had je er toch een, tik het dan aan.',
+  noteNextStanza: 'Die strofe schiet wortel en komt terug zodra ze begint te vervagen. Nu de volgende.',
   noteSeam: 'De overgang tussen twee strofen is waar het opzeggen meestal hapert, dus die oefen je apart.',
   noteChain: 'Nu de strofen tot hier, achter elkaar.',
   noteReturn: 'Probeer het voordat je kijkt. Juist het herinneren zorgt dat het blijft hangen.',
@@ -74,6 +75,7 @@ export const nl: Messages = {
 
   back: 'terug',
   pastePlaceholder: 'Plak hier het gedicht, zoals het gedrukt staat.',
+  nothingCopied: 'Er is nog niets gekopieerd.',
   pasteNote:
     'Plak het zoals het gedrukt staat, met titel en al. Witregels tussen strofen blijven staan. Op de volgende bladzijde kun je rechtzetten wat er bij het plakken misging.',
   paste: 'plak',

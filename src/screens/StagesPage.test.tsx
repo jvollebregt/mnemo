@@ -285,6 +285,8 @@ describe('the stages', () => {
     expect(looks(5).every((run) => run.endsWith(':trace'))).toBe(true);
     for (const name of ['marks only', 'fade the marks', 'blank page', 'done', 'all of it']) fireEvent.click(action(name));
     expect(screen.getByRole('button', { name: 'stanza 2' }).getAttribute('aria-pressed')).toBe('true');
+    // The page turns back to reading, so it says once what happened and what comes now.
+    expect(await screen.findByText(/That stanza is taking root/)).toBeTruthy();
     // Each numeral in the tone of how its stanza stands: the first taking root, the second not begun.
     expect(action('stanza 1').className).toContain('takingRoot');
     expect(action('stanza 2').className).toContain('new');

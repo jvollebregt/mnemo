@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LANGUAGE_NAMES } from '../i18n';
 import { useI18n } from '../i18n/context';
 import { readClipboard } from '../poem/clipboard';
@@ -32,11 +32,25 @@ interface Proof {
  * proof, where the reader checks the title and poet and mends any line the
  * source page broke. Nothing is changed without the reader's tap.
  */
+const NOTHING_COPIED_MS = 2500;
+
 export function AddPoem({ correcting, onKeep, onCancel, clipboard = readClipboard }: Props) {
   const { m, locale } = useI18n();
   const [text, setText] = useState(correcting?.text ?? '');
   const [proof, setProof] = useState<Proof | null>(null);
   const [saving, setSaving] = useState(false);
+  /** A *paste* that found nothing copied says so for a moment, in the sheet itself. */
+  const [nothingCopied, setNothingCopied] = useState(false);
+  useEffect(() => {
+    if (!nothingCopied) return;
+    const timer = window.setTimeout(() => setNothingCopied(false), NOTHING_COPIED_MS);
+    return () => window.clearTimeout(timer);
+  }, [nothingCopied]);
+  const paste = () =>
+    void clipboard().then((pasted) => {
+      if (pasted.trim()) setText(pasted);
+      else setNothingCopied(true);
+    });
   // The sheet grows with the text rather than scrolling inside itself, so a selection can be drawn
   // across many lines with the page scrolling under the finger.
   const sheet = useRef<HTMLTextAreaElement>(null);
@@ -77,7 +91,7 @@ export function AddPoem({ correcting, onKeep, onCancel, clipboard = readClipboar
           ref={sheet}
           className="paste"
           aria-label={m.pastePlaceholder}
-          placeholder={m.pastePlaceholder}
+          placeholder={nothingCopied ? m.nothingCopied : m.pastePlaceholder}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
@@ -89,7 +103,7 @@ export function AddPoem({ correcting, onKeep, onCancel, clipboard = readClipboar
               {m.setPage}
             </button>
           ) : (
-            <button type="button" className="action" onClick={() => void clipboard().then((pasted) => pasted.trim() && setText(pasted))}>
+            <button type="button" className="action" onClick={paste}>
               {m.paste}
             </button>
           )}

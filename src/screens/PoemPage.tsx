@@ -87,6 +87,7 @@ const STEP_NOTE: Partial<Record<Step['kind'], [string, MessageKey]>> = {
   chain: ['note:chain', 'noteChain'],
 };
 const RETURN_NOTE: [string, MessageKey] = ['note:return', 'noteReturn'];
+const NEXT_STANZA_NOTE: [string, MessageKey] = ['note:next-stanza', 'noteNextStanza'];
 const LONG_PRESS_MS = 550;
 // How far below the top, and above the foot, a stanza scrolled into view comes to rest.
 const SCROLL_TOP = 72;
@@ -234,6 +235,8 @@ export function PoemPage({
   const changed = useRef(false);
   const update = (change: (marks: PoemMarks) => PoemMarks) => {
     changed.current = true;
+    // The note on how to mark has done its work once the first mark is down.
+    setNote((shown) => (shown === 'pencilNote' ? null : shown));
     setMarks((marks) => marks && change(marks));
   };
   useEffect(() => {
@@ -520,8 +523,10 @@ export function PoemPage({
     }
     if (step.kind === 'stanza') practised.current.add(step.stanza);
     const next = graded && nextStart(step, stanzaLines, graded, now, practised.current);
-    if (next) open(next);
-    else onBack();
+    if (!next) return onBack();
+    open(next);
+    // The page turns back to reading, so say once what just happened and what comes now.
+    if (next.step.kind === 'stanza' && !next.step.review) once(NEXT_STANZA_NOTE[0], () => setNote(NEXT_STANZA_NOTE[1]));
   };
 
   const finish = () => {
@@ -809,12 +814,14 @@ export function PoemPage({
           numeral={parsed.stanzas.length > 1 ? numeral : undefined}
         />
       </div>
-      {note && (
+      {/* While marking, the foot of the page is taken up by the verse's room to scroll, so the note sits above the bar instead. */}
+      {note && !pencil && (
         <p className="note" lang={locale}>
           {m[note]}
         </p>
       )}
       <div ref={footRef} className={pencil ? 'stage-foot pencil-foot' : 'stage-foot'} lang={locale}>
+        {pencil && note && <p className="note foot-note">{m[note]}</p>}
         {pencil && (
           <PencilBar
             tool={tool}

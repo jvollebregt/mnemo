@@ -66,6 +66,20 @@ describe('the pencil', () => {
     vi.restoreAllMocks();
   });
 
+  it('shows how to mark just above the bar, until the first mark is down', async () => {
+    const { store, poem } = await storeWithPoem();
+    show(store, poem);
+    await takeUpPencil();
+    const note = await waitFor(() => {
+      const found = document.querySelector('.stage-foot .note');
+      expect(found?.textContent).toMatch(/Choose beats, echoes or pauses/);
+      return found;
+    });
+    expect(note).toBeTruthy();
+    fireEvent.click(glyph(1, 1));
+    expect(document.querySelector('.stage-foot .note')).toBeNull();
+  });
+
   it('teaches beats the first time it is taken up, and only then', async () => {
     const { store, poem } = await storeWithPoem();
     show(store, poem);

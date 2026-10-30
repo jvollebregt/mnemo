@@ -31,6 +31,7 @@ export const en = {
   noteBlankTyping: 'A blank page, as when you recite to someone. Type it from memory; each word comes back in ink as you get it.',
   noteNoEar: 'I can’t listen here just now, so type it instead. You can try speaking again any time.',
   noteMissed: 'What you missed is in pencil. Missing a word is useful: that is where memory is built. If you did have one, tap it.',
+  noteNextStanza: 'That stanza is taking root, and will come back when it starts to fade. Now the next one.',
   noteSeam: 'The join between two stanzas is where a recital usually breaks, so it gets its own practice.',
   noteChain: 'Now the stanzas so far, together.',
   noteReturn: 'Try it before you look. Remembering is what makes it stick.',
@@ -80,6 +81,7 @@ export const en = {
   // Adding a poem
   back: 'back',
   pastePlaceholder: 'Paste the poem here, as it is printed.',
+  nothingCopied: 'Nothing is copied yet.',
   pasteNote:
     'Paste it as it is printed, title and all. Blank lines between stanzas are kept. On the next page you can set right anything the pasting got wrong.',
   paste: 'paste',

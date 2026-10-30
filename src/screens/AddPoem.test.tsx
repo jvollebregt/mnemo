@@ -34,6 +34,8 @@ describe('the paste word', () => {
     await waitFor(() => expect(clipboard).toHaveBeenCalled());
     expect(sheet().value).toBe('');
     expect(screen.getByRole('button', { name: 'paste' })).toBeTruthy();
+    // The sheet says so for a moment, in place of its usual line.
+    await waitFor(() => expect(sheet().placeholder).toBe('Nothing is copied yet.'));
   });
 
   it('is gone once the sheet has words, and back when it is cleared', () => {
