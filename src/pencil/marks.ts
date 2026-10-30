@@ -6,14 +6,14 @@
  */
 
 /**
- * Underline styles, never colours: dotted, dashed, double, wavy, solid, thick,
- * dash-dot, long dashes, and doubled dotted, dashed, wavy and dash-dot.
+ * Underline styles, never colours: dotted, dashed, double, wavy, solid,
+ * dash-dot, and doubled dotted, dashed, wavy and dash-dot.
  */
-export const ECHO_STYLES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+export const ECHO_STYLES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 export type EchoStyle = (typeof ECHO_STYLES)[number];
 
 /**
- * One sound the reader hears echo through the poem. The first twelve each
+ * One sound the reader hears echo through the poem. The first ten each
  * keep a style of their own; a poem with more sounds than that lends a style
  * again, from the sound marked furthest away.
  */
@@ -37,7 +37,7 @@ export interface PoemMarks {
   pauses: string[];
   /** The reader's own syllable cuts: line → word offset → break offsets within the word. */
   splits: Record<number, Record<number, number[]>>;
-  /** The style lent to each sound past the twelfth, chosen when it is first drawn. */
+  /** The style lent to each sound past the tenth, chosen when it is first drawn. */
   styles: Record<number, EchoStyle>;
 }
 
@@ -94,7 +94,7 @@ const withEchoes = (marks: PoemMarks, echoes: Echo[]): PoemMarks => {
 const keptStyle = (marks: PoemMarks, family: EchoFamily): EchoStyle | undefined =>
   family <= ECHO_STYLES.length ? (family as EchoStyle) : marks.styles[family];
 
-/** How a sound is underlined. A sound past the twelfth not yet drawn shows the style it would most likely be lent. */
+/** How a sound is underlined. A sound past the tenth not yet drawn shows the style it would most likely be lent. */
 export const echoStyle = (marks: PoemMarks, family: EchoFamily): EchoStyle =>
   keptStyle(marks, family) ?? styleFarFrom(marks, undefined);
 
@@ -251,7 +251,7 @@ export function readMarks(json: string | undefined): PoemMarks {
         )
       : [];
     marks.splits = data.splits && typeof data.splits === 'object' ? data.splits : {};
-    // Marks from before there were more than twelve sounds have no lent styles.
+    // Marks from before there were more than ten sounds have no lent styles.
     if (data.styles && typeof data.styles === 'object')
       for (const [family, style] of Object.entries(data.styles))
         if ((ECHO_STYLES as readonly unknown[]).includes(style)) marks.styles[Number(family)] = style;

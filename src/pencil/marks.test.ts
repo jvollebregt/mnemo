@@ -73,18 +73,18 @@ describe('pens for the sounds', () => {
     expect(freshFamily(emptyMarks())).toBe(1);
   });
 
-  it('give each of the first twelve sounds its own style for the whole poem', () => {
-    const marks = sounds(12);
-    expect(familiesInUse(marks).map((f) => echoStyle(marks, f))).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  it('give each of the first ten sounds its own style for the whole poem', () => {
+    const marks = sounds(10);
+    expect(familiesInUse(marks).map((f) => echoStyle(marks, f))).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     expect(marks.styles).toEqual({});
   });
 
-  it('lend a thirteenth sound the style marked furthest from it, and take it back once it is rubbed out', () => {
-    const marks = addEcho(sounds(12), { family: 13, line: 2, start: 3, end: 5 });
-    // Sound 12 sits on line 12, the furthest from line 2.
-    expect(echoStyle(marks, 13)).toBe(12);
+  it('lend an eleventh sound the style marked furthest from it, and take it back once it is rubbed out', () => {
+    const marks = addEcho(sounds(10), { family: 11, line: 2, start: 3, end: 5 });
+    // Sound 10 sits on line 10, the furthest from line 2.
+    expect(echoStyle(marks, 11)).toBe(10);
     // Its style stays put as more is marked.
-    expect(echoStyle(addEcho(marks, { family: 13, line: 13, start: 0, end: 1 }), 13)).toBe(12);
+    expect(echoStyle(addEcho(marks, { family: 11, line: 11, start: 0, end: 1 }), 11)).toBe(10);
     const erased = eraseEcho(marks, marks.echoes.at(-1)!);
     expect(erased.styles).toEqual({});
   });
@@ -151,7 +151,7 @@ describe('recut', () => {
 });
 
 describe('stored marks', () => {
-  it('keep the styles lent to sounds past the twelfth, and read older marks without them', () => {
+  it('keep the styles lent to sounds past the tenth, and read older marks without them', () => {
     const stored = JSON.stringify({ echoes: [{ family: 14, line: 1, start: 0, end: 1 }], styles: { 14: 7, 15: 99 } });
     expect(readMarks(stored).styles).toEqual({ 14: 7 });
     expect(readMarks(JSON.stringify({ echoes: [] })).styles).toEqual({});

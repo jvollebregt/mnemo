@@ -584,9 +584,9 @@ body {
 
 /*
  * Echo families are told apart by the kind of underline, never by colour.
- * Five are the browser's own; thick is a heavier solid; the doubled dotted,
- * dashed and wavy lines add a second underline on a span inside; dash-dot and
- * long dashes are drawn as a pattern at the foot of the letters.
+ * Five are the browser's own; the doubled dotted, dashed and wavy lines add a
+ * second underline on a span inside; dash-dot is drawn as a pattern at the
+ * foot of the letters.
  */
 .echo {
   --echo-ink: var(--pencil);
@@ -598,12 +598,12 @@ body {
 }
 
 .echo-1,
-.echo-9 {
+.echo-7 {
   text-decoration-style: dotted;
 }
 
 .echo-2,
-.echo-10 {
+.echo-8 {
   text-decoration-style: dashed;
 }
 
@@ -612,7 +612,7 @@ body {
 }
 
 .echo-4,
-.echo-11 {
+.echo-9 {
   text-decoration-style: wavy;
 }
 
@@ -620,14 +620,9 @@ body {
   text-decoration-style: solid;
 }
 
-.echo-6 {
-  text-decoration-style: solid;
-  text-decoration-thickness: 3px;
-}
-
-.echo-9,
-.echo-10,
-.echo-11 {
+.echo-7,
+.echo-8,
+.echo-9 {
   text-underline-offset: 0.16em;
 }
 
@@ -639,45 +634,21 @@ body {
   text-decoration-skip-ink: none;
 }
 
-.echo-9 .twin {
+.echo-7 .twin {
   text-decoration-style: dotted;
 }
 
-.echo-10 .twin {
+.echo-8 .twin {
   text-decoration-style: dashed;
 }
 
-.echo-11 .twin {
+.echo-9 .twin {
   text-decoration-style: wavy;
 }
 
-/* Drawn rather than decorated: the browser has no dash-dot or long dash. */
-.echo-7,
-.echo-8,
-.echo-12 {
-  text-decoration-line: none;
-  background-repeat: repeat-x;
-}
-
-.echo-7 {
-  background-image: linear-gradient(
-    to right,
-    var(--echo-ink) 0 6px,
-    transparent 6px 8.5px,
-    var(--echo-ink) 8.5px 10px,
-    transparent 10px
-  );
-  background-size: 12.5px 1.5px;
-  background-position: 0 100%;
-}
-
-.echo-8 {
-  background-image: linear-gradient(to right, var(--echo-ink) 0 10px, transparent 10px);
-  background-size: 14px 1.5px;
-  background-position: 0 100%;
-}
-
-.echo-12 {
+/* Drawn rather than decorated: the browser has no dash-dot. */
+.echo-6,
+.echo-10 {
   --dash-dot: linear-gradient(
     to right,
     var(--echo-ink) 0 6px,
@@ -685,8 +656,15 @@ body {
     var(--echo-ink) 8.5px 10px,
     transparent 10px
   );
-  background-image: var(--dash-dot), var(--dash-dot);
+  text-decoration-line: none;
+  background-image: var(--dash-dot);
+  background-repeat: repeat-x;
   background-size: 12.5px 1.5px;
+  background-position: 0 100%;
+}
+
+.echo-10 {
+  background-image: var(--dash-dot), var(--dash-dot);
   /* Room below the letters for the second line; it changes nothing in the layout of the line. */
   padding-bottom: 3px;
   background-position:

@@ -19,7 +19,7 @@ const runClass = (run: Run, active?: EchoFamily) =>
     .join(' ') || undefined;
 
 /** Doubled dotted, dashed and wavy lines: a second underline, set a little lower, on a span inside the first. */
-const TWINNED: readonly EchoStyle[] = [9, 10, 11];
+const TWINNED: readonly EchoStyle[] = [7, 8, 9];
 
 /** The letters of an echo, with the second line its style may need. */
 export function Underlined({ style, children }: { style?: EchoStyle; children: ReactNode }) {

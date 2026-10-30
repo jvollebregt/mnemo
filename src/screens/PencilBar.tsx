@@ -15,13 +15,11 @@ const STYLE_LABEL: Record<EchoStyle, MessageKey> = {
   3: 'echoDouble',
   4: 'echoWavy',
   5: 'echoSolid',
-  6: 'echoThick',
-  7: 'echoDashDot',
-  8: 'echoLongDash',
-  9: 'echoDoubleDotted',
-  10: 'echoDoubleDashed',
-  11: 'echoDoubleWavy',
-  12: 'echoDoubleDashDot',
+  6: 'echoDashDot',
+  7: 'echoDoubleDotted',
+  8: 'echoDoubleDashed',
+  9: 'echoDoubleWavy',
+  10: 'echoDoubleDashDot',
 };
 
 /** The pencil's tools, set at the foot of the page: beats · echoes · pauses, and put down. */
