@@ -51,9 +51,9 @@ async function takeUpPencil() {
 }
 
 const stroke = (line: number, from: number, to: number) => {
-  fireEvent.pointerDown(glyph(line, from));
-  fireEvent.pointerMove(glyph(line, to));
-  fireEvent.pointerUp(glyph(line, to));
+  fireEvent.pointerDown(glyph(line, from), { clientX: from * 12 });
+  fireEvent.pointerMove(glyph(line, to), { clientX: to * 12 });
+  fireEvent.pointerUp(glyph(line, to), { clientX: to * 12 });
 };
 
 describe('the pencil', () => {
@@ -181,7 +181,12 @@ describe('the pencil', () => {
     fireEvent.click(screen.getByRole('button', { name: 'dashed underline' }));
     stroke(3, 4, 4);
     expect(document.querySelector('.verse .echo-2')?.textContent).toBe('s');
-    await waitFor(async () => expect((await store.marks.get(poem.id)).echoes).toHaveLength(2));
+    // A thumb that rolls a little onto the next letter still underlines only the one it came down on.
+    fireEvent.pointerDown(glyph(3, 10), { clientX: 100, clientY: 50 });
+    fireEvent.pointerMove(glyph(3, 11), { clientX: 106, clientY: 53 });
+    fireEvent.pointerUp(glyph(3, 11), { clientX: 106, clientY: 53 });
+    expect(Array.from(document.querySelectorAll('.verse .echo-2'), (e) => e.textContent)).toEqual(['s', 't']);
+    await waitFor(async () => expect((await store.marks.get(poem.id)).echoes).toHaveLength(3));
   });
 
   it('lets the reader re-cut a word with a long press', async () => {

@@ -98,6 +98,10 @@ interface Drawing {
   line: number;
   from: number;
   to: number;
+  /** Where the finger went down, and whether it has since moved far enough to draw rather than tap. */
+  x: number;
+  y: number;
+  moved: boolean;
 }
 
 type Word = Extract<Token, { kind: 'word' }>;
@@ -613,7 +617,7 @@ export function PoemPage({
       e.preventDefault();
       // Keep the stroke even if the finger or mouse strays off the poem.
       e.currentTarget.setPointerCapture?.(e.pointerId);
-      setDrawing({ line: at.line, from: at.at, to: at.at });
+      setDrawing({ line: at.line, from: at.at, to: at.at, x: e.clientX, y: e.clientY, moved: false });
     } else if (tool === 'beats') {
       const word = tokenAt(tokens.get(at.line) ?? [], at.at);
       if (word?.kind !== 'word') return;
@@ -631,10 +635,12 @@ export function PoemPage({
   const onPointerMove = (e: PointerEvent) => {
     if (press.current && Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > PRESS_SLOP_PX) cancelPress();
     if (!drawing) return;
+    // A thumb rolls a little as it taps: until it really moves, it stays a tap on the letter it came down on.
+    if (!drawing.moved && Math.hypot(e.clientX - drawing.x, e.clientY - drawing.y) <= PRESS_SLOP_PX) return;
     // A touch stays with the element it started on, so find the letter under the finger now.
     const under = document.elementFromPoint?.(e.clientX, e.clientY) ?? e.target;
     const at = hit(under);
-    if (at && at.line === drawing.line && at.at !== drawing.to) setDrawing({ ...drawing, to: at.at });
+    if (at && at.line === drawing.line && (at.at !== drawing.to || !drawing.moved)) setDrawing({ ...drawing, to: at.at, moved: true });
   };
 
   const onPointerUp = () => {
@@ -701,7 +707,8 @@ export function PoemPage({
           done,
         },
       )}
-      activeFamily={activeFamily}
+      // Other sounds step back only in the stanza in hand; a faint stanza stays evenly faint.
+      activeFamily={inView.has(line.number) ? activeFamily : undefined}
     />
   );
   const aside = (line: Line) => {

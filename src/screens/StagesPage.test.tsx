@@ -66,9 +66,9 @@ const looks = (line: number) =>
 
 /** The lines set in full, not faint around them. */
 const stroke = (line: number, from: number, to: number) => {
-  fireEvent.pointerDown(glyph(line, from));
-  fireEvent.pointerMove(glyph(line, to));
-  fireEvent.pointerUp(glyph(line, to));
+  fireEvent.pointerDown(glyph(line, from), { clientX: from * 12 });
+  fireEvent.pointerMove(glyph(line, to), { clientX: to * 12 });
+  fireEvent.pointerUp(glyph(line, to), { clientX: to * 12 });
 };
 const inHand = () => Array.from(document.querySelectorAll('[data-line]:not(.faint)'), (l) => l.getAttribute('data-line'));
 const stanza = (n: number) => document.querySelector(`[data-stanza="${n}"]`)!;
