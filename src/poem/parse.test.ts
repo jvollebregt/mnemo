@@ -53,3 +53,16 @@ describe('parsePoem', () => {
     expect(parsePoem(' \n\n ')).toEqual({ stanzas: [], lineCount: 0 });
   });
 });
+
+describe('parsePoem, long stanzas', () => {
+  const block = Array.from({ length: 14 }, (_, i) => `line ${i + 1}${i === 7 ? '.' : ','}`).join('\n');
+
+  it('cuts a long stanza into passages that go on from each other', () => {
+    const { stanzas, lineCount } = parsePoem(`a short one\nof two\n\n${block}`);
+    expect(stanzas.map((s) => s.lines.length)).toEqual([2, 8, 6]);
+    expect(stanzas.map((s) => !!s.continues)).toEqual([false, false, true]);
+    // The poet's lines are counted as ever, across the cut.
+    expect(stanzas[2]?.lines[0]).toEqual({ text: 'line 9,', number: 11 });
+    expect(lineCount).toBe(16);
+  });
+});

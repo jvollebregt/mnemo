@@ -288,6 +288,10 @@ body {
   margin-top: 1em;
 }
 
+.stanza + .stanza.continues {
+  margin-top: 0;
+}
+
 .line {
   display: grid;
   grid-template-columns: 22px 1fr;
