@@ -1,0 +1,22 @@
+/* The same paper and ink as the app (src/styles/page.css). */
+:root {
+  --paper: #fcfbf7;
+  --ink: #1e1b17;
+  --pencil: #2e5a88;
+  --grey: #6b6358;
+}
+html { background: var(--paper); }
+body {
+  margin: 0 auto;
+  max-width: 34rem;
+  padding: 3rem 1.25rem 4rem;
+  color: var(--ink);
+  font: 1.1875rem/1.55 'EB Garamond', Georgia, serif;
+}
+h1 { font-weight: 400; font-size: 1.75rem; margin: 0 0 2rem; }
+h2 { font-weight: 400; font-size: 1rem; font-variant: small-caps; letter-spacing: 0.08em; text-transform: lowercase; color: var(--grey); margin: 2.25rem 0 0.5rem; }
+p { margin: 0 0 1rem; }
+a { color: var(--pencil); text-decoration-thickness: 1px; text-underline-offset: 0.15em; }
+nav { font-variant: small-caps; letter-spacing: 0.08em; text-transform: lowercase; margin-bottom: 3rem; }
+nav a { margin-right: 1.25rem; }
+.foot { color: var(--grey); font-size: 1rem; margin-top: 3rem; }
