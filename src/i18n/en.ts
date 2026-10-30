@@ -4,6 +4,7 @@ export const en = {
   // Contents page
   contents: 'contents',
   contentsEmpty: 'Add a poem you want to know by heart.',
+  contentsHow: 'Mark what you hear, fade the words, and say it by heart.',
   interfaceLanguage: 'language of the app',
   addPoem: 'add a poem',
   settings: 'settings',
@@ -23,7 +24,7 @@ export const en = {
 
   // Margin notes, each shown once, the first time its stage is reached
   noteRead: 'Read it aloud, slowly, twice. Hearing yourself say it is half the work.',
-  noteFadeWords: 'The words fade; your marks stay. First letters and rhythm are enough to pull a line back.',
+  noteFadeWords: 'The words fade; your marks stay. First letters and rhythm are enough to pull a line back. Tap a word if you need it.',
   noteMarksOnly: 'Only your marks now. Rebuild each line from its beats, its echoes and its pauses.',
   noteFadeMarks: 'Now the marks go too. Only the shape of the lines is left.',
   notePeek: 'Peeking is fine. Tap a faded word and it comes back in pencil. The words you peek at are the ones to come back to.',
@@ -40,7 +41,7 @@ export const en = {
   toolBeats: 'beats',
   toolEchoes: 'echoes',
   toolPauses: 'pauses',
-  putDown: 'put down',
+  putDown: 'back',
   moreAboutThis: 'more about this',
   pencil: 'pencil',
   aboutBeats: 'about beats',
@@ -83,7 +84,7 @@ export const en = {
   pastePlaceholder: 'Paste the poem here, as it is printed.',
   nothingCopied: 'Nothing is copied yet.',
   pasteNote:
-    'Paste it as it is printed, title and all. Blank lines between stanzas are kept. On the next page you can set right anything the pasting got wrong.',
+    'Title and all. Blank lines between stanzas are kept. On the next page you can set right anything the pasting got wrong.',
   paste: 'paste',
   setPage: 'set the page',
   titlePlaceholder: 'title',
@@ -99,7 +100,8 @@ export const en = {
     'There is a blank line after every line. That is usually how the web page was spaced, not how the poem is divided.',
   closeUp: 'close up the spaces',
   keepIt: 'keep it',
-  addedNote: 'It is on the page now, and only on your phone. Open it whenever you have ten quiet minutes.',
+  addedNote:
+    'It is on the page now, and only on your phone. Open it whenever you have ten quiet minutes. It is taking root; it will say by heart once you know it.',
   putAway: 'put it away',
   longLinesTitle: 'long lines',
   longLines1:

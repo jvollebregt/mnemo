@@ -94,7 +94,7 @@ describe('the pencil', () => {
     fireEvent.click(screen.getByRole('button', { name: 'about beats' }));
     await screen.findByRole('dialog', { name: 'beats' });
     fireEvent.click(screen.getByRole('button', { name: 'put it away' }));
-    fireEvent.click(screen.getByRole('button', { name: 'put down' }));
+    fireEvent.click(screen.getByRole('button', { name: 'back' }));
     fireEvent.click(screen.getByRole('button', { name: 'mark what you hear' }));
     await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByRole('dialog')).toBeNull();

@@ -20,10 +20,11 @@ export function LessonSheet({ lesson, onOpen, onClose }: { lesson: LessonKey; on
           )
         }
       >
+        {/* What to do comes first, above the fold; why it works follows. */}
+        <p className="try-it">{shown.tryIt}</p>
         {shown.paragraphs.map((p) => (
           <p key={p}>{p}</p>
         ))}
-        <p className="try-it">{shown.tryIt}</p>
         {shown.draft && <p className="draft-note">{m.draftLesson}</p>}
       </Sheet>
     </div>

@@ -14,6 +14,8 @@ interface Props {
   onCancel: () => void;
   /** Where *paste* reads from; the phone's clipboard by default. */
   clipboard?: () => Promise<string>;
+  /** While correcting: lets the poem go, with its marks and schedule, after a second tap to be sure. */
+  onRemove?: () => void;
 }
 
 interface Proof {
@@ -34,11 +36,13 @@ interface Proof {
  */
 const NOTHING_COPIED_MS = 2500;
 
-export function AddPoem({ correcting, onKeep, onCancel, clipboard = readClipboard }: Props) {
+export function AddPoem({ correcting, onKeep, onCancel, onRemove, clipboard = readClipboard }: Props) {
   const { m, locale } = useI18n();
   const [text, setText] = useState(correcting?.text ?? '');
   const [proof, setProof] = useState<Proof | null>(null);
   const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const titleField = useRef<HTMLInputElement>(null);
   /** A *paste* that found nothing copied says so for a moment, in the sheet itself. */
   const [nothingCopied, setNothingCopied] = useState(false);
   useEffect(() => {
@@ -108,6 +112,13 @@ export function AddPoem({ correcting, onKeep, onCancel, clipboard = readClipboar
             </button>
           )}
         </div>
+        {correcting && onRemove && (
+          <div className="poem-care">
+            <button type="button" className="action quiet" onClick={() => (removing ? onRemove() : setRemoving(true))}>
+              {removing ? m.removePoemSure : m.removePoem}
+            </button>
+          </div>
+        )}
       </main>
     );
   }
@@ -123,6 +134,11 @@ export function AddPoem({ correcting, onKeep, onCancel, clipboard = readClipboar
   };
 
   const keep = async () => {
+    // A poem needs a title on the contents page: point to where it goes.
+    if (!proof.title.trim()) {
+      titleField.current?.focus();
+      return;
+    }
     setSaving(true);
     try {
       await onKeep({ title: proof.title, poet: proof.poet, language: proof.language, text: mend(proof.lines, proof.joins) });
@@ -139,6 +155,7 @@ export function AddPoem({ correcting, onKeep, onCancel, clipboard = readClipboar
         </button>
       </div>
       <input
+        ref={titleField}
         className="field title"
         aria-label={m.titlePlaceholder}
         placeholder={m.titlePlaceholder}
@@ -177,7 +194,7 @@ export function AddPoem({ correcting, onKeep, onCancel, clipboard = readClipboar
         onCloseUp={() => update({ lines: closeUp(proof.lines), joins: new Set(), lastJoined: false })}
       />
       <div className="foot">
-        <button type="button" className="action" disabled={!proof.title.trim() || saving} onClick={() => void keep()}>
+        <button type="button" className="action" disabled={saving} onClick={() => void keep()}>
           {m.keepIt}
         </button>
       </div>

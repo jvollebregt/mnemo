@@ -4,6 +4,7 @@ import type { Messages } from './index';
 export const nl: Messages = {
   contents: 'inhoud',
   contentsEmpty: 'Voeg een gedicht toe dat je uit je hoofd wilt kennen.',
+  contentsHow: 'Markeer wat je hoort, laat de woorden vervagen en zeg het uit je hoofd.',
   interfaceLanguage: 'taal van de app',
   settings: 'instellingen',
   addPoem: 'voeg een gedicht toe',
@@ -20,7 +21,8 @@ export const nl: Messages = {
   stanza: 'strofe',
 
   noteRead: 'Lees het hardop, langzaam, twee keer. Jezelf het horen zeggen is het halve werk.',
-  noteFadeWords: 'De woorden vervagen; je tekens blijven. Beginletters en ritme zijn genoeg om een regel terug te halen.',
+  noteFadeWords:
+    'De woorden vervagen; je tekens blijven. Beginletters en ritme zijn genoeg om een regel terug te halen. Tik op een woord als je het nodig hebt.',
   noteMarksOnly: 'Alleen je tekens nog. Bouw elke regel weer op uit zijn klemtonen, zijn echo’s en zijn pauzes.',
   noteFadeMarks: 'Nu gaan ook de tekens. Alleen de vorm van de regels blijft over.',
   notePeek: 'Spieken mag. Tik een vervaagd woord aan en het komt terug in potlood. De woorden waar je naar spiekt, zijn de woorden om op terug te komen.',
@@ -36,7 +38,7 @@ export const nl: Messages = {
   toolBeats: 'klemtonen',
   toolEchoes: "echo's",
   toolPauses: 'pauzes',
-  putDown: 'potlood neer',
+  putDown: 'terug',
   moreAboutThis: 'meer hierover',
   pencil: 'potlood',
   aboutBeats: 'over klemtonen',
@@ -77,7 +79,7 @@ export const nl: Messages = {
   pastePlaceholder: 'Plak hier het gedicht, zoals het gedrukt staat.',
   nothingCopied: 'Er is nog niets gekopieerd.',
   pasteNote:
-    'Plak het zoals het gedrukt staat, met titel en al. Witregels tussen strofen blijven staan. Op de volgende bladzijde kun je rechtzetten wat er bij het plakken misging.',
+    'Met titel en al. Witregels tussen strofen blijven staan. Op de volgende bladzijde kun je rechtzetten wat er bij het plakken misging.',
   paste: 'plak',
   setPage: 'zet de bladzijde',
   titlePlaceholder: 'titel',
@@ -93,7 +95,8 @@ export const nl: Messages = {
     'Na elke regel staat een witregel. Meestal komt dat door de opmaak van de webpagina, niet door de strofen van het gedicht.',
   closeUp: 'haal de witregels weg',
   keepIt: 'bewaar het',
-  addedNote: 'Het staat nu op de bladzijde, en alleen op je telefoon. Open het wanneer je tien rustige minuten hebt.',
+  addedNote:
+    'Het staat nu op de bladzijde, en alleen op je telefoon. Open het wanneer je tien rustige minuten hebt. Het schiet wortel; er komt uit het hoofd te staan zodra je het kent.',
   putAway: 'leg het weg',
   longLinesTitle: 'lange regels',
   longLines1:

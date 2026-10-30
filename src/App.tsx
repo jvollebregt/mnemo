@@ -78,6 +78,7 @@ export function App() {
               correcting={before}
               onKeep={(poem) => correct(before, poem)}
               onCancel={() => setView({ name: 'poem', poem: before })}
+              onRemove={() => void remove(before)}
             />
           );
         }
@@ -99,7 +100,6 @@ export function App() {
             key={`${view.poem.id}:${view.poem.updatedAt}`}
             poem={view.poem}
             onBack={() => void toContents()}
-            onRemove={() => void remove(view.poem)}
             onCorrect={() => setView({ name: 'add', correcting: view.poem })}
           />
         );

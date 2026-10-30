@@ -44,16 +44,21 @@ describe('App', () => {
   it('opens on an empty contents page that invites a first poem', async () => {
     renderApp(await freshStore());
     expect(await screen.findByText('Add a poem you want to know by heart.')).toBeTruthy();
+    expect(screen.getByText('Mark what you hear, fade the words, and say it by heart.')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'contents' })).toBeTruthy();
   });
 
-  it('lets a poem go after a second tap, and only that poem', async () => {
+  it('lets a poem go from the page that corrects it, after a second tap, and only that poem', async () => {
     const store = await freshStore();
     await store.poems.add({ title: 'Stone', poet: '', language: 'en', text: 'a stone' });
     await store.poems.add({ title: 'Hope', poet: '', language: 'en', text: 'a line' });
     renderApp(store);
 
     fireEvent.click(await screen.findByRole('button', { name: /^Hope/ }));
+    // The reading page keeps to reading; letting a poem go is one step further in.
+    await screen.findByRole('button', { name: 'correct this poem' });
+    expect(screen.queryByRole('button', { name: 'remove this poem' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'correct this poem' }));
     fireEvent.click(await screen.findByRole('button', { name: 'remove this poem' }));
     expect(await screen.findByRole('button', { name: 'yes, remove it' })).toBeTruthy();
     expect((await store.poems.list()).length).toBe(2);
@@ -139,15 +144,14 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'contents' })).toBeTruthy());
   });
 
-  it('will not keep a poem without a title', async () => {
+  it('will not keep a poem without a title, and points to where it goes', async () => {
     renderApp(await freshStore());
     fireEvent.click(await screen.findByRole('button', { name: 'add a poem' }));
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'a line\nanother line\nand a third' } });
     fireEvent.click(screen.getByRole('button', { name: 'set the page' }));
-    const keep = screen.getByRole('button', { name: 'keep it' }) as HTMLButtonElement;
-    expect(keep.disabled).toBe(true);
-    fireEvent.change(screen.getByRole('textbox', { name: 'title' }), { target: { value: 'Three lines' } });
-    expect(keep.disabled).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'keep it' }));
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'title' }));
+    expect(screen.getByRole('button', { name: 'keep it' })).toBeTruthy();
   });
 
   it('offers to close up a poem pasted with a blank line after every line', async () => {

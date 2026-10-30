@@ -90,6 +90,11 @@ body {
   text-align: center;
 }
 
+.empty.how {
+  margin-top: 12px;
+  font-size: 15px;
+}
+
 .foot {
   margin-top: auto;
   display: flex;

@@ -125,15 +125,12 @@ function hit(target: EventTarget | Element | null): { line: number; at: number }
 export function PoemPage({
   poem,
   onBack,
-  onRemove,
   onCorrect,
   ear = deviceEar,
   recorder = deviceRecorder,
 }: {
   poem: Poem;
   onBack: () => void;
-  /** Lets the poem go, with its marks and schedule, after a second tap to be sure. */
-  onRemove?: () => void;
   /** Opens the poem's text, title and poet again to set right a mistake. */
   onCorrect?: () => void;
   ear?: Ear;
@@ -148,7 +145,6 @@ export function PoemPage({
   const syllabifier = useSyllabifier(poem.language);
 
   const [explainLongLines, setExplainLongLines] = useState(false);
-  const [removing, setRemoving] = useState(false);
   const [marks, setMarks] = useState<PoemMarks | null>(null);
   const [cards, setCards] = useState<ReadonlyMap<Unit, Card> | null>(null);
   /** The reader's last verdict on each stanza, which colours its numeral as much as the schedule does. */
@@ -870,18 +866,11 @@ export function PoemPage({
           onDone={finish}
           onRate={rate}
         />
-        {stage === 'read' && (onCorrect || onRemove) && (
+        {stage === 'read' && onCorrect && (
           <div className="poem-care">
-            {onCorrect && !removing && (
-              <button type="button" className="action quiet" onClick={onCorrect}>
-                {m.correctPoem}
-              </button>
-            )}
-            {onRemove && (
-              <button type="button" className="action quiet" onClick={() => (removing ? onRemove() : setRemoving(true))}>
-                {removing ? m.removePoemSure : m.removePoem}
-              </button>
-            )}
+            <button type="button" className="action quiet" onClick={onCorrect}>
+              {m.correctPoem}
+            </button>
           </div>
         )}
       </div>
@@ -961,7 +950,7 @@ function StageActions({
   const next = nextStage(stage);
   return (
     <div className="stage-actions">
-      {/* While marking, *put down* is the way back. */}
+      {/* While marking, *back* on the pencil's bar is the way back. */}
       {back && stage !== 'mark' && (
         <button type="button" className="action soft" onClick={() => onGo(back)}>
           {m.back}

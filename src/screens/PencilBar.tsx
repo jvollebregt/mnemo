@@ -22,7 +22,7 @@ const STYLE_LABEL: Record<EchoStyle, MessageKey> = {
   10: 'echoDoubleDashDot',
 };
 
-/** The pencil's tools, set at the foot of the page: beats · echoes · pauses, and put down. */
+/** The pencil's tools, set at the foot of the page: beats · echoes · pauses, and back. */
 export function PencilBar({
   tool,
   family,
