@@ -40,7 +40,7 @@ CI runs typecheck, lint, test and build on every PR. Keep them green.
 - Never present a wrapped line as a new verse line. A poet's line is one unit for line numbers, fading, peeking, recall and scheduling.
 - Fit to measure first: set the poem once at the largest size where most lines fit, down to about 15px. Lines that still don't fit turn over with a hanging indent, as a printed book does.
 - Line numbers count only the poet's lines, and appear only on the proof when adding a poem. While learning, the reader goes by stanza numerals, so the page shows no line numbers (Joos, 2026-10-28).
-- A stanza longer than eight lines (a speech from a play, blank verse, a sonnet set as one block) is learned in passages of four to eight lines, cut where sentences end (`src/poem/passages.ts`). Each passage is a stanza for numerals, marking, fading, chains and the schedule, but the page adds no blank line between them (default proposed 2026-10-30, for Joos to confirm).
+- A stanza longer than eight lines (a speech from a play, blank verse, a sonnet set as one block) is learned in passages of four to eight lines, cut where sentences end (`src/poem/passages.ts`). Each passage is a stanza for numerals, marking, fading, chains and the schedule, but the page adds no blank line between them (Joos, 2026-10-30).
 
 ## The method (in order, per stanza)
 
