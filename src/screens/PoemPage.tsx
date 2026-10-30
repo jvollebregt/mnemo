@@ -90,7 +90,6 @@ const RETURN_NOTE: [string, MessageKey] = ['note:return', 'noteReturn'];
 const NEXT_STANZA_NOTE: [string, MessageKey] = ['note:next-stanza', 'noteNextStanza'];
 const LONG_PRESS_MS = 550;
 // How far below the top, and above the foot, a stanza scrolled into view comes to rest.
-const SCROLL_TOP = 72;
 const SCROLL_FOOT = 24;
 const PRESS_SLOP_PX = 10;
 
@@ -365,13 +364,16 @@ export function PoemPage({
   // into view between the top and the foot, and not at all if it is already there or came there by scrolling.
   const verseRef = useRef<HTMLDivElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  // The running head stays at the top of the screen, so the page's working area starts below it.
+  const pageTop = () => (topRef.current?.getBoundingClientRect().bottom ?? 0) + SCROLL_FOOT;
   const inHand = stanzasOf(step)[0] ?? 0;
   const lastInHand = useRef(inHand);
   const scrolledTo = useRef(false);
   const bringIntoView = useEffectEvent(() => {
     const box = verseRef.current?.querySelector(`[data-stanza="${inHand}"]`)?.getBoundingClientRect();
     if (!box) return;
-    const top = SCROLL_TOP;
+    const top = pageTop();
     const bottom = (footRef.current?.getBoundingClientRect().top ?? window.innerHeight) - SCROLL_FOOT;
     const by = box.top < top ? box.top - top : box.bottom > bottom ? Math.min(box.bottom - bottom, box.top - top) : 0;
     if (by === 0) return;
@@ -397,7 +399,7 @@ export function PoemPage({
     const foot = footRef.current?.getBoundingClientRect().top ?? window.innerHeight;
     const at = stanzaAt(
       stanzas.map((el) => el.getBoundingClientRect()),
-      SCROLL_TOP + (foot - SCROLL_TOP) * READING_LINE,
+      pageTop() + (foot - pageTop()) * READING_LINE,
     );
     const index = at === undefined ? undefined : Number(stanzas[at]!.getAttribute('data-stanza'));
     if (index === undefined || index === step.stanza) return;
@@ -760,7 +762,7 @@ export function PoemPage({
 
   return (
     <main className="page poem-page" lang={poem.language} onClick={pencil ? settleActive : undefined}>
-      <div className="top">
+      <div ref={topRef} className="top running-top">
         <button type="button" className="action" onClick={back}>
           {m.contents}
         </button>

@@ -33,6 +33,8 @@ export interface Piece {
   start: number;
   /** Above a syllable: a beat, or the light mark of a settled line. */
   mark?: 'beat' | 'light';
+  /** The syllable's vowel, which the mark stands over: its offsets in the line. */
+  vowel?: { start: number; end: number };
   /** On punctuation or a space: the reader hears a pause here. */
   pause?: boolean;
   runs: Run[];
@@ -125,9 +127,31 @@ export function layoutLine(
     return token.syllables.map((s) => {
       const beat = marks.beats.includes(markKey(line, s.start));
       const mark = beat ? 'beat' : light ? 'light' : undefined;
-      return { kind: 'syllable', start: s.start, ...(mark ? { mark } : {}), runs: runsOf(s.text, s.start, { word: token }) };
+      const vowel = mark ? vowelOf(s.text, s.start) : undefined;
+      return {
+        kind: 'syllable',
+        start: s.start,
+        ...(mark ? { mark } : {}),
+        ...(vowel ? { vowel } : {}),
+        runs: runsOf(s.text, s.start, { word: token }),
+      };
     });
   }).concat(endPause);
+}
+
+const VOWEL = /[aeiouàáâäèéêëìíîïòóôöùúûü]/iu;
+// A y before a vowel (yes, beyond) is a consonant; elsewhere (day, rhythm) it is a vowel.
+const isVowel = (text: string, i: number) =>
+  VOWEL.test(text[i] ?? '') || (/y/iu.test(text[i] ?? '') && !VOWEL.test(text[i + 1] ?? ''));
+
+/** Where a syllable's vowel sound is, so a mark can stand over it rather than over the whole syllable. */
+function vowelOf(text: string, start: number): { start: number; end: number } | undefined {
+  let from = 0;
+  while (from < text.length && !isVowel(text, from)) from += 1;
+  if (from === text.length) return undefined;
+  let to = from + 1;
+  while (to < text.length && isVowel(text, to)) to += 1;
+  return { start: start + from, end: start + to };
 }
 
 /** The offset just after a line's last character. */

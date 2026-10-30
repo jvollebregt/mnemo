@@ -12,6 +12,8 @@ interface Props {
   correcting?: Poem;
   onKeep: (poem: NewPoem) => Promise<void>;
   onCancel: () => void;
+  /** Straight to the contents, from the sheet or the proof; *onCancel* when not correcting. */
+  onContents?: () => void;
   /** Where *paste* reads from; the phone's clipboard by default. */
   clipboard?: () => Promise<string>;
   /** While correcting: lets the poem go, with its marks and schedule, after a second tap to be sure. */
@@ -36,7 +38,7 @@ interface Proof {
  */
 const NOTHING_COPIED_MS = 2500;
 
-export function AddPoem({ correcting, onKeep, onCancel, onRemove, clipboard = readClipboard }: Props) {
+export function AddPoem({ correcting, onKeep, onCancel, onContents = onCancel, onRemove, clipboard = readClipboard }: Props) {
   const { m, locale } = useI18n();
   const [text, setText] = useState(correcting?.text ?? '');
   const [proof, setProof] = useState<Proof | null>(null);
@@ -86,10 +88,15 @@ export function AddPoem({ correcting, onKeep, onCancel, onRemove, clipboard = re
   if (!proof) {
     return (
       <main className="page">
-        <div className="top">
+        <div className="top running-top">
           <button type="button" className="action" onClick={onCancel}>
             {correcting ? m.back : m.contents}
           </button>
+          {correcting && (
+            <button type="button" className="action top-end" onClick={onContents}>
+              {m.contents}
+            </button>
+          )}
         </div>
         <textarea
           ref={sheet}
@@ -149,8 +156,11 @@ export function AddPoem({ correcting, onKeep, onCancel, onRemove, clipboard = re
 
   return (
     <main className="page poem-page">
-      <div className="top">
-        <button type="button" className="action" onClick={() => setProof(null)}>
+      <div className="top running-top">
+        <button type="button" className="action" onClick={onContents}>
+          {m.contents}
+        </button>
+        <button type="button" className="action top-end" onClick={() => setProof(null)}>
           {m.back}
         </button>
       </div>

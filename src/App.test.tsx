@@ -154,6 +154,17 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'keep it' })).toBeTruthy();
   });
 
+  it('goes straight back to the contents from the proof, keeping nothing', async () => {
+    const store = await freshStore();
+    renderApp(store);
+    fireEvent.click(await screen.findByRole('button', { name: 'add a poem' }));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Stone\n\na stone' } });
+    fireEvent.click(screen.getByRole('button', { name: 'set the page' }));
+    fireEvent.click(screen.getByRole('button', { name: 'contents' }));
+    expect(await screen.findByRole('heading', { name: 'contents' })).toBeTruthy();
+    expect(await store.poems.list()).toEqual([]);
+  });
+
   it('offers to close up a poem pasted with a blank line after every line', async () => {
     renderApp(await freshStore());
     fireEvent.click(await screen.findByRole('button', { name: 'add a poem' }));

@@ -27,6 +27,17 @@ export function Underlined({ style, children }: { style?: EchoStyle; children: R
 }
 
 /**
+ * The letter a syllable's mark stands over: the middle of its vowel, or, for
+ * an even number of vowel letters (ee, ou), the edge between the middle two.
+ */
+function markAt(piece: Piece): { at: number; edge: boolean } | undefined {
+  if (!piece.mark || !piece.vowel) return undefined;
+  const { start, end } = piece.vowel;
+  const length = end - start;
+  return { at: start + Math.floor((length - 1) / 2), edge: length % 2 === 0 };
+}
+
+/**
  * A line set with the reader's marks. Every letter is its own element, so a
  * stroke can snap to letter edges, but the text flows exactly as the plain
  * line does: the same breaks, the same turnovers.
@@ -34,21 +45,28 @@ export function Underlined({ style, children }: { style?: EchoStyle; children: R
 export function MarkedLine({ pieces, activeFamily }: { pieces: readonly Piece[]; activeFamily?: EchoFamily }) {
   return (
     <>
-      {pieces.map((piece) => (
-        <span key={piece.start} className={pieceClass(piece)}>
-          {piece.runs.map((run) => (
-            <span key={run.glyphs[0]?.at} className={runClass(run, activeFamily)}>
-              <Underlined style={run.style}>
-                {run.glyphs.map((g) => (
-                  <span key={g.at} data-at={g.at}>
-                    {g.ch}
-                  </span>
-                ))}
-              </Underlined>
-            </span>
-          ))}
-        </span>
-      ))}
+      {pieces.map((piece) => {
+        const mark = markAt(piece);
+        return (
+          <span key={piece.start} className={pieceClass(piece)}>
+            {piece.runs.map((run) => (
+              <span key={run.glyphs[0]?.at} className={runClass(run, activeFamily)}>
+                <Underlined style={run.style}>
+                  {run.glyphs.map((g) => (
+                    <span
+                      key={g.at}
+                      data-at={g.at}
+                      className={g.at === mark?.at ? (mark.edge ? 'mark-at edge' : 'mark-at') : undefined}
+                    >
+                      {g.ch}
+                    </span>
+                  ))}
+                </Underlined>
+              </span>
+            ))}
+          </span>
+        );
+      })}
     </>
   );
 }
