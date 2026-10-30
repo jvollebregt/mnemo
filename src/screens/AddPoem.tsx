@@ -69,6 +69,11 @@ export function AddPoem({ correcting, onKeep, onCancel, onContents = onCancel, o
     el.style.height = 'auto';
     el.style.height = `${el.scrollHeight}px`;
   }, [text, proof]);
+  // The proof starts at its title, wherever the long sheet before it was scrolled to.
+  const proofShown = proof !== null;
+  useLayoutEffect(() => {
+    if (proofShown) window.scrollTo(0, 0);
+  }, [proofShown]);
 
   const setPage = () => {
     if (correcting) {
