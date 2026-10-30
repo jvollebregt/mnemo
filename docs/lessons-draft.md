@@ -23,7 +23,7 @@ A poem is made of sounds as much as of words, and good poems make their sounds c
 Rhyme at the end of words is the one everybody knows: *heard* comes back in *Bird*. Rhyme at the front of words is alliteration, which is why it used to be called *head rhyme*: *sings, stops, soul*.
 Echoes can hide inside words too: a vowel coming back (assonance), or a consonant (consonance). *Soul* and *all* only half-rhyme; Dickinson loved that slant chime.
 Give each family of echoes its own kind of underline. At the end of a line an echo is what memory leans on most; when you recall the line, it tells you which word has to come.
-*Try it: choose an underline, then tap* sings *and* stops.
+*Try it: choose an underline, then tap* sings *and* stops. *For another sound, choose another underline.*
 
 **Framing (Joos):** alliteration is presented as a form of rhyme. "Head rhyme" / "initial rhyme" is an established older term for alliteration. **To check in Oliver's *A Poetry Handbook*** (Joos has the book): does she frame the sound devices as a spectrum with rhyme, and is there a phrase we can quote briefly with attribution?
 

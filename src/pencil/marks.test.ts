@@ -2,8 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   addEcho,
   echoAt,
+  echoStyle,
+  echoWords,
   emptyMarks,
   eraseEcho,
+  familiesInUse,
+  freshFamily,
+  markedStanzaNear,
   readMarks,
   recut,
   rhymeLetters,
@@ -51,6 +56,45 @@ describe('echoes', () => {
 
   it('ignore an empty stroke', () => {
     expect(addEcho(emptyMarks(), { family: 1, line: 1, start: 4, end: 4 }).echoes).toEqual([]);
+  });
+});
+
+describe('pens for the sounds', () => {
+  const sounds = (count: number) =>
+    Array.from({ length: count }, (_, i) => i + 1).reduce(
+      (marks, family) => addEcho(marks, { family, line: family, start: 0, end: 2 }),
+      emptyMarks(),
+    );
+
+  it('offer the first pen not in use, and list the ones in use in order', () => {
+    const marks = addEcho(addEcho(emptyMarks(), { family: 3, line: 1, start: 0, end: 1 }), { family: 1, line: 2, start: 0, end: 1 });
+    expect(familiesInUse(marks)).toEqual([1, 3]);
+    expect(freshFamily(marks)).toBe(2);
+    expect(freshFamily(emptyMarks())).toBe(1);
+  });
+
+  it('give each of the first ten sounds its own style for the whole poem', () => {
+    const marks = sounds(10);
+    expect(familiesInUse(marks).map((f) => echoStyle(marks, f))).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(marks.styles).toEqual({});
+  });
+
+  it('lend an eleventh sound the style marked furthest from it, and take it back once it is rubbed out', () => {
+    const marks = addEcho(sounds(10), { family: 11, line: 2, start: 3, end: 5 });
+    // Sound 10 sits on line 10, the furthest from line 2.
+    expect(echoStyle(marks, 11)).toBe(10);
+    // Its style stays put as more is marked.
+    expect(echoStyle(addEcho(marks, { family: 11, line: 11, start: 0, end: 1 }), 11)).toBe(10);
+    const erased = eraseEcho(marks, marks.echoes.at(-1)!);
+    expect(erased.styles).toEqual({});
+  });
+
+  it('read back the words that carry a sound, in order, each spelling once', () => {
+    const text: Record<number, string> = { 1: 'Rome', 2: 'foam', 3: 'ROME', 4: 'comb' };
+    let marks = emptyMarks();
+    for (const line of [4, 1, 2, 3]) marks = addEcho(marks, { family: 1, line, start: 1, end: 3 });
+    marks = addEcho(marks, { family: 2, line: 5, start: 0, end: 1 });
+    expect(echoWords(marks, 1, (line) => text[line])).toEqual(['Rome', 'foam', 'comb']);
   });
 });
 
@@ -107,6 +151,12 @@ describe('recut', () => {
 });
 
 describe('stored marks', () => {
+  it('keep the styles lent to sounds past the tenth, and read older marks without them', () => {
+    const stored = JSON.stringify({ echoes: [{ family: 14, line: 1, start: 0, end: 1 }], styles: { 14: 7, 15: 99 } });
+    expect(readMarks(stored).styles).toEqual({ 14: 7 });
+    expect(readMarks(JSON.stringify({ echoes: [] })).styles).toEqual({});
+  });
+
   it('round-trip through JSON', () => {
     let m = toggleBeat(emptyMarks(), 1, 1);
     m = setSplit(m, 1, 4, [5, 2]);
@@ -117,8 +167,19 @@ describe('stored marks', () => {
   it('drop what is unreadable instead of failing', () => {
     expect(readMarks('not json')).toEqual(emptyMarks());
     expect(readMarks(undefined)).toEqual(emptyMarks());
-    const partial = readMarks(JSON.stringify({ beats: ['1:0', 3], echoes: [{ family: 9, line: 1, start: 0, end: 1 }] }));
+    const partial = readMarks(JSON.stringify({ beats: ['1:0', 3], echoes: [{ family: 0, line: 1, start: 0, end: 1 }] }));
     expect(partial.beats).toEqual(['1:0']);
     expect(partial.echoes).toEqual([]);
+  });
+});
+
+describe('the stanza to fade from the pencil', () => {
+  const stanzas = [[1, 2], [3, 4], [5, 6], [7, 8]];
+  it('is the one in hand when it has marks, else the nearest marked one above, else below', () => {
+    const marks = { ...emptyMarks(), beats: ['3:0'], echoes: [{ family: 1 as const, line: 8, start: 0, end: 2 }] };
+    expect(markedStanzaNear(1, stanzas, marks)).toBe(1);
+    expect(markedStanzaNear(2, stanzas, marks)).toBe(1);
+    expect(markedStanzaNear(0, stanzas, marks)).toBe(1);
+    expect(markedStanzaNear(0, stanzas, emptyMarks())).toBe(0);
   });
 });

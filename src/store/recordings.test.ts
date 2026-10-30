@@ -26,6 +26,17 @@ describe('Recordings', () => {
     expect(await files.read(`recitals/${poem.id}`)).toBeTruthy();
   });
 
+  it('forgets one poem\'s recital and leaves the others', async () => {
+    const { db, poem, recordings, files } = await setUp();
+    const other = await new Poems(db).add({ title: 'Stone', poet: '', language: 'en', text: 'a stone' });
+    await recordings.keep(poem.id, new Uint8Array(10), 'audio/webm');
+    await recordings.keep(other.id, new Uint8Array(5), 'audio/webm');
+    await recordings.forget(poem.id);
+    expect(await recordings.get(poem.id)).toBeUndefined();
+    expect(await files.read(`recitals/${poem.id}`)).toBeUndefined();
+    expect(await recordings.bytesUsed()).toBe(5);
+  });
+
   it('clears every recital, files and all', async () => {
     const { db, poem, recordings, files } = await setUp();
     const other = await new Poems(db).add({ title: 'Stone', poet: '', language: 'en', text: 'a stone' });

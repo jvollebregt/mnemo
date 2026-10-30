@@ -1,14 +1,21 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LANGUAGE_NAMES } from '../i18n';
 import { useI18n } from '../i18n/context';
+import { readClipboard } from '../poem/clipboard';
 import { canJoin, closeUp, guessLanguage, looksDoubleSpaced, mend, readPasted, suspectBreaks } from '../poem/intake';
 import { lineLabel } from '../page/fit';
 import { poemLanguages, type PoemLanguage } from '../poem/language';
-import type { NewPoem } from '../store/poems';
+import type { NewPoem, Poem } from '../store/poems';
 
 interface Props {
+  /** A poem kept before, to correct: its text comes back onto the sheet, its title and poet onto the proof. */
+  correcting?: Poem;
   onKeep: (poem: NewPoem) => Promise<void>;
   onCancel: () => void;
+  /** Where *paste* reads from; the phone's clipboard by default. */
+  clipboard?: () => Promise<string>;
+  /** While correcting: lets the poem go, with its marks and schedule, after a second tap to be sure. */
+  onRemove?: () => void;
 }
 
 interface Proof {
@@ -27,13 +34,44 @@ interface Proof {
  * proof, where the reader checks the title and poet and mends any line the
  * source page broke. Nothing is changed without the reader's tap.
  */
-export function AddPoem({ onKeep, onCancel }: Props) {
+const NOTHING_COPIED_MS = 2500;
+
+export function AddPoem({ correcting, onKeep, onCancel, onRemove, clipboard = readClipboard }: Props) {
   const { m, locale } = useI18n();
-  const [text, setText] = useState('');
+  const [text, setText] = useState(correcting?.text ?? '');
   const [proof, setProof] = useState<Proof | null>(null);
   const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const titleField = useRef<HTMLInputElement>(null);
+  /** A *paste* that found nothing copied says so for a moment, in the sheet itself. */
+  const [nothingCopied, setNothingCopied] = useState(false);
+  useEffect(() => {
+    if (!nothingCopied) return;
+    const timer = window.setTimeout(() => setNothingCopied(false), NOTHING_COPIED_MS);
+    return () => window.clearTimeout(timer);
+  }, [nothingCopied]);
+  const paste = () =>
+    void clipboard().then((pasted) => {
+      if (pasted.trim()) setText(pasted);
+      else setNothingCopied(true);
+    });
+  // The sheet grows with the text rather than scrolling inside itself, so a selection can be drawn
+  // across many lines with the page scrolling under the finger.
+  const sheet = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = sheet.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [text, proof]);
 
   const setPage = () => {
+    if (correcting) {
+      // The text is the poem's own, so its first line is never taken for a title.
+      const { title, poet, language } = correcting;
+      setProof({ title, poet, language, askLanguage: false, lines: readPasted(text, false).lines, joins: new Set(), lastJoined: false });
+      return;
+    }
     const pasted = readPasted(text);
     const guess = guessLanguage(pasted.lines.join('\n'), locale);
     setProof({
@@ -50,22 +88,37 @@ export function AddPoem({ onKeep, onCancel }: Props) {
       <main className="page">
         <div className="top">
           <button type="button" className="action" onClick={onCancel}>
-            {m.contents}
+            {correcting ? m.back : m.contents}
           </button>
         </div>
         <textarea
+          ref={sheet}
           className="paste"
           aria-label={m.pastePlaceholder}
-          placeholder={m.pastePlaceholder}
+          placeholder={nothingCopied ? m.nothingCopied : m.pastePlaceholder}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
-        <p className="note">{m.pasteNote}</p>
+        {!correcting && <p className="note">{m.pasteNote}</p>}
         <div className="foot">
-          <button type="button" className="action" disabled={!text.trim()} onClick={setPage}>
-            {m.setPage}
-          </button>
+          {/* While the sheet is empty, one tap puts the copied poem on it. */}
+          {text.trim() ? (
+            <button type="button" className="action" onClick={setPage}>
+              {m.setPage}
+            </button>
+          ) : (
+            <button type="button" className="action" onClick={paste}>
+              {m.paste}
+            </button>
+          )}
         </div>
+        {correcting && onRemove && (
+          <div className="poem-care">
+            <button type="button" className="action quiet" onClick={() => (removing ? onRemove() : setRemoving(true))}>
+              {removing ? m.removePoemSure : m.removePoem}
+            </button>
+          </div>
+        )}
       </main>
     );
   }
@@ -81,6 +134,11 @@ export function AddPoem({ onKeep, onCancel }: Props) {
   };
 
   const keep = async () => {
+    // A poem needs a title on the contents page: point to where it goes.
+    if (!proof.title.trim()) {
+      titleField.current?.focus();
+      return;
+    }
     setSaving(true);
     try {
       await onKeep({ title: proof.title, poet: proof.poet, language: proof.language, text: mend(proof.lines, proof.joins) });
@@ -97,6 +155,7 @@ export function AddPoem({ onKeep, onCancel }: Props) {
         </button>
       </div>
       <input
+        ref={titleField}
         className="field title"
         aria-label={m.titlePlaceholder}
         placeholder={m.titlePlaceholder}
@@ -135,7 +194,7 @@ export function AddPoem({ onKeep, onCancel }: Props) {
         onCloseUp={() => update({ lines: closeUp(proof.lines), joins: new Set(), lastJoined: false })}
       />
       <div className="foot">
-        <button type="button" className="action" disabled={!proof.title.trim() || saving} onClick={() => void keep()}>
+        <button type="button" className="action" disabled={saving} onClick={() => void keep()}>
           {m.keepIt}
         </button>
       </div>

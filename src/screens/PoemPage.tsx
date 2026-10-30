@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
 import type { MessageKey } from '../i18n';
 import { useI18n } from '../i18n/context';
 import type { LessonKey } from '../i18n/lessons';
@@ -8,15 +8,18 @@ import {
   lineUnit,
   review,
   stanzaGrade,
+  stanzaState,
   stanzaUnit,
   type Card,
   type Unit,
   type Verdict,
 } from '../learn/schedule';
+import type { Grade } from 'ts-fsrs';
 import { firstStart, linesOf, nextStart, reviewStart, stanzasOf, startOf, type Start, type Step } from '../learn/session';
 import { canPeek, nextStage, previousStage, showsMarks, type Stage } from '../learn/stages';
 import { roman } from '../page/fit';
 import { MarkedLine } from '../page/MarkedLine';
+import { READING_LINE, stanzaAt } from '../page/reading';
 import { Sheet } from '../page/Sheet';
 import { Verse } from '../page/Verse';
 import { useSyllabifier } from '../page/useSyllabifier';
@@ -24,8 +27,13 @@ import { isLetter, layoutLine, pauseAfter, strokeRange, syllableAt, tokenAt, typ
 import {
   addEcho,
   echoAt,
+  echoStyle,
+  echoWords,
   emptyMarks,
   eraseEcho,
+  familiesInUse,
+  freshFamily,
+  markedStanzaNear,
   markKey,
   recut,
   rhymeLetters,
@@ -71,12 +79,19 @@ const STAGE_NOTE: Record<Stage, [string, MessageKey]> = {
 };
 const PEEK_NOTE: [string, MessageKey] = ['note:peek', 'notePeek'];
 const MISSED_NOTE: [string, MessageKey] = ['note:missed', 'noteMissed'];
+/** Shown once, without words: the next fresh underline, when one pen first spans two lines. */
+const FAMILY_HINT = 'hint:echo-family';
+const BECKON_MS = 3000;
 const STEP_NOTE: Partial<Record<Step['kind'], [string, MessageKey]>> = {
   seam: ['note:seam', 'noteSeam'],
   chain: ['note:chain', 'noteChain'],
 };
 const RETURN_NOTE: [string, MessageKey] = ['note:return', 'noteReturn'];
+const NEXT_STANZA_NOTE: [string, MessageKey] = ['note:next-stanza', 'noteNextStanza'];
 const LONG_PRESS_MS = 550;
+// How far below the top, and above the foot, a stanza scrolled into view comes to rest.
+const SCROLL_TOP = 72;
+const SCROLL_FOOT = 24;
 const PRESS_SLOP_PX = 10;
 
 /** A stroke being drawn under letters: from the letter where the finger went down to the one under it now. */
@@ -84,11 +99,21 @@ interface Drawing {
   line: number;
   from: number;
   to: number;
+  /** Where the finger went down, and whether it has since moved far enough to draw rather than tap. */
+  x: number;
+  y: number;
+  moved: boolean;
 }
 
 type Word = Extract<Token, { kind: 'word' }>;
 
 /** The line and letter under a point on the page, if any. */
+/** The first echo the reader underlined in a word, if any. */
+function echoIn(marks: PoemMarks, line: number, word: Token | undefined) {
+  if (word?.kind !== 'word') return undefined;
+  return marks.echoes.find((e) => e.line === line && e.start < word.start + word.text.length && word.start < e.end);
+}
+
 function hit(target: EventTarget | Element | null): { line: number; at: number } | undefined {
   if (!(target instanceof Element)) return undefined;
   const glyph = target.closest('[data-at]');
@@ -100,11 +125,14 @@ function hit(target: EventTarget | Element | null): { line: number; at: number }
 export function PoemPage({
   poem,
   onBack,
+  onCorrect,
   ear = deviceEar,
   recorder = deviceRecorder,
 }: {
   poem: Poem;
   onBack: () => void;
+  /** Opens the poem's text, title and poet again to set right a mistake. */
+  onCorrect?: () => void;
   ear?: Ear;
   recorder?: Recorder;
 }) {
@@ -113,20 +141,26 @@ export function PoemPage({
   const { seen } = store;
   const parsed = useMemo(() => parsePoem(poem.text), [poem.text]);
   const lines = useMemo(() => parsed.stanzas.flatMap((s) => s.lines), [parsed]);
+  const stanzaLines = useMemo(() => parsed.stanzas.map((s) => s.lines.map((l) => l.number)), [parsed]);
   const syllabifier = useSyllabifier(poem.language);
 
   const [explainLongLines, setExplainLongLines] = useState(false);
   const [marks, setMarks] = useState<PoemMarks | null>(null);
   const [cards, setCards] = useState<ReadonlyMap<Unit, Card> | null>(null);
+  /** The reader's last verdict on each stanza, which colours its numeral as much as the schedule does. */
+  const [lastGrades, setLastGrades] = useState<ReadonlyMap<Unit, Grade>>(new Map());
   /** Nothing shows until the session knows where to begin, so a review never flashes the words. */
   const [started, setStarted] = useState(false);
   /** Stanzas recited well enough in this session not to come back in it. */
   const practised = useRef(new Set<number>());
+  /** While the pencil moves on through the poem, the stanza that the fading comes back to. */
   const [step, setStep] = useState<Step>({ kind: 'stanza', stanza: 0 });
   const [stage, setStage] = useState<Stage>('read');
   /** Words showing in pencil, as "line:offset" of the word, and every word peeked at in this step, which still counts once faded again. */
   const [peeked, setPeeked] = useState<ReadonlySet<string>>(new Set());
   const [looked, setLooked] = useState<ReadonlySet<string>>(new Set());
+  /** Words tapped once for their echo, in the order tapped: only the letters the reader underlined show. */
+  const [hinted, setHinted] = useState<readonly string[]>([]);
   /** On the blank page: what the reader typed, whether they are done, and the words they say they did have. */
   const [typed, setTyped] = useState('');
   const [done, setDone] = useState(false);
@@ -144,6 +178,15 @@ export function PoemPage({
   const [activeLine, setActiveLine] = useState<number | null>(null);
   const [drawing, setDrawing] = useState<Drawing | null>(null);
   const [lesson, setLesson] = useState<LessonKey | null>(null);
+  /** The lesson opened by itself, the first time its tool was picked, rather than from *about …*. */
+  const [lessonFirst, setLessonFirst] = useState(false);
+  /** Something at the foot that draws the eye once: a fresh underline, or *about …* after a first lesson. */
+  const [beckon, setBeckon] = useState<EchoFamily | 'about' | null>(null);
+  useEffect(() => {
+    if (!beckon) return;
+    const timer = window.setTimeout(() => setBeckon(null), BECKON_MS);
+    return () => window.clearTimeout(timer);
+  }, [beckon]);
   const [recutting, setRecutting] = useState<{ line: number; start: number } | null>(null);
   const [note, setNote] = useState<MessageKey | null>(null);
   const press = useRef<{ x: number; y: number; timer: number } | null>(null);
@@ -188,6 +231,8 @@ export function PoemPage({
   const changed = useRef(false);
   const update = (change: (marks: PoemMarks) => PoemMarks) => {
     changed.current = true;
+    // The note on how to mark has done its work once the first mark is down.
+    setNote((shown) => (shown === 'pencilNote' ? null : shown));
     setMarks((marks) => marks && change(marks));
   };
   useEffect(() => {
@@ -214,10 +259,15 @@ export function PoemPage({
   const pick = (next: Tool) => {
     settleActive();
     setTool(next);
-    once(`lesson:${next}`, () => setLesson(next));
+    once(`lesson:${next}`, () => {
+      setLesson(next);
+      setLessonFirst(true);
+    });
   };
 
   const pencil = stage === 'mark';
+  // Reading and marking, the poem around the stanza in hand is there in faint words; from fading on, only in traces.
+  const wholePoem = stage === 'read' || pencil;
 
   /** Ends a recording. Only a finished recital is kept; one broken off is let go. */
   const endTake = (keep: boolean) => {
@@ -292,7 +342,81 @@ export function PoemPage({
     once(key, () => setNote(text));
   };
 
+  /** The pencil moves to another stanza, so the whole poem can be marked before any of it fades. */
+  const markStanza = (stanza: number) => {
+    settleActive();
+    setDrawing(null);
+    setNote(null);
+    setStep({ kind: 'stanza', stanza });
+  };
+
+  /** On through the method. From the pencil, the words fade on the stanza in hand, or the nearest one marked. */
+  const goOn = (next: Stage) => {
+    if (pencil && next === 'fadeWords' && marks && step.kind === 'stanza') {
+      const to = markedStanzaNear(step.stanza, stanzaLines, marks);
+      if (to !== step.stanza) setStep({ kind: 'stanza', stanza: to });
+    }
+    go(next);
+  };
+
   const inView = useMemo(() => new Set(linesOf(step, parsed)), [step, parsed]);
+
+  // When the reader, or the pencil, moves to another stanza, the page scrolls just enough to bring it
+  // into view between the top and the foot, and not at all if it is already there or came there by scrolling.
+  const verseRef = useRef<HTMLDivElement>(null);
+  const footRef = useRef<HTMLDivElement>(null);
+  const inHand = stanzasOf(step)[0] ?? 0;
+  const lastInHand = useRef(inHand);
+  const scrolledTo = useRef(false);
+  const bringIntoView = useEffectEvent(() => {
+    const box = verseRef.current?.querySelector(`[data-stanza="${inHand}"]`)?.getBoundingClientRect();
+    if (!box) return;
+    const top = SCROLL_TOP;
+    const bottom = (footRef.current?.getBoundingClientRect().top ?? window.innerHeight) - SCROLL_FOOT;
+    const by = box.top < top ? box.top - top : box.bottom > bottom ? Math.min(box.bottom - bottom, box.top - top) : 0;
+    if (by === 0) return;
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    window.scrollBy?.({ top: by, behavior: still ? 'auto' : 'smooth' });
+  });
+  useEffect(() => {
+    const from = lastInHand.current;
+    lastInHand.current = inHand;
+    const followed = scrolledTo.current;
+    scrolledTo.current = false;
+    if (from !== inHand && !followed) bringIntoView();
+  }, [inHand]);
+  // Taking up the pencil starts from the stanza in hand, wherever the page was.
+  useEffect(() => {
+    if (pencil) bringIntoView();
+  }, [pencil]);
+
+  // While marking, the stanza in hand follows the scroll: the one across the reading line turns to ink.
+  const follow = useEffectEvent(() => {
+    if (drawing || step.kind !== 'stanza') return;
+    const stanzas = Array.from(verseRef.current?.querySelectorAll('[data-stanza]') ?? []);
+    const foot = footRef.current?.getBoundingClientRect().top ?? window.innerHeight;
+    const at = stanzaAt(
+      stanzas.map((el) => el.getBoundingClientRect()),
+      SCROLL_TOP + (foot - SCROLL_TOP) * READING_LINE,
+    );
+    const index = at === undefined ? undefined : Number(stanzas[at]!.getAttribute('data-stanza'));
+    if (index === undefined || index === step.stanza) return;
+    scrolledTo.current = true;
+    markStanza(index);
+  });
+  useEffect(() => {
+    if (!pencil) return;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(follow);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [pencil]);
 
   // The words of the lines in view, in order, to line up with what the reader types.
   const words = useMemo(
@@ -315,18 +439,20 @@ export function PoemPage({
     return new Set([...granted, ...[...found].map((i) => words[i]!.key)]);
   }, [stage, words, typed, done, granted]);
 
-  const stanzaLines = useMemo(() => parsed.stanzas.map((s) => s.lines.map((l) => l.number)), [parsed]);
-
   // A new stanza starts from reading it, a review from the marks, a seam or a chain from reciting.
   const open = ({ step: next, stage: first }: Start) => {
     setStep(next);
     setPeeked(new Set());
     setLooked(new Set());
+    setHinted([]);
     const review = next.kind === 'stanza' && !!next.review;
     go(first, review);
     const stepNote = review ? RETURN_NOTE : STEP_NOTE[next.kind];
     if (stepNote) once(stepNote[0], () => setNote(stepNote[1]));
   };
+
+  const openStanza = (i: number) =>
+    open(cards?.has(stanzaUnit(i)) ? reviewStart(i, stanzaLines, cards, new Date()) : startOf({ kind: 'stanza', stanza: i }));
 
   useEffect(() => {
     let live = true;
@@ -335,8 +461,10 @@ export function PoemPage({
       store.schedule.cards(poem.id),
       store.settings.reciteBy(),
       store.settings.keepRecitals(),
-    ]).then(([stored, scheduled, by, keep]) => {
+      store.schedule.lastGrades(poem.id),
+    ]).then(([stored, scheduled, by, keep, last]) => {
       if (!live) return;
+      setLastGrades(last);
       if (by === 'typing' || (by === 'speaking' && ear.available)) setReciteBy(by);
       setKeepRecitals(keep);
       setMarks(stored);
@@ -374,6 +502,7 @@ export function PoemPage({
     const next = new Map(cards);
     for (const { unit, card } of graded) next.set(unit, card);
     setCards(next);
+    setLastGrades(new Map([...lastGrades, ...graded.map(({ unit, grade }) => [unit, grade] as const)]));
     return next;
   };
 
@@ -384,13 +513,16 @@ export function PoemPage({
     if (verdict === 'notYet') {
       setPeeked(new Set());
       setLooked(new Set());
+      setHinted([]);
       go('fadeWords');
       return;
     }
     if (step.kind === 'stanza') practised.current.add(step.stanza);
     const next = graded && nextStart(step, stanzaLines, graded, now, practised.current);
-    if (next) open(next);
-    else onBack();
+    if (!next) return onBack();
+    open(next);
+    // The page turns back to reading, so say once what just happened and what comes now.
+    if (next.step.kind === 'stanza' && !next.step.review) once(NEXT_STANZA_NOTE[0], () => setNote(NEXT_STANZA_NOTE[1]));
   };
 
   const finish = () => {
@@ -413,7 +545,16 @@ export function PoemPage({
 
   const onTap = (e: MouseEvent) => {
     if (!marks) return;
-    const at = hit(e.target);
+    // A tap on a faint stanza takes the pencil there. While fading, the traces stay still.
+    const other = pencil ? (e.target as Element).closest('.stanza.faint') : null;
+    if (other) {
+      e.stopPropagation();
+      markStanza(Number(other.getAttribute('data-stanza')));
+      return;
+    }
+    const found = hit(e.target);
+    // Only the lines in hand answer a tap; the rest of the poem is there to keep one's place.
+    const at = found && inView.has(found.line) ? found : undefined;
     if (at && stage === 'blank' && done) {
       // Once done, a tap on a word in pencil says the reader did have it, unless they peeked at it.
       const word = tokenAt(tokens.get(at.line) ?? [], at.at);
@@ -428,14 +569,22 @@ export function PoemPage({
     }
     if (at && canPeek(stage)) {
       // A tap on a faded word brings it back, in pencil; a second tap fades it again. Either way it was looked at.
+      // While the marks show, an underlined word comes back by its echo first, and whole on the next tap.
       const word = tokenAt(tokens.get(at.line) ?? [], at.at);
       if (word?.kind !== 'word') return;
       const key = markKey(at.line, word.start);
-      setPeeked((words) => {
-        const next = new Set(words);
-        if (!next.delete(key)) next.add(key);
-        return next;
-      });
+      if (hinted.includes(key)) {
+        setHinted((keys) => keys.filter((k) => k !== key));
+        setPeeked((words) => new Set(words).add(key));
+      } else if (!peeked.has(key) && showsMarks(stage) && echoIn(marks, at.line, word)) {
+        setHinted((keys) => [...keys, key]);
+      } else {
+        setPeeked((words) => {
+          const next = new Set(words);
+          if (!next.delete(key)) next.add(key);
+          return next;
+        });
+      }
       setLooked((words) => new Set(words).add(key));
       once(PEEK_NOTE[0], () => setNote(PEEK_NOTE[1]));
       return;
@@ -463,13 +612,13 @@ export function PoemPage({
     pressed.current = false;
     if (!pencil || !marks) return;
     const at = hit(e.target);
-    if (!at) return;
+    if (!at || !inView.has(at.line)) return;
     if (tool === 'echoes') {
       if (!isLetter(lineText(at.line)[at.at] ?? '')) return;
       e.preventDefault();
       // Keep the stroke even if the finger or mouse strays off the poem.
       e.currentTarget.setPointerCapture?.(e.pointerId);
-      setDrawing({ line: at.line, from: at.at, to: at.at });
+      setDrawing({ line: at.line, from: at.at, to: at.at, x: e.clientX, y: e.clientY, moved: false });
     } else if (tool === 'beats') {
       const word = tokenAt(tokens.get(at.line) ?? [], at.at);
       if (word?.kind !== 'word') return;
@@ -487,10 +636,12 @@ export function PoemPage({
   const onPointerMove = (e: PointerEvent) => {
     if (press.current && Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > PRESS_SLOP_PX) cancelPress();
     if (!drawing) return;
+    // A thumb rolls a little as it taps: until it really moves, it stays a tap on the letter it came down on.
+    if (!drawing.moved && Math.hypot(e.clientX - drawing.x, e.clientY - drawing.y) <= PRESS_SLOP_PX) return;
     // A touch stays with the element it started on, so find the letter under the finger now.
     const under = document.elementFromPoint?.(e.clientX, e.clientY) ?? e.target;
     const at = hit(under);
-    if (at && at.line === drawing.line && at.at !== drawing.to) setDrawing({ ...drawing, to: at.at });
+    if (at && at.line === drawing.line && (at.at !== drawing.to || !drawing.moved)) setDrawing({ ...drawing, to: at.at, moved: true });
   };
 
   const onPointerUp = () => {
@@ -507,7 +658,12 @@ export function PoemPage({
       return;
     }
     const range = strokeRange(lineText(line), from, to);
-    if (range) update((marks) => addEcho(marks, { family, line, ...range }));
+    if (!range) return;
+    update((marks) => addEcho(marks, { family, line, ...range }));
+    // Once a family echoes across two lines, point to a fresh underline for another sound: the pen stays in this one.
+    const lines = new Set(marks?.echoes.filter((e) => e.family === family).map((e) => e.line));
+    const fresh = marks && freshFamily({ ...marks, echoes: [...marks.echoes, { family, line, ...range }] });
+    if (fresh && (lines.size >= 2 || (lines.size === 1 && !lines.has(line)))) once(FAMILY_HINT, () => setBeckon(fresh));
   };
 
   const onPointerCancel = () => {
@@ -523,22 +679,37 @@ export function PoemPage({
 
   const ready = !!marks && !!syllabifier && started;
   const hasMarks = !!marks && (marks.beats.length > 0 || marks.echoes.length > 0 || marks.pauses.length > 0);
-  const activeFamily = pencil && tool === 'echoes' ? family : undefined;
+  // The sound last tapped for while fading stands out, so the reader can find the words that share it.
+  const lastHinted = hinted[hinted.length - 1]?.split(':').map(Number);
+  const litFamily =
+    marks && lastHinted && showsMarks(stage)
+      ? echoIn(marks, lastHinted[0]!, tokenAt(tokens.get(lastHinted[0]!) ?? [], lastHinted[1]!))?.family
+      : undefined;
+  const activeFamily = pencil && tool === 'echoes' ? family : litFamily;
 
   // Whatever the reader marked shows while it should; at the other stages, none of it does.
   const shown = marks && showsMarks(stage) ? marks : emptyMarks();
   const onLine = (keys: ReadonlySet<string>, line: number) =>
     new Set([...keys].filter((key) => key.startsWith(`${line}:`)).map((key) => Number(key.split(':')[1])));
+  // From fading on, the lines not in hand are only the traces of their shapes, so nothing gives the words away.
   const renderLine = (line: Line) => (
     <MarkedLine
-      pieces={layoutLine(tokens.get(line.number) ?? [], shown, line.number, stroke(line.number), {
-        stage,
-        // Once the recital is done, every word looked at shows in pencil.
-        peeked: onLine(done ? looked : peeked, line.number),
-        recalled: onLine(recalledKeys, line.number),
-        done,
-      })}
-      activeFamily={activeFamily}
+      pieces={layoutLine(
+        tokens.get(line.number) ?? [],
+        inView.has(line.number) || wholePoem ? shown : emptyMarks(),
+        line.number,
+        stroke(line.number),
+        {
+          stage: inView.has(line.number) || wholePoem ? stage : 'fadeMarks',
+          // Once the recital is done, every word looked at shows in pencil.
+          peeked: onLine(done ? looked : peeked, line.number),
+          hinted: onLine(new Set(hinted), line.number),
+          recalled: onLine(recalledKeys, line.number),
+          done,
+        },
+      )}
+      // Other sounds step back only in the stanza in hand; a faint stanza stays evenly faint.
+      activeFamily={inView.has(line.number) ? activeFamily : undefined}
     />
   );
   const aside = (line: Line) => {
@@ -550,9 +721,42 @@ export function PoemPage({
     ) : null;
   };
 
+  // The pens on the bar: every sound underlined so far, then a fresh one for the next.
+  const penFamilies = marks
+    ? [...new Set([...familiesInUse(marks), freshFamily(marks), family])].sort((a, b) => a - b)
+    : [family];
+  const wordText = (line: number, at: number) => {
+    const word = tokenAt(tokens.get(line) ?? [], at);
+    return word?.kind === 'word' ? word.text : undefined;
+  };
+
   const recutWord = recutting
     ? (tokenAt(tokens.get(recutting.line) ?? [], recutting.start) as Word | undefined)
     : undefined;
+
+  // Each stanza's numeral, in the margin beside it, is set in the tone of how it stands now.
+  const now = new Date();
+  const numeral = (i: number) => {
+    const className = `stanza-numeral ${cards ? stanzaState(i, stanzaLines, cards, lastGrades, now) : 'new'}`;
+    // While marking, a tap anywhere on a stanza moves the pencil, numeral and all.
+    if (pencil) return <span className={className}>{roman(i + 1)}</span>;
+    return (
+      <button
+        type="button"
+        className={`action ${className}`}
+        aria-label={`${m.stanza} ${i + 1}`}
+        aria-pressed={stanzasOf(step).includes(i)}
+        // On the first page it opens the stanza; from fading on, it leads back to the whole poem.
+        onClick={(e) => {
+          e.stopPropagation();
+          if (stage === 'read') openStanza(i);
+          else go('read');
+        }}
+      >
+        {roman(i + 1)}
+      </button>
+    );
+  };
 
   return (
     <main className="page poem-page" lang={poem.language} onClick={pencil ? settleActive : undefined}>
@@ -560,9 +764,14 @@ export function PoemPage({
         <button type="button" className="action" onClick={back}>
           {m.contents}
         </button>
-        <span className="byline">{poem.poet}</span>
+        {/* On the first page, a tap on the poet or the title opens them to correct. */}
+        <span className="byline" onClick={stage === 'read' ? onCorrect : undefined}>
+          {poem.poet}
+        </span>
       </div>
-      <h1 className="poem-title">{poem.title}</h1>
+      <h1 className="poem-title" onClick={stage === 'read' ? onCorrect : undefined}>
+        {poem.title}
+      </h1>
       {drawing && (
         <div className="loupe" aria-hidden="true">
           <MarkedLine
@@ -572,6 +781,7 @@ export function PoemPage({
         </div>
       )}
       <div
+        ref={verseRef}
         className="pencil-area"
         onClick={onTap}
         onPointerDown={onPointerDown}
@@ -593,22 +803,39 @@ export function PoemPage({
             .join(' ')}
           renderLine={ready ? renderLine : undefined}
           aside={ready ? aside : undefined}
-          only={started ? inView : new Set()}
+          // The whole poem is on the page, the lines in hand in ink and the rest faint.
+          only={started ? undefined : new Set()}
+          // On the first page the whole poem is in ink, to read through.
+          focus={stage === 'read' ? undefined : inView}
+          numeral={parsed.stanzas.length > 1 ? numeral : undefined}
         />
       </div>
-      {note && (
+      {/* While marking, the foot of the page is taken up by the verse's room to scroll, so the note sits above the bar instead. */}
+      {note && !pencil && (
         <p className="note" lang={locale}>
           {m[note]}
         </p>
       )}
-      <div className={pencil ? 'stage-foot pencil-foot' : 'stage-foot'} lang={locale}>
+      <div ref={footRef} className={pencil ? 'stage-foot pencil-foot' : 'stage-foot'} lang={locale}>
+        {pencil && note && <p className="note foot-note">{m[note]}</p>}
         {pencil && (
           <PencilBar
             tool={tool}
             family={family}
+            families={penFamilies}
+            styleOf={(f) => echoStyle(marks ?? emptyMarks(), f)}
+            words={marks ? echoWords(marks, family, wordText) : []}
+            wordsLang={poem.language}
             onTool={pick}
-            onFamily={setFamily}
-            onAbout={() => setLesson(tool)}
+            onFamily={(f) => {
+              setBeckon(null);
+              setFamily(f);
+            }}
+            beckon={beckon ?? undefined}
+            onAbout={() => {
+              setLesson(tool);
+              setLessonFirst(false);
+            }}
             onPutDown={() => go('read')}
           />
         )}
@@ -631,31 +858,36 @@ export function PoemPage({
             </button>
           </div>
         )}
-        <StageActions stage={stage} done={done} ready={ready} onGo={go} onDone={finish} onRate={rate} />
-        {parsed.stanzas.length > 1 && (
-          <div className="folio" role="group" aria-label={m.stanza}>
-            {parsed.stanzas.map((_, i) => (
-              <button
-                type="button"
-                key={i}
-                className="action"
-                aria-label={`${m.stanza} ${i + 1}`}
-                aria-pressed={stanzasOf(step).includes(i)}
-                onClick={() =>
-                  open(
-                    cards?.has(stanzaUnit(i))
-                      ? reviewStart(i, stanzaLines, cards, new Date())
-                      : startOf({ kind: 'stanza', stanza: i }),
-                  )
-                }
-              >
-                {roman(i + 1)}
-              </button>
-            ))}
+        <StageActions
+          stage={stage}
+          done={done}
+          ready={ready}
+          onGo={goOn}
+          onDone={finish}
+          onRate={rate}
+        />
+        {stage === 'read' && onCorrect && (
+          <div className="poem-care">
+            <button type="button" className="action quiet" onClick={onCorrect}>
+              {m.correctPoem}
+            </button>
           </div>
         )}
       </div>
-      {lesson && <LessonSheet lesson={lesson} onOpen={setLesson} onClose={() => setLesson(null)} />}
+      {lesson && (
+        <LessonSheet
+          lesson={lesson}
+          onOpen={(key) => {
+            setLesson(key);
+            setLessonFirst(false);
+          }}
+          onClose={() => {
+            // A lesson that opened by itself shows, as it goes, where it can be found again.
+            if (lessonFirst) setBeckon('about');
+            setLesson(null);
+          }}
+        />
+      )}
       {recutting && recutWord && marks && (
         <RecutSheet
           word={recutWord.text}
@@ -718,14 +950,15 @@ function StageActions({
   const next = nextStage(stage);
   return (
     <div className="stage-actions">
-      {/* While marking, *put down* is the way back. */}
+      {/* While marking, *back* on the pencil's bar is the way back. */}
       {back && stage !== 'mark' && (
         <button type="button" className="action soft" onClick={() => onGo(back)}>
           {m.back}
         </button>
       )}
       {next && (
-        <button type="button" className="action" disabled={!ready} onClick={() => onGo(next)}>
+        // The one word that hands over the pencil is written in it.
+        <button type="button" className={next === 'mark' ? 'action to-pencil' : 'action'} disabled={!ready} onClick={() => onGo(next)}>
           {m[STAGE_ACTION[next]]}
         </button>
       )}

@@ -1,4 +1,7 @@
+import { readMarks } from '../pencil/marks';
 import type { PoemLanguage } from '../poem/language';
+import { parsePoem } from '../poem/parse';
+import { reline, relineMarks, relineUnit } from '../poem/reline';
 import type { Db } from './db';
 
 export interface Poem {
@@ -44,9 +47,7 @@ export class Poems {
   ) {}
 
   async add(poem: NewPoem): Promise<Poem> {
-    const title = poem.title.trim();
-    if (!title) throw new Error('A poem needs a title.');
-    if (!poem.text.trim()) throw new Error('A poem needs its lines.');
+    const title = checked(poem);
     const stamp = this.now().toISOString();
     const stored: Poem = { ...poem, title, poet: poem.poet.trim(), id: this.newId(), createdAt: stamp, updatedAt: stamp };
     await this.db.run(`INSERT INTO poems (${COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
@@ -67,8 +68,83 @@ export class Poems {
     return rows.map(fromRow);
   }
 
+  /** Removes a poem with its marks and schedule. A kept recital is the Recordings' to forget. */
+  async remove(id: string): Promise<void> {
+    await this.db.transaction(async () => {
+      for (const table of ['marks', 'cards', 'reviews', 'recordings'])
+        await this.db.run(`DELETE FROM ${table} WHERE poem_id = ?`, [id]);
+      await this.db.run('DELETE FROM poems WHERE id = ?', [id]);
+    });
+  }
+
+  /**
+   * Keeps the reader's corrections to a poem. Marks, cards and grades follow
+   * the lines that stayed word for word the same; those on changed lines go.
+   */
+  async correct(before: Poem, poem: NewPoem): Promise<Poem> {
+    const title = checked(poem);
+    const stored: Poem = { ...before, ...poem, title, poet: poem.poet.trim(), updatedAt: this.now().toISOString() };
+    const moved = reline(parsePoem(before.text), parsePoem(stored.text));
+    await this.db.transaction(async () => {
+      await this.db.run('UPDATE poems SET title = ?, poet = ?, language = ?, text = ?, updated_at = ? WHERE id = ?', [
+        stored.title,
+        stored.poet,
+        stored.language,
+        stored.text,
+        stored.updatedAt,
+        stored.id,
+      ]);
+      const [marks] = await this.db.all<{ data: string }>('SELECT data FROM marks WHERE poem_id = ?', [stored.id]);
+      if (marks)
+        await this.db.run('UPDATE marks SET data = ?, updated_at = ? WHERE poem_id = ?', [
+          JSON.stringify(relineMarks(readMarks(marks.data), moved)),
+          stored.updatedAt,
+          stored.id,
+        ]);
+      // Units can swap numbers, so the rows are written afresh rather than renumbered in place.
+      const cards = await this.db.all<{ unit: string; data: string; updated_at: string }>(
+        'SELECT unit, data, updated_at FROM cards WHERE poem_id = ?',
+        [stored.id],
+      );
+      const reviews = await this.db.all<{ unit: string; grade: number; reviewed_at: string }>(
+        'SELECT unit, grade, reviewed_at FROM reviews WHERE poem_id = ? ORDER BY rowid',
+        [stored.id],
+      );
+      await this.db.run('DELETE FROM cards WHERE poem_id = ?', [stored.id]);
+      await this.db.run('DELETE FROM reviews WHERE poem_id = ?', [stored.id]);
+      for (const card of cards) {
+        const unit = relineUnit(card.unit, moved);
+        if (unit)
+          await this.db.run('INSERT INTO cards (poem_id, unit, data, updated_at) VALUES (?, ?, ?, ?)', [
+            stored.id,
+            unit,
+            card.data,
+            card.updated_at,
+          ]);
+      }
+      for (const review of reviews) {
+        const unit = relineUnit(review.unit, moved);
+        if (unit)
+          await this.db.run('INSERT INTO reviews (poem_id, unit, grade, reviewed_at) VALUES (?, ?, ?, ?)', [
+            stored.id,
+            unit,
+            review.grade,
+            review.reviewed_at,
+          ]);
+      }
+    });
+    return stored;
+  }
+
   async get(id: string): Promise<Poem | undefined> {
     const [row] = await this.db.all<PoemRow>(`SELECT ${COLUMNS} FROM poems WHERE id = ?`, [id]);
     return row ? fromRow(row) : undefined;
   }
+}
+
+function checked(poem: NewPoem): string {
+  const title = poem.title.trim();
+  if (!title) throw new Error('A poem needs a title.');
+  if (!poem.text.trim()) throw new Error('A poem needs its lines.');
+  return title;
 }

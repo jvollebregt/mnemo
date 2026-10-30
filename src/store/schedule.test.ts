@@ -41,4 +41,18 @@ describe('Schedule', () => {
     await db.run("INSERT INTO cards (poem_id, unit, data, updated_at) VALUES (?, 'stanza:0', 'not json', 'x')", [poem.id]);
     expect((await new Schedule(db).cards(poem.id)).size).toBe(0);
   });
+
+  it('remembers the last grade each unit was given', async () => {
+    const db = await openSqlJs();
+    await migrate(db);
+    const poem = await new Poems(db).add({ title: 'A', poet: '', language: 'en', text: 'a line' });
+    const schedule = new Schedule(db);
+    const now = new Date(2026, 9, 28, 12);
+    const card = review(undefined, Rating.Good, now);
+    await schedule.save(poem.id, [{ unit: stanzaUnit(0), card, grade: Rating.Again }], now);
+    await schedule.save(poem.id, [{ unit: stanzaUnit(0), card, grade: Rating.Good }, { unit: lineUnit(1), card, grade: Rating.Hard }], now);
+    const last = await schedule.lastGrades(poem.id);
+    expect(last.get(stanzaUnit(0))).toBe(Rating.Good);
+    expect(last.get(lineUnit(1))).toBe(Rating.Hard);
+  });
 });

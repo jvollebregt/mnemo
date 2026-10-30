@@ -1,4 +1,5 @@
 import type { Locale } from '../index';
+import { respell, type Spelling } from '../region';
 import { en } from './en';
 import { nl } from './nl';
 
@@ -25,6 +26,10 @@ export type Lessons = Record<LessonKey, Lesson>;
 
 const catalogs: Record<Locale, Lessons> = { en, nl };
 
-export function getLessons(locale: Locale): Lessons {
-  return catalogs[locale];
+export function getLessons(locale: Locale, spelling: Spelling = 'american'): Lessons {
+  if (locale !== 'en' || spelling === 'american') return catalogs[locale];
+  const spell = (text: string) => respell(text, spelling);
+  const lessons = catalogs[locale];
+  const respelled = (l: Lesson): Lesson => ({ ...l, title: spell(l.title), paragraphs: l.paragraphs.map(spell), tryIt: spell(l.tryIt) });
+  return Object.fromEntries(LESSONS.map((key) => [key, respelled(lessons[key])])) as Lessons;
 }

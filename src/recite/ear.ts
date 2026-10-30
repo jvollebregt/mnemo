@@ -5,6 +5,7 @@
  * recognition (phoneEar.ts), behind the same interface.
  */
 import type { PoemLanguage } from '../poem/language';
+import { speechLanguage } from '../i18n/region';
 
 export interface Listening {
   stop(): void;
@@ -21,8 +22,6 @@ export interface Ear {
   listen(language: PoemLanguage, onHeard: (text: string) => void, onStop: (problem?: string) => void): Listening;
 }
 
-/** The recogniser's language for a poem's language. */
-export const SPEECH_LANGUAGE: Record<PoemLanguage, string> = { en: 'en-GB', nl: 'nl-NL' };
 
 /** Problems that mean listening can't work here, as opposed to a pause in speech. */
 const FATAL = new Set(['not-allowed', 'service-not-allowed', 'audio-capture', 'language-not-supported']);
@@ -66,7 +65,7 @@ export function webEar(): Ear {
 
       const start = () => {
         recognition = new Recognition();
-        recognition.lang = SPEECH_LANGUAGE[language];
+        recognition.lang = speechLanguage(language);
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.onresult = (event) => {

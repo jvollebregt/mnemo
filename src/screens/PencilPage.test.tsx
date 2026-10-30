@@ -51,9 +51,9 @@ async function takeUpPencil() {
 }
 
 const stroke = (line: number, from: number, to: number) => {
-  fireEvent.pointerDown(glyph(line, from));
-  fireEvent.pointerMove(glyph(line, to));
-  fireEvent.pointerUp(glyph(line, to));
+  fireEvent.pointerDown(glyph(line, from), { clientX: from * 12 });
+  fireEvent.pointerMove(glyph(line, to), { clientX: to * 12 });
+  fireEvent.pointerUp(glyph(line, to), { clientX: to * 12 });
 };
 
 describe('the pencil', () => {
@@ -66,12 +66,35 @@ describe('the pencil', () => {
     vi.restoreAllMocks();
   });
 
-  it('teaches beats the first time it is taken up, and only then', async () => {
+  it('shows how to mark just above the bar, until the first mark is down', async () => {
     const { store, poem } = await storeWithPoem();
     show(store, poem);
     await takeUpPencil();
+    const note = await waitFor(() => {
+      const found = document.querySelector('.stage-foot .note');
+      expect(found?.textContent).toMatch(/Choose beats, echoes or pauses/);
+      return found;
+    });
+    expect(note).toBeTruthy();
+    fireEvent.click(glyph(1, 1));
+    expect(document.querySelector('.stage-foot .note')).toBeNull();
+  });
+
+  it('teaches beats the first time it is taken up, and only then', async () => {
+    const { store, poem } = await storeWithPoem();
+    show(store, poem);
+    const mark = await screen.findByRole('button', { name: 'mark what you hear' });
+    await waitFor(() => expect((mark as HTMLButtonElement).disabled).toBe(false), { timeout: 5000 });
+    fireEvent.click(mark);
+    await screen.findByRole('dialog', { name: 'beats' });
+    // Put away after opening by itself, it shows where it lives: about beats draws the eye once.
+    fireEvent.click(screen.getByRole('button', { name: 'put it away' }));
+    expect(screen.getByRole('button', { name: 'about beats' }).className).toContain('beckon');
     expect(await store.seen.has('lesson:beats')).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: 'put down' }));
+    fireEvent.click(screen.getByRole('button', { name: 'about beats' }));
+    await screen.findByRole('dialog', { name: 'beats' });
+    fireEvent.click(screen.getByRole('button', { name: 'put it away' }));
+    fireEvent.click(screen.getByRole('button', { name: 'back' }));
     fireEvent.click(screen.getByRole('button', { name: 'mark what you hear' }));
     await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -137,17 +160,24 @@ describe('the pencil', () => {
     fireEvent.click(screen.getByRole('button', { name: 'echoes' }));
     await screen.findByRole('dialog', { name: 'echoes' });
     fireEvent.click(screen.getByRole('button', { name: 'put it away' }));
-    fireEvent.click(screen.getByRole('button', { name: 'dashed underline' }));
+    // A blank poem offers one pen; another comes once the first has a sound.
+    expect(Array.from(screen.getByRole('group', { name: 'underlines' }).children, (b) => b.getAttribute('aria-label'))).toEqual([
+      'dotted underline',
+    ]);
 
     stroke(2, 23, 21); // the oul of soul, drawn backwards
     expect(document.querySelectorAll('.rhyme')).toHaveLength(0);
     stroke(4, 22, 23); // the ll of all
-    expect(Array.from(document.querySelectorAll('.verse .echo-2'), (e) => e.textContent)).toEqual(['oul', 'll']);
+    expect(Array.from(document.querySelectorAll('.verse .echo-1'), (e) => e.textContent)).toEqual(['oul', 'll']);
     expect(Array.from(document.querySelectorAll('.rhyme'), (r) => r.textContent)).toEqual(['a', 'a']);
+    // The words the pen has underlined, so the reader can tell which sound it holds.
+    expect(document.querySelector('.echo-words')?.textContent).toBe('soul · all');
+    // The pen stays in one family, so the first time it spans two lines, a fresh underline draws the eye.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'dashed underline' }).className).toContain('beckon'));
 
     // One tap on an underline rubs out the whole echo, and the letters go with it.
     stroke(4, 23, 23);
-    expect(Array.from(document.querySelectorAll('.verse .echo-2'), (e) => e.textContent)).toEqual(['oul']);
+    expect(Array.from(document.querySelectorAll('.verse .echo-1'), (e) => e.textContent)).toEqual(['oul']);
     expect(document.querySelectorAll('.rhyme')).toHaveLength(0);
 
     // A rhyme sounds in the last syllable: an echo earlier in the last word doesn't close the line.
@@ -162,10 +192,15 @@ describe('the pencil', () => {
     stroke(4, 23, 23);
 
     // A tap on a bare letter underlines just that letter.
-    fireEvent.click(screen.getByRole('button', { name: 'dotted underline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'dashed underline' }));
     stroke(3, 4, 4);
-    expect(document.querySelector('.verse .echo-1')?.textContent).toBe('s');
-    await waitFor(async () => expect((await store.marks.get(poem.id)).echoes).toHaveLength(2));
+    expect(document.querySelector('.verse .echo-2')?.textContent).toBe('s');
+    // A thumb that rolls a little onto the next letter still underlines only the one it came down on.
+    fireEvent.pointerDown(glyph(3, 10), { clientX: 100, clientY: 50 });
+    fireEvent.pointerMove(glyph(3, 11), { clientX: 106, clientY: 53 });
+    fireEvent.pointerUp(glyph(3, 11), { clientX: 106, clientY: 53 });
+    expect(Array.from(document.querySelectorAll('.verse .echo-2'), (e) => e.textContent)).toEqual(['s', 't']);
+    await waitFor(async () => expect((await store.marks.get(poem.id)).echoes).toHaveLength(3));
   });
 
   it('lets the reader re-cut a word with a long press', async () => {

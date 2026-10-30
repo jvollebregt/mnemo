@@ -90,3 +90,25 @@ export function poemState(stanzaLines: readonly (readonly number[])[], cards: Ca
   });
   return settled ? 'byHeart' : 'takingRoot';
 }
+
+export type StanzaState = 'new' | PoemState;
+
+/**
+ * How a stanza stands, for its numeral at the foot of the page: by the
+ * schedule, and by the reader's own last verdict. A stanza they last said
+ * they had only most of, or not yet, is fading whatever the schedule says.
+ */
+export function stanzaState(
+  index: number,
+  stanzaLines: readonly (readonly number[])[],
+  cards: Cards,
+  lastGrades: ReadonlyMap<Unit, Grade>,
+  now: Date,
+): StanzaState {
+  const card = cards.get(stanzaUnit(index));
+  if (!card) return 'new';
+  const last = lastGrades.get(stanzaUnit(index));
+  if ((last !== undefined && last < Rating.Good) || dueStanzas(stanzaLines, cards, now).includes(index)) return 'fading';
+  return card.state === State.Review && card.scheduled_days >= BY_HEART_DAYS ? 'byHeart' : 'takingRoot';
+}
+

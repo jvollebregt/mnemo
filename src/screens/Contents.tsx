@@ -29,7 +29,11 @@ export function Contents({ poems, cards, justAdded, onOpen, onAdd, onSettings }:
     <main className="page">
       <h1 className="running-head">{m.contents}</h1>
       {poems.length === 0 ? (
-        <p className="empty">{m.contentsEmpty}</p>
+        <>
+          <p className="empty">{m.contentsEmpty}</p>
+          {/* The whole method in one line, in the words the reader will tap along the way. */}
+          <p className="empty how">{m.contentsHow}</p>
+        </>
       ) : (
         <ul className="entries">
           {poems.map((poem) => {

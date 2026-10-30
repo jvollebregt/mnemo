@@ -30,6 +30,16 @@ export class Schedule {
     return toCards(rows);
   }
 
+  /** The last grade each unit of a poem was given. */
+  async lastGrades(poemId: string): Promise<Map<Unit, Grade>> {
+    await this.saving;
+    const rows = await this.db.all<{ unit: string; grade: number }>(
+      'SELECT unit, grade FROM reviews WHERE rowid IN (SELECT MAX(rowid) FROM reviews WHERE poem_id = ? GROUP BY unit)',
+      [poemId],
+    );
+    return new Map(rows.filter((r) => UNIT.test(r.unit)).map((r) => [r.unit as Unit, r.grade as Grade]));
+  }
+
   /** Every poem's cards, for the contents page. */
   async all(): Promise<Map<string, Map<Unit, Card>>> {
     await this.saving;

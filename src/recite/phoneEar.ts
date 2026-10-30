@@ -7,7 +7,8 @@
  */
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { fromBase64 } from '../store/base64';
-import { joinHeard, SPEECH_LANGUAGE, type Ear } from './ear';
+import { speechLanguage } from '../i18n/region';
+import { joinHeard, type Ear } from './ear';
 import { noRecorder, type Recorder } from './recorder';
 
 export interface MnemoEarPlugin {
@@ -47,7 +48,7 @@ export function phoneEar(plugin: MnemoEarPlugin = MnemoEar, clock: () => number 
       const start = () => {
         running = true;
         began = clock();
-        plugin.start({ language: SPEECH_LANGUAGE[language] }).catch((error: unknown) => {
+        plugin.start({ language: speechLanguage(language) }).catch((error: unknown) => {
           running = false;
           end(error instanceof Error && error.message ? error.message : 'unavailable');
         });

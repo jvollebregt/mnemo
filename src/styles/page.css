@@ -5,7 +5,7 @@
 :root {
   --paper: #fcfbf7;
   --ink: #1e1b17;
-  --pencil: #a8432f;
+  --pencil: #2e5a88;
   --grey: #6b6358;
   --trace: #b9b1a3;
 
@@ -90,6 +90,11 @@ body {
   text-align: center;
 }
 
+.empty.how {
+  margin-top: 12px;
+  font-size: 15px;
+}
+
 .foot {
   margin-top: auto;
   display: flex;
@@ -99,6 +104,13 @@ body {
 .contents-foot {
   flex-direction: column;
   align-items: center;
+}
+
+/* Looking after a poem, quietly, on its first page. */
+.poem-care {
+  display: flex;
+  justify-content: center;
+  gap: 0 20px;
 }
 
 /* Settings: quiet, at the foot of the contents. */
@@ -169,11 +181,17 @@ body {
   color: var(--grey);
 }
 
+/* A note set in the foot of the page, just above the pencil's bar. */
+.note.foot-note {
+  align-self: stretch;
+  margin: 0 0 6px;
+}
+
 /* Top of a page: a way back on the left, a running head in the middle. */
 .top {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  align-items: baseline;
   min-height: var(--touch);
 }
 
@@ -293,6 +311,7 @@ body {
 .paste {
   flex-grow: 1;
   min-height: 40vh;
+  overflow: hidden;
   margin-top: 28px;
   padding: 0;
   border: 0;
@@ -338,9 +357,10 @@ body {
   font-size: 21px;
 }
 
+/* 16px at least: on an iPhone a smaller field zooms the whole page in when tapped, and it stays zoomed. */
 .field.poet {
   margin-top: 6px;
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: 0.2em;
   font-variant-caps: all-small-caps;
   color: var(--grey);
@@ -520,6 +540,8 @@ body {
 }
 
 .verse.pencil {
+  /* Room below the last stanza, so it too can scroll up to the reading line and come into hand. */
+  padding-bottom: 35vh;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
@@ -564,20 +586,35 @@ body {
   opacity: 0.7;
 }
 
-/* Echo families are told apart by the kind of underline, never by colour. */
+/* Registered, so an underline's ink can ease from trace to pencil and back. */
+@property --echo-ink {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #2e5a88;
+}
+
+/*
+ * Echo families are told apart by the kind of underline, never by colour.
+ * Five are the browser's own; the doubled dotted, dashed and wavy lines add a
+ * second underline on a span inside; dash-dot is drawn as a pattern at the
+ * foot of the letters.
+ */
 .echo {
+  --echo-ink: var(--pencil);
   text-decoration-line: underline;
-  text-decoration-color: var(--pencil);
+  text-decoration-color: var(--echo-ink);
   text-decoration-thickness: 1.5px;
   text-underline-offset: 0.24em;
   text-decoration-skip-ink: none;
 }
 
-.echo-1 {
+.echo-1,
+.echo-7 {
   text-decoration-style: dotted;
 }
 
-.echo-2 {
+.echo-2,
+.echo-8 {
   text-decoration-style: dashed;
 }
 
@@ -585,7 +622,8 @@ body {
   text-decoration-style: double;
 }
 
-.echo-4 {
+.echo-4,
+.echo-9 {
   text-decoration-style: wavy;
 }
 
@@ -593,18 +631,76 @@ body {
   text-decoration-style: solid;
 }
 
+.echo-7,
+.echo-8,
+.echo-9 {
+  text-underline-offset: 0.16em;
+}
+
+.echo .twin {
+  text-decoration-line: underline;
+  text-decoration-color: var(--echo-ink);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.42em;
+  text-decoration-skip-ink: none;
+}
+
+.echo-7 .twin {
+  text-decoration-style: dotted;
+}
+
+.echo-8 .twin {
+  text-decoration-style: dashed;
+}
+
+.echo-9 .twin {
+  text-decoration-style: wavy;
+}
+
+/* Drawn rather than decorated: the browser has no dash-dot. */
+.echo-6,
+.echo-10 {
+  --dash-dot: linear-gradient(
+    to right,
+    var(--echo-ink) 0 6px,
+    transparent 6px 8.5px,
+    var(--echo-ink) 8.5px 10px,
+    transparent 10px
+  );
+  text-decoration-line: none;
+  background-image: var(--dash-dot);
+  background-repeat: repeat-x;
+  background-size: 12.5px 1.5px;
+  background-position: 0 100%;
+}
+
+.echo-10 {
+  background-image: var(--dash-dot), var(--dash-dot);
+  /* Room below the letters for the second line; it changes nothing in the layout of the line. */
+  padding-bottom: 3px;
+  background-position:
+    0 calc(100% - 4.5px),
+    0 100%;
+}
+
 .echo.preview {
-  text-decoration-color: rgb(168 67 47 / 50%);
+  --echo-ink: rgb(46 90 136 / 50%);
 }
 
 /* While one family is being drawn, the others step back. */
 .echo.dim {
-  text-decoration-color: rgb(168 67 47 / 25%);
+  --echo-ink: rgb(46 90 136 / 25%);
 }
 
 /* A pause the reader heard: the stop is inked in pencil, a breath between words gets a stroke. */
 .stop.pause {
+  display: inline-block;
   color: var(--pencil);
+  /* Set a little larger, so a marked comma reads as marked on a phone, and stays the comma it is. */
+  transform: scale(1.35);
+  transform-origin: 30% 80%;
+  /* An inline block takes the line's hanging indent unless told not to. */
+  text-indent: 0;
 }
 
 .gap.pause {
@@ -612,14 +708,14 @@ body {
 }
 
 .gap.pause::after {
-  content: '/';
+  /* A thin upright stroke: a slash in quoted verse would read as a line break. */
+  content: '';
   position: absolute;
   left: 50%;
-  top: 0.05em;
-  font-size: 0.85em;
+  top: 0.3em;
+  height: 0.75em;
+  border-left: 1.25px solid var(--pencil);
   transform: translateX(-50%);
-  text-indent: 0;
-  color: var(--pencil);
   pointer-events: none;
 }
 
@@ -627,7 +723,8 @@ body {
 .gap.end.pause::after {
   position: static;
   display: inline-block;
-  margin-left: 0.3em;
+  vertical-align: -0.05em;
+  margin-left: 0.35em;
   transform: none;
 }
 
@@ -676,12 +773,27 @@ body {
 .stage-foot {
   position: sticky;
   bottom: 0;
+  z-index: 1;
   margin-top: auto;
-  padding: 8px 0 calc(10px + env(safe-area-inset-bottom));
+  /* Out over the gutters, so the stanza numerals in the margin pass under it too. */
+  margin-inline: calc(-1 * var(--gutter));
+  padding: 8px var(--gutter) calc(10px + env(safe-area-inset-bottom));
   background: var(--paper);
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* A long poem runs on under the foot: its lines fade into the paper just above it rather than end on a cut. */
+.stage-foot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 28px;
+  background: linear-gradient(to bottom, rgb(252 251 247 / 0%), var(--paper));
+  pointer-events: none;
 }
 
 /* At the check the reader writes on a ruled line at the foot; the words go back into the poem above. */
@@ -732,24 +844,70 @@ body {
   color: var(--grey);
 }
 
-.folio {
-  display: flex;
-  justify-content: center;
-  gap: 4px;
+/* Under the stanza being marked, set to the right like a catchword at the foot of a printed page. */
+/* The lines not in hand stay on the page, faint: in words while reading and marking, in traces from fading on. */
+.verse .line {
+  transition: opacity 0.4s ease;
 }
 
-.folio .action {
-  min-width: var(--touch);
-  font-size: 15px;
+.verse .line.faint {
+  opacity: 0.3;
+}
+
+.verse .stanza.in-focus {
+  scroll-margin-top: 72px;
+}
+
+.action.to-pencil {
+  color: var(--pencil);
+}
+
+/* Each stanza's numeral in the margin, in the tone of the contents phrases: not begun, taking root, fading (in pencil), by heart. */
+.stanza-numeral,
+.action.stanza-numeral {
+  position: relative;
+  min-height: 0;
+  padding: 0;
+  font-size: 13px;
   font-style: italic;
   font-variant-caps: normal;
   letter-spacing: 0;
   color: var(--trace);
 }
 
-.folio .action[aria-pressed='true'] {
+/* A finger-sized target around a small numeral. */
+.action.stanza-numeral::after {
+  content: '';
+  position: absolute;
+  inset: -14px -10px;
+}
+
+.stanza-numeral.takingRoot {
+  color: var(--grey);
+}
+
+.stanza-numeral.fading {
+  color: var(--pencil);
+}
+
+.stanza-numeral.byHeart {
   color: var(--ink);
 }
+
+/* The stanza in hand is underlined, whatever its tone, on the first page as well. */
+.stanza.in-focus .stanza-numeral,
+.action.stanza-numeral[aria-pressed='true'] {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verse .line {
+    transition: none;
+  }
+}
+
 
 /* The fade. A trace keeps a word's length without its letters; a peeked word comes back in pencil. */
 .trace {
@@ -769,11 +927,6 @@ body {
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
-}
-
-/* A blank page is blank: not even the line numbers. */
-.verse.stage-blank .line-number {
-  visibility: hidden;
 }
 
 .tools,
@@ -806,7 +959,39 @@ body {
 
 .families {
   display: flex;
-  justify-content: center;
+  max-width: 100%;
+  min-height: var(--touch);
+  /* A poem with many sounds lets the pens run off to the side, to be swiped along. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* Centred while they fit, and still reachable from the first when they don't. */
+.families > :first-child {
+  margin-left: auto;
+}
+
+.families > :last-child {
+  margin-right: auto;
+}
+
+/* The words the pen in hand has underlined, just above the bar. */
+.echo-words {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  margin: 0;
+  padding: 2px var(--gutter);
+  background: var(--paper);
+  color: var(--grey);
+  font-size: 15px;
+  font-style: italic;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 .family {
@@ -823,11 +1008,44 @@ body {
 }
 
 .family .echo {
-  text-decoration-color: var(--trace);
+  --echo-ink: var(--trace);
 }
 
 .family[aria-pressed='true'] .echo {
-  text-decoration-color: var(--pencil);
+  --echo-ink: var(--pencil);
+}
+
+/* Once, without words: a fresh underline for another sound, or where a lesson put away lives. */
+.family.beckon .echo {
+  animation: beckon-line 1.4s ease-in-out 2;
+}
+
+.action.beckon {
+  animation: beckon-word 1.4s ease-in-out 2;
+}
+
+@keyframes beckon-line {
+  50% {
+    --echo-ink: var(--pencil);
+  }
+}
+
+@keyframes beckon-word {
+  50% {
+    color: var(--pencil);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .family.beckon .echo {
+    animation: none;
+    --echo-ink: var(--pencil);
+  }
+
+  .action.beckon {
+    animation: none;
+    color: var(--pencil);
+  }
 }
 
 .sheet .try-it {

@@ -50,6 +50,13 @@ export class Recordings {
     return row?.used ?? 0;
   }
 
+  /** Lets one poem's recital go. */
+  async forget(poemId: string): Promise<void> {
+    const rows = await this.db.all<{ file: string }>('SELECT file FROM recordings WHERE poem_id = ?', [poemId]);
+    for (const { file } of rows) await this.files.remove(file);
+    await this.db.run('DELETE FROM recordings WHERE poem_id = ?', [poemId]);
+  }
+
   async clear(): Promise<void> {
     const rows = await this.db.all<{ file: string }>('SELECT file FROM recordings');
     for (const { file } of rows) await this.files.remove(file);

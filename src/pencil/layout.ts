@@ -4,7 +4,7 @@
  * the single letters an echo underlines. The page renders this as it is.
  */
 import { lookOf, type Look, type Stage } from '../learn/stages';
-import { echoAt, markKey, type EchoFamily, type PoemMarks } from './marks';
+import { echoAt, echoStyle, markKey, type EchoFamily, type EchoStyle, type PoemMarks } from './marks';
 import type { Token } from './tokens';
 
 const LETTER = /[\p{L}\p{M}]/u;
@@ -19,6 +19,7 @@ export interface Glyph {
 /** Neighbouring letters set alike: underlined in one family's style, or not at all. */
 export interface Run {
   echo?: EchoFamily;
+  style?: EchoStyle;
   /** Part of the stroke the reader is drawing right now. */
   preview?: boolean;
   /** Faded, or peeked at; in ink when absent. */
@@ -47,6 +48,8 @@ export interface Stroke {
 export interface Fade {
   stage: Stage;
   peeked: ReadonlySet<number>;
+  /** Words tapped once for their echo: only the letters the reader underlined come back. */
+  hinted?: ReadonlySet<number>;
   /** At the check: the words recalled so far (by offset), and whether the reader is done. */
   recalled?: ReadonlySet<number>;
   done?: boolean;
@@ -86,6 +89,7 @@ export function layoutLine(
               letter,
               first: at === firstLetter,
               peeked: !!word && fade.peeked.has(word.start),
+              hinted: !!echo && !preview && !!word && !!fade.hinted?.has(word.start),
               recalled: !!word && !!fade.recalled?.has(word.start),
               pause,
             },
@@ -95,7 +99,13 @@ export function layoutLine(
       const look = seen === 'ink' ? undefined : seen;
       const last = runs[runs.length - 1];
       if (last && last.echo === echo && !!last.preview === preview && last.look === look) last.glyphs.push({ at, ch });
-      else runs.push({ ...(echo ? { echo } : {}), ...(preview ? { preview } : {}), ...(look ? { look } : {}), glyphs: [{ at, ch }] });
+      else
+        runs.push({
+          ...(echo ? { echo, style: echoStyle(marks, echo) } : {}),
+          ...(preview ? { preview } : {}),
+          ...(look ? { look } : {}),
+          glyphs: [{ at, ch }],
+        });
       at += ch.length;
     }
     return runs;

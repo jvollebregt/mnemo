@@ -44,7 +44,52 @@ describe('App', () => {
   it('opens on an empty contents page that invites a first poem', async () => {
     renderApp(await freshStore());
     expect(await screen.findByText('Add a poem you want to know by heart.')).toBeTruthy();
+    expect(screen.getByText('Mark what you hear, fade the words, and say it by heart.')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'contents' })).toBeTruthy();
+  });
+
+  it('lets a poem go from the page that corrects it, after a second tap, and only that poem', async () => {
+    const store = await freshStore();
+    await store.poems.add({ title: 'Stone', poet: '', language: 'en', text: 'a stone' });
+    await store.poems.add({ title: 'Hope', poet: '', language: 'en', text: 'a line' });
+    renderApp(store);
+
+    fireEvent.click(await screen.findByRole('button', { name: /^Hope/ }));
+    // The reading page keeps to reading; letting a poem go is one step further in.
+    await screen.findByRole('button', { name: 'correct this poem' });
+    expect(screen.queryByRole('button', { name: 'remove this poem' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'correct this poem' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'remove this poem' }));
+    expect(await screen.findByRole('button', { name: 'yes, remove it' })).toBeTruthy();
+    expect((await store.poems.list()).length).toBe(2);
+    fireEvent.click(screen.getByRole('button', { name: 'yes, remove it' }));
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Hope/ })).toBeNull());
+    expect(screen.getByRole('button', { name: /^Stone/ })).toBeTruthy();
+    expect((await store.poems.list()).map((p) => p.title)).toEqual(['Stone']);
+  });
+
+  it('corrects a kept poem from its first page', async () => {
+    const store = await freshStore();
+    await store.poems.add({ title: 'The Fall of Rome', poet: 'W.H. Ayden', language: 'en', text: 'The piers are pummelled\nby the waves' });
+    renderApp(store);
+
+    fireEvent.click(await screen.findByRole('button', { name: /^The Fall of Rome/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'correct this poem' }));
+    // The poem's own text comes back to set right, its first line not taken for a title.
+    const sheet = screen.getByRole('textbox') as HTMLTextAreaElement;
+    expect(sheet.value).toBe('The piers are pummelled\nby the waves');
+    fireEvent.change(sheet, { target: { value: 'The piers are pummelled by the waves;' } });
+    fireEvent.click(screen.getByRole('button', { name: 'set the page' }));
+    expect((screen.getByRole('textbox', { name: 'title' }) as HTMLInputElement).value).toBe('The Fall of Rome');
+    fireEvent.change(screen.getByRole('textbox', { name: 'poet' }), { target: { value: 'W.H. Auden' } });
+    fireEvent.click(screen.getByRole('button', { name: 'keep it' }));
+
+    // Back on the poem, corrected.
+    expect(await screen.findByText('W.H. Auden')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'The Fall of Rome' })).toBeTruthy();
+    const [poem] = await store.poems.list();
+    expect(poem).toMatchObject({ poet: 'W.H. Auden', text: 'The piers are pummelled by the waves;' });
   });
 
   it('adds a pasted poem, mending a broken line, and opens it', async () => {
@@ -52,11 +97,13 @@ describe('App', () => {
     renderApp(store);
 
     fireEvent.click(await screen.findByRole('button', { name: 'add a poem' }));
-    const setPage = screen.getByRole('button', { name: 'set the page' });
-    expect((setPage as HTMLButtonElement).disabled).toBe(true);
+    // An empty sheet offers only *paste*; the page can be set once there are words.
+    expect(screen.getByRole('button', { name: 'paste' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'set the page' })).toBeNull();
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: WHITMAN_PASTED } });
-    fireEvent.click(setPage);
+    expect(screen.queryByRole('button', { name: 'paste' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'set the page' }));
 
     // The title and poet are read off the top of the paste.
     expect((screen.getByRole('textbox', { name: 'title' }) as HTMLInputElement).value).toBe(
@@ -89,22 +136,22 @@ describe('App', () => {
     fireEvent.click(entry);
     expect(screen.getByRole('heading', { name: 'When I Heard the Learn’d Astronomer' })).toBeTruthy();
     expect(screen.getByText('Walt Whitman')).toBeTruthy();
-    // Five of the poet's lines, so the margin numbers the fifth.
-    expect(await screen.findByText('5')).toBeTruthy();
+    // While learning, the reader goes by stanza: no line numbers in the margin.
+    await screen.findByRole('button', { name: 'mark what you hear' });
+    expect(screen.queryByText('5')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'contents' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'contents' })).toBeTruthy());
   });
 
-  it('will not keep a poem without a title', async () => {
+  it('will not keep a poem without a title, and points to where it goes', async () => {
     renderApp(await freshStore());
     fireEvent.click(await screen.findByRole('button', { name: 'add a poem' }));
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'a line\nanother line\nand a third' } });
     fireEvent.click(screen.getByRole('button', { name: 'set the page' }));
-    const keep = screen.getByRole('button', { name: 'keep it' }) as HTMLButtonElement;
-    expect(keep.disabled).toBe(true);
-    fireEvent.change(screen.getByRole('textbox', { name: 'title' }), { target: { value: 'Three lines' } });
-    expect(keep.disabled).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'keep it' }));
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'title' }));
+    expect(screen.getByRole('button', { name: 'keep it' })).toBeTruthy();
   });
 
   it('offers to close up a poem pasted with a blank line after every line', async () => {

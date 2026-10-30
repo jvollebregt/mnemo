@@ -34,7 +34,7 @@ export const en: Lessons = {
       'Give each family of echoes its own kind of underline. At the end of a line an echo is what memory leans on most; when you recall the line, it tells you which word has to come.',
     ],
     tryIt:
-      'Try it: choose an underline and draw it under the letters that echo, just the s of sings, or the eard of heard. The line you are drawing on appears large at the top, so your finger never hides it. Tap an underline to rub it out.',
+      'Try it: choose an underline and draw it under the letters that echo, just the s of sings, or the eard of heard. For another sound, choose another underline. The line you are drawing on appears large at the top, so your finger never hides it. Tap an underline to rub it out.',
     draft: true,
   },
   pauses: {

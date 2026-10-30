@@ -11,6 +11,7 @@ import {
   returnStage,
   review,
   stanzaGrade,
+  stanzaState,
   stanzaUnit,
   type Card,
   type Unit,
@@ -91,6 +92,29 @@ describe('the contents phrase', () => {
       [stanzaUnit(1), reviewing(days(40), 30)],
     ]);
     expect(poemState(STANZAS, settled, NOW)).toBe('byHeart');
+  });
+});
+
+describe('how a stanza stands', () => {
+  const learned = new Map<Unit, Card>([
+    [stanzaUnit(0), reviewing(days(4))],
+    [stanzaUnit(1), reviewing(days(40), 30)],
+  ]);
+  const good = new Map<Unit, Rating.Good>([
+    [stanzaUnit(0), Rating.Good],
+    [stanzaUnit(1), Rating.Good],
+  ]);
+
+  it('is new until first recited, then taking root, then by heart', () => {
+    expect(stanzaState(0, STANZAS, new Map(), new Map(), NOW)).toBe('new');
+    expect(stanzaState(0, STANZAS, learned, good, NOW)).toBe('takingRoot');
+    expect(stanzaState(1, STANZAS, learned, good, NOW)).toBe('byHeart');
+  });
+
+  it('is fading when it is due, or when the reader last said not yet or most of it', () => {
+    expect(stanzaState(0, STANZAS, learned, good, days(4))).toBe('fading');
+    expect(stanzaState(1, STANZAS, learned, new Map([[stanzaUnit(1), Rating.Hard]]), NOW)).toBe('fading');
+    expect(stanzaState(1, STANZAS, learned, new Map([[stanzaUnit(1), Rating.Again]]), NOW)).toBe('fading');
   });
 });
 

@@ -4,6 +4,7 @@ import type { Messages } from './index';
 export const nl: Messages = {
   contents: 'inhoud',
   contentsEmpty: 'Voeg een gedicht toe dat je uit je hoofd wilt kennen.',
+  contentsHow: 'Markeer wat je hoort, laat de woorden vervagen en zeg het uit je hoofd.',
   interfaceLanguage: 'taal van de app',
   settings: 'instellingen',
   addPoem: 'voeg een gedicht toe',
@@ -20,7 +21,8 @@ export const nl: Messages = {
   stanza: 'strofe',
 
   noteRead: 'Lees het hardop, langzaam, twee keer. Jezelf het horen zeggen is het halve werk.',
-  noteFadeWords: 'De woorden vervagen; je tekens blijven. Beginletters en ritme zijn genoeg om een regel terug te halen.',
+  noteFadeWords:
+    'De woorden vervagen; je tekens blijven. Beginletters en ritme zijn genoeg om een regel terug te halen. Tik op een woord als je het nodig hebt.',
   noteMarksOnly: 'Alleen je tekens nog. Bouw elke regel weer op uit zijn klemtonen, zijn echo’s en zijn pauzes.',
   noteFadeMarks: 'Nu gaan ook de tekens. Alleen de vorm van de regels blijft over.',
   notePeek: 'Spieken mag. Tik een vervaagd woord aan en het komt terug in potlood. De woorden waar je naar spiekt, zijn de woorden om op terug te komen.',
@@ -28,6 +30,7 @@ export const nl: Messages = {
   noteBlankTyping: 'Een lege bladzijde, zoals wanneer je het iemand voordraagt. Typ het uit je hoofd; elk woord komt in inkt terug zodra je het hebt.',
   noteNoEar: 'Ik kan hier nu niet luisteren, dus typ het maar. Je kunt het altijd opnieuw hardop proberen.',
   noteMissed: 'Wat je miste staat in potlood. Een woord missen is nuttig: daar wordt het geheugen gebouwd. Had je er toch een, tik het dan aan.',
+  noteNextStanza: 'Die strofe schiet wortel en komt terug zodra ze begint te vervagen. Nu de volgende.',
   noteSeam: 'De overgang tussen twee strofen is waar het opzeggen meestal hapert, dus die oefen je apart.',
   noteChain: 'Nu de strofen tot hier, achter elkaar.',
   noteReturn: 'Probeer het voordat je kijkt. Juist het herinneren zorgt dat het blijft hangen.',
@@ -35,7 +38,7 @@ export const nl: Messages = {
   toolBeats: 'klemtonen',
   toolEchoes: "echo's",
   toolPauses: 'pauzes',
-  putDown: 'potlood neer',
+  putDown: 'terug',
   moreAboutThis: 'meer hierover',
   pencil: 'potlood',
   aboutBeats: 'over klemtonen',
@@ -47,6 +50,11 @@ export const nl: Messages = {
   echoDouble: 'dubbele lijn',
   echoWavy: 'golflijn',
   echoSolid: 'doorgetrokken lijn',
+  echoDashDot: 'streep-stiplijn',
+  echoDoubleDotted: 'dubbele gestippelde lijn',
+  echoDoubleDashed: 'dubbele gestreepte lijn',
+  echoDoubleWavy: 'dubbele golflijn',
+  echoDoubleDashDot: 'dubbele streep-stiplijn',
   pencilNote:
     'Kies hieronder klemtonen, echo’s of pauzes en tik dan het gedicht aan. Wat je markeert blijft langer staan dan de woorden. Staat een woord verkeerd afgebroken, houd het dan even ingedrukt.',
   draftLesson: 'Een conceptles, wordt nog herschreven.',
@@ -69,8 +77,10 @@ export const nl: Messages = {
 
   back: 'terug',
   pastePlaceholder: 'Plak hier het gedicht, zoals het gedrukt staat.',
+  nothingCopied: 'Er is nog niets gekopieerd.',
   pasteNote:
-    'Plak het zoals het gedrukt staat, met titel en al. Witregels tussen strofen blijven staan. Op de volgende bladzijde kun je rechtzetten wat er bij het plakken misging.',
+    'Met titel en al. Witregels tussen strofen blijven staan. Op de volgende bladzijde kun je rechtzetten wat er bij het plakken misging.',
+  paste: 'plak',
   setPage: 'zet de bladzijde',
   titlePlaceholder: 'titel',
   poetPlaceholder: 'dichter',
@@ -85,12 +95,13 @@ export const nl: Messages = {
     'Na elke regel staat een witregel. Meestal komt dat door de opmaak van de webpagina, niet door de strofen van het gedicht.',
   closeUp: 'haal de witregels weg',
   keepIt: 'bewaar het',
-  addedNote: 'Het staat nu op de bladzijde, en alleen op je telefoon. Open het wanneer je tien rustige minuten hebt.',
+  addedNote:
+    'Het staat nu op de bladzijde, en alleen op je telefoon. Open het wanneer je tien rustige minuten hebt. Het schiet wortel; er komt uit het hoofd te staan zodra je het kent.',
   putAway: 'leg het weg',
   longLinesTitle: 'lange regels',
   longLines1:
     'Sommige regels in dit gedicht zijn langer dan de bladzijde breed is. In plaats van ze af te breken waar de dichter dat niet deed, loopt de regel door: het vervolg staat er vlak onder, ingesprongen, zoals een gedrukt boek een lange regel zet.',
-  longLines2: 'Het blijft één regel. De marge telt hem één keer, en als de woorden vervagen, vervaagt hij in zijn geheel.',
+  longLines2: 'Het blijft één regel: als de woorden vervagen, vervaagt hij in zijn geheel.',
   longLines3: 'Draai je telefoon een kwartslag en de bladzijde wordt breder, zodat de meeste lange regels heel passen. Draai hem terug wanneer je wilt.',
   // Instellingen
   settingsReciting: 'opzeggen',
@@ -106,6 +117,9 @@ export const nl: Messages = {
   recitalsNone: 'Er zijn geen voordrachten bewaard.',
   clearRecordings: 'wis opnames',
   clearRecordingsSure: 'ja, wis ze',
+  correctPoem: 'verbeter dit gedicht',
+  removePoem: 'haal dit gedicht weg',
+  removePoemSure: 'ja, haal het weg',
   settingsYourPoems: 'je gedichten',
   exportPoems: 'exporteer',
   importPoems: 'importeer',

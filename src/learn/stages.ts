@@ -29,6 +29,8 @@ export interface Character {
   first?: boolean;
   /** Its word has been peeked at in this stanza. */
   peeked?: boolean;
+  /** A letter the reader underlined, in a word tapped once for its echo: the sound comes back before the word does. */
+  hinted?: boolean;
   /** Punctuation the reader marked as a pause. */
   pause?: boolean;
   /** On the blank page: its word has been recalled. */
@@ -37,7 +39,7 @@ export interface Character {
 
 /** `done`: on the blank page, the reader has finished reciting. */
 export function lookOf(stage: Stage, c: Character, done = false): Look {
-  if (c.letter && c.peeked && canPeek(stage)) return 'peek';
+  if (c.letter && (c.peeked || (c.hinted && showsMarks(stage))) && canPeek(stage)) return 'peek';
   switch (stage) {
     case 'read':
     case 'mark':

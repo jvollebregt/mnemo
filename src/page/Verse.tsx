@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Line, ParsedPoem } from '../poem/parse';
-import { DEFAULT_FIT, fitSize, hasTurnovers, lineLabel } from './fit';
+import { DEFAULT_FIT, fitSize, hasTurnovers } from './fit';
 
 const REFERENCE_SIZE = 20;
 
@@ -16,6 +16,8 @@ export function Verse({
   renderLine,
   aside,
   only,
+  focus,
+  numeral,
 }: {
   poem: ParsedPoem;
   onTurnovers?: (any: boolean) => void;
@@ -26,6 +28,10 @@ export function Verse({
   aside?: (line: Line) => ReactNode;
   /** Which lines to set, by number; all of them by default. The type size is always fitted to the whole poem. */
   only?: ReadonlySet<number>;
+  /** The lines being worked on. The others are set faint around them. */
+  focus?: ReadonlySet<number>;
+  /** Something for the left-hand margin beside a stanza's first line, such as its numeral. */
+  numeral?: (stanza: number) => ReactNode;
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
   // Every line's text spans the whole verse column, so the column's width is the measure.
@@ -64,18 +70,22 @@ export function Verse({
           <span key={line.number}>{line.text}</span>
         ))}
       </div>
-      {poem.stanzas.map((stanza) => {
+      {poem.stanzas.map((stanza, index) => {
         const shown = only ? stanza.lines.filter((line) => only.has(line.number)) : stanza.lines;
+        const faint = focus && !stanza.lines.some((line) => focus.has(line.number));
         return shown.length === 0 ? null : (
-          <div className="stanza" key={stanza.lines[0]?.number}>
-            {shown.map((line) => (
-              <div className="line" key={line.number} data-line={line.number}>
-                <span className="line-number" aria-hidden="true">
-                  {lineLabel(line.number)}
+          <div
+            key={stanza.lines[0]?.number}
+            className={faint ? 'stanza faint' : focus ? 'stanza in-focus' : 'stanza'}
+            data-stanza={index}
+          >
+            {shown.map((line, i) => (
+              <div className={focus && !focus.has(line.number) ? 'line faint' : 'line'} key={line.number} data-line={line.number}>
+                {/* While learning a poem the reader goes by stanza, not by line number. */}
+                <span className="line-number" aria-hidden={i === 0 && numeral ? undefined : true}>
+                  {i === 0 ? numeral?.(index) : null}
                 </span>
-                <div className="line-text">
-                  {renderLine ? renderLine(line) : line.text}
-                </div>
+                <div className="line-text">{renderLine ? renderLine(line) : line.text}</div>
                 {aside?.(line)}
               </div>
             ))}

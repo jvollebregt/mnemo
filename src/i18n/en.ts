@@ -4,6 +4,7 @@ export const en = {
   // Contents page
   contents: 'contents',
   contentsEmpty: 'Add a poem you want to know by heart.',
+  contentsHow: 'Mark what you hear, fade the words, and say it by heart.',
   interfaceLanguage: 'language of the app',
   addPoem: 'add a poem',
   settings: 'settings',
@@ -23,7 +24,7 @@ export const en = {
 
   // Margin notes, each shown once, the first time its stage is reached
   noteRead: 'Read it aloud, slowly, twice. Hearing yourself say it is half the work.',
-  noteFadeWords: 'The words fade; your marks stay. First letters and rhythm are enough to pull a line back.',
+  noteFadeWords: 'The words fade; your marks stay. First letters and rhythm are enough to pull a line back. Tap a word if you need it.',
   noteMarksOnly: 'Only your marks now. Rebuild each line from its beats, its echoes and its pauses.',
   noteFadeMarks: 'Now the marks go too. Only the shape of the lines is left.',
   notePeek: 'Peeking is fine. Tap a faded word and it comes back in pencil. The words you peek at are the ones to come back to.',
@@ -31,6 +32,7 @@ export const en = {
   noteBlankTyping: 'A blank page, as when you recite to someone. Type it from memory; each word comes back in ink as you get it.',
   noteNoEar: 'I can’t listen here just now, so type it instead. You can try speaking again any time.',
   noteMissed: 'What you missed is in pencil. Missing a word is useful: that is where memory is built. If you did have one, tap it.',
+  noteNextStanza: 'That stanza is taking root, and will come back when it starts to fade. Now the next one.',
   noteSeam: 'The join between two stanzas is where a recital usually breaks, so it gets its own practice.',
   noteChain: 'Now the stanzas so far, together.',
   noteReturn: 'Try it before you look. Remembering is what makes it stick.',
@@ -39,7 +41,7 @@ export const en = {
   toolBeats: 'beats',
   toolEchoes: 'echoes',
   toolPauses: 'pauses',
-  putDown: 'put down',
+  putDown: 'back',
   moreAboutThis: 'more about this',
   pencil: 'pencil',
   aboutBeats: 'about beats',
@@ -51,6 +53,11 @@ export const en = {
   echoDouble: 'double underline',
   echoWavy: 'wavy underline',
   echoSolid: 'solid underline',
+  echoDashDot: 'dash-dot underline',
+  echoDoubleDotted: 'double dotted underline',
+  echoDoubleDashed: 'double dashed underline',
+  echoDoubleWavy: 'double wavy underline',
+  echoDoubleDashDot: 'double dash-dot underline',
   pencilNote:
     'Choose beats, echoes or pauses below, then tap the poem. Whatever you mark will outlast the words. If a word is split in the wrong place, press and hold it.',
   draftLesson: 'A draft lesson, still to be rewritten.',
@@ -75,8 +82,10 @@ export const en = {
   // Adding a poem
   back: 'back',
   pastePlaceholder: 'Paste the poem here, as it is printed.',
+  nothingCopied: 'Nothing is copied yet.',
   pasteNote:
-    'Paste it as it is printed, title and all. Blank lines between stanzas are kept. On the next page you can set right anything the pasting got wrong.',
+    'Title and all. Blank lines between stanzas are kept. On the next page you can set right anything the pasting got wrong.',
+  paste: 'paste',
   setPage: 'set the page',
   titlePlaceholder: 'title',
   poetPlaceholder: 'poet',
@@ -91,12 +100,13 @@ export const en = {
     'There is a blank line after every line. That is usually how the web page was spaced, not how the poem is divided.',
   closeUp: 'close up the spaces',
   keepIt: 'keep it',
-  addedNote: 'It is on the page now, and only on your phone. Open it whenever you have ten quiet minutes.',
+  addedNote:
+    'It is on the page now, and only on your phone. Open it whenever you have ten quiet minutes. It is taking root; it will say by heart once you know it.',
   putAway: 'put it away',
   longLinesTitle: 'long lines',
   longLines1:
     'Some lines in this poem are longer than the page is wide. Rather than break them where the poet didn’t, the page lets them turn over: the rest of the line carries on just below, indented, the way a printed book sets a long line.',
-  longLines2: 'It is still one line. The margin counts it once, and when the words fade, it fades as one.',
+  longLines2: 'It is still one line: when the words fade, it fades as one.',
   longLines3: 'Turn your phone sideways and the page grows wider, so most long lines fit whole. Turn it back whenever you like.',
   // Settings
   settingsReciting: 'reciting',
@@ -112,6 +122,9 @@ export const en = {
   recitalsNone: 'No recitals are kept.',
   clearRecordings: 'clear recordings',
   clearRecordingsSure: 'yes, clear them',
+  correctPoem: 'correct this poem',
+  removePoem: 'remove this poem',
+  removePoemSure: 'yes, remove it',
   settingsYourPoems: 'your poems',
   exportPoems: 'export',
   importPoems: 'import',
