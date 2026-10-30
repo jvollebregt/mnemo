@@ -4,6 +4,7 @@ import { useI18n } from '../i18n/context';
 import { readClipboard } from '../poem/clipboard';
 import { canJoin, closeUp, guessLanguage, looksDoubleSpaced, mend, readPasted, suspectBreaks } from '../poem/intake';
 import { lineLabel } from '../page/fit';
+import { useSwipeBack } from '../page/swipe';
 import { poemLanguages, type PoemLanguage } from '../poem/language';
 import type { NewPoem, Poem } from '../store/poems';
 
@@ -12,6 +13,8 @@ interface Props {
   correcting?: Poem;
   onKeep: (poem: NewPoem) => Promise<void>;
   onCancel: () => void;
+  /** Straight to the contents, from the sheet or the proof; *onCancel* when not correcting. */
+  onContents?: () => void;
   /** Where *paste* reads from; the phone's clipboard by default. */
   clipboard?: () => Promise<string>;
   /** While correcting: lets the poem go, with its marks and schedule, after a second tap to be sure. */
@@ -36,13 +39,15 @@ interface Proof {
  */
 const NOTHING_COPIED_MS = 2500;
 
-export function AddPoem({ correcting, onKeep, onCancel, onRemove, clipboard = readClipboard }: Props) {
+export function AddPoem({ correcting, onKeep, onCancel, onContents = onCancel, onRemove, clipboard = readClipboard }: Props) {
   const { m, locale } = useI18n();
   const [text, setText] = useState(correcting?.text ?? '');
   const [proof, setProof] = useState<Proof | null>(null);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
   const titleField = useRef<HTMLInputElement>(null);
+  // From the proof, a swipe back goes to the sheet, keeping the words, rather than throwing them away.
+  useSwipeBack(proof ? () => setProof(null) : onCancel);
   /** A *paste* that found nothing copied says so for a moment, in the sheet itself. */
   const [nothingCopied, setNothingCopied] = useState(false);
   useEffect(() => {
@@ -86,10 +91,15 @@ export function AddPoem({ correcting, onKeep, onCancel, onRemove, clipboard = re
   if (!proof) {
     return (
       <main className="page">
-        <div className="top">
+        <div className="top running-top">
           <button type="button" className="action" onClick={onCancel}>
             {correcting ? m.back : m.contents}
           </button>
+          {correcting && (
+            <button type="button" className="action top-end" onClick={onContents}>
+              {m.contents}
+            </button>
+          )}
         </div>
         <textarea
           ref={sheet}
@@ -149,8 +159,11 @@ export function AddPoem({ correcting, onKeep, onCancel, onRemove, clipboard = re
 
   return (
     <main className="page poem-page">
-      <div className="top">
-        <button type="button" className="action" onClick={() => setProof(null)}>
+      <div className="top running-top">
+        <button type="button" className="action" onClick={onContents}>
+          {m.contents}
+        </button>
+        <button type="button" className="action top-end" onClick={() => setProof(null)}>
           {m.back}
         </button>
       </div>

@@ -38,7 +38,6 @@ export const nl: Messages = {
   toolBeats: 'klemtonen',
   toolEchoes: "echo's",
   toolPauses: 'pauzes',
-  putDown: 'terug',
   moreAboutThis: 'meer hierover',
   pencil: 'potlood',
   aboutBeats: 'over klemtonen',

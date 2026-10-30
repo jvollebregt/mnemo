@@ -78,6 +78,7 @@ export function App() {
               correcting={before}
               onKeep={(poem) => correct(before, poem)}
               onCancel={() => setView({ name: 'poem', poem: before })}
+              onContents={() => void toContents()}
               onRemove={() => void remove(before)}
             />
           );

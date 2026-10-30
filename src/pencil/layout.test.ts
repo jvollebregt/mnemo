@@ -33,6 +33,15 @@ describe('layoutLine', () => {
     ]);
   });
 
+  it('stands each mark over the syllable’s vowel, a y before a vowel not counting', () => {
+    const vowels = (line: string) =>
+      layoutLine(tokenize(line, { language: 'en' }), marks((m) => settle(toggleBeat(m, 1, 0), 1)), 1)
+        .filter((p) => p.mark)
+        .map((p) => line.slice(p.vowel!.start, p.vowel!.end));
+    expect(vowels(LINE)).toEqual(['a', 'e', 'e', 'i', 'e', 'ou']);
+    expect(vowels('yes, the sky')).toEqual(['e', 'e', 'y']);
+  });
+
   it('underlines only the letters of an echo, and the stroke being drawn', () => {
     const m = marks((x) => addEcho(x, { family: 2, line: 2, start: 20, end: 24 }));
     const pieces = layoutLine(tokens, m, 2, { family: 3, start: 0, end: 2 });
