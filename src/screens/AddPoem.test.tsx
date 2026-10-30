@@ -48,3 +48,19 @@ describe('the paste word', () => {
     expect(screen.getByRole('button', { name: 'paste' })).toBeTruthy();
   });
 });
+
+describe('the proof', () => {
+  afterEach(cleanup);
+
+  it('opens at its title, however far down the sheet was scrolled', () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    renderSheet(() => Promise.resolve(''));
+    fireEvent.change(sheet(), { target: { value: 'Stone\n\na stone' } });
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'set the page' }));
+
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+    scrollTo.mockRestore();
+  });
+});

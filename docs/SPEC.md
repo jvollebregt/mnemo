@@ -42,7 +42,7 @@ On a phone, a Whitman line won't fit at a readable size. The rules:
 2. **Then turn over, visibly.** If a line still doesn't fit, its continuation is set as a *turnover*: deeply indented with a hanging indent and a small pencil bracket, the way printed poetry has always done it, so it never reads as a new verse line. Line numbers count only real lines; they appear on the proof when adding a poem, not while learning, where the stanza numerals do that work (Joos, 2026-10-28).
 3. **Landscape helps.** Turning the phone sideways widens the measure, and turnovers disappear when the line fits.
 4. **Learning units follow the poet.** Fading, peeking and recall work on real lines and stanzas. A turnover is never treated as a separate line.
-5. **Long stanzas are learned in passages.** A run of more than eight lines with no stanza break (verse drama, blank verse, a sonnet set as one block) is cut into passages of four to eight lines, where sentences end and near six lines where it can, so a sonnet falls into its octave and sestet. Each passage gets its own numeral and is learned as a stanza; the page keeps the poet's layout and adds no blank line (default proposed 2026-10-30, for Joos to confirm).
+5. **Long stanzas are learned in passages.** A run of more than eight lines with no stanza break (verse drama, blank verse, a sonnet set as one block) is cut into passages of four to eight lines, where sentences end and near six lines where it can, so a sonnet falls into its octave and sestet. Each passage gets its own numeral and is learned as a stanza; the page keeps the poet's layout and adds no blank line (Joos, 2026-10-30).
 
 ## 4a. Syllables without a perfect detector
 
