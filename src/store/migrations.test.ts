@@ -127,6 +127,39 @@ describe('migrations', () => {
     expect(await db.all('SELECT file FROM recordings')).toEqual([]);
   });
 
+  it('in version 7, start a stanza cut into passages afresh and move the stanzas after it', async () => {
+    const db = await openSqlJs();
+    await migrate(db, 6);
+    const block = Array.from({ length: 14 }, (_, i) => `line ${i + 1}${i === 7 ? '.' : ','}`).join('\n');
+    const insert = (id: string, text: string) =>
+      db.run(
+        `INSERT INTO poems (id, title, poet, language, text, created_at, updated_at)
+         VALUES (?, 'A poem', '', 'en', ?, '2026-10-28T12:00:00.000Z', '2026-10-28T12:00:00.000Z')`,
+        [id, text],
+      );
+    // Stanza 1 of p1 is fourteen lines long, and becomes passages 1 and 2; stanza 2 becomes 3.
+    await insert('p1', `one\ntwo\n\n${block}\n\nthree\nfour`);
+    await insert('p2', 'a short one\nof two\n\nand another');
+    for (const [poem, unit] of [
+      ['p1', 'stanza:0'],
+      ['p1', 'stanza:1'],
+      ['p1', 'stanza:2'],
+      ['p1', 'line:5'],
+      ['p2', 'stanza:0'],
+      ['p2', 'stanza:1'],
+    ]) {
+      await db.run(`INSERT INTO cards (poem_id, unit, data, updated_at) VALUES (?, ?, '{}', '2026-10-28T12:00:00.000Z')`, [poem!, unit!]);
+      await db.run(`INSERT INTO reviews (poem_id, unit, grade, reviewed_at) VALUES (?, ?, 3, '2026-10-28T12:00:00.000Z')`, [poem!, unit!]);
+    }
+    expect(await migrate(db, 7)).toBe(6);
+    const units = async (table: string, poem: string) =>
+      (await db.all<{ unit: string }>(`SELECT unit FROM ${table} WHERE poem_id = ? ORDER BY unit`, [poem])).map((r) => r.unit);
+    for (const table of ['cards', 'reviews']) {
+      expect(await units(table, 'p1')).toEqual(['line:5', 'stanza:0', 'stanza:3']);
+      expect(await units(table, 'p2')).toEqual(['stanza:0', 'stanza:1']);
+    }
+  });
+
   it('survive saving and reopening the database file', async () => {
     const db = await openSqlJs();
     await migrate(db);

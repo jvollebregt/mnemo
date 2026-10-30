@@ -76,7 +76,14 @@ export function Verse({
         return shown.length === 0 ? null : (
           <div
             key={stanza.lines[0]?.number}
-            className={faint ? 'stanza faint' : focus ? 'stanza in-focus' : 'stanza'}
+            className={[
+              'stanza',
+              faint ? 'faint' : focus && 'in-focus',
+              // A passage cut from a long stanza follows on with no blank line, as the poet set it.
+              stanza.continues && 'continues',
+            ]
+              .filter(Boolean)
+              .join(' ')}
             data-stanza={index}
           >
             {shown.map((line, i) => (

@@ -1,5 +1,8 @@
+import { passagesOf } from './passages';
+
 /**
- * Turns pasted text into the poet's lines and stanzas.
+ * Turns pasted text into the poet's lines and stanzas. A stanza too long to
+ * learn in one go is cut into passages, which are learned as stanzas are.
  *
  * A line is a line as the poet wrote it. However the page later sets it
  * (shrunk to fit, or turned over with a hanging indent), it stays one line:
@@ -15,6 +18,8 @@ export interface Line {
 
 export interface Stanza {
   lines: Line[];
+  /** A passage cut from a long stanza, going on from the one before with no blank line between. */
+  continues?: boolean;
 }
 
 export interface ParsedPoem {
@@ -30,19 +35,20 @@ export function parsePoem(text: string): ParsedPoem {
   let current: Line[] = [];
   let number = 0;
 
+  const close = () => {
+    passagesOf(current).forEach((lines, i) => stanzas.push(i === 0 ? { lines } : { lines, continues: true }));
+    current = [];
+  };
   for (const raw of text.split(LINE_BREAK)) {
     const line = raw.replace(/\s+$/u, '');
     if (line.trim() === '') {
-      if (current.length > 0) {
-        stanzas.push({ lines: current });
-        current = [];
-      }
+      if (current.length > 0) close();
       continue;
     }
     number += 1;
     current.push({ text: line, number });
   }
-  if (current.length > 0) stanzas.push({ lines: current });
+  if (current.length > 0) close();
 
   return { stanzas, lineCount: number };
 }

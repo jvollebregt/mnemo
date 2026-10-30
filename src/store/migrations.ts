@@ -9,6 +9,8 @@ import type { Db } from './db';
 export interface Migration {
   version: number;
   statements: readonly string[];
+  /** Work on the stored rows that plain SQL can't do, run after the statements. */
+  run?: (db: Db) => Promise<void>;
 }
 
 export const migrations: readonly Migration[] = [
@@ -81,7 +83,84 @@ export const migrations: readonly Migration[] = [
       )`,
     ],
   },
+  {
+    // A stanza longer than eight lines is now learned in passages, each with its
+    // own place in the schedule. A stanza that was cut has no card that fits any
+    // one passage, so it starts afresh; the stanzas after it move to their new index.
+    version: 7,
+    statements: [],
+    run: async (db) => {
+      const poems = await db.all<{ id: string; text: string }>('SELECT id, text FROM poems');
+      for (const poem of poems) {
+        const moved = stanzasCutIntoPassages(poem.text);
+        if (!moved) continue;
+        for (const table of ['cards', 'reviews'] as const) {
+          const rows = await db.all<{ rowid: number; unit: string }>(
+            `SELECT rowid, unit FROM ${table} WHERE poem_id = ? AND unit LIKE 'stanza:%'`,
+            [poem.id],
+          );
+          const index = (unit: string) => Number(unit.slice('stanza:'.length));
+          // Stanzas only move further down, so the last goes first and none lands on one not yet moved.
+          rows.sort((a, b) => index(b.unit) - index(a.unit));
+          for (const row of rows) {
+            const to = moved.get(index(row.unit));
+            if (to === undefined) await db.run(`DELETE FROM ${table} WHERE rowid = ?`, [row.rowid]);
+            else await db.run(`UPDATE ${table} SET unit = ? WHERE rowid = ?`, [`stanza:${to}`, row.rowid]);
+          }
+        }
+      }
+    },
+  },
 ];
+
+/*
+ * Frozen for migration 7: the stanzas as the app parsed them before passages,
+ * and the passages as version 7 cuts them. Later changes to parsing must not
+ * reach back into this migration.
+ */
+
+/** Old stanza index → new stanza index, for stanzas left whole; undefined when no stanza was cut. */
+function stanzasCutIntoPassages(text: string): Map<number, number> | undefined {
+  const stanzas: string[][] = [[]];
+  for (const raw of text.split(/\r\n|\r|\n|\u2028|\u2029/)) {
+    if (raw.trim() === '') {
+      if (stanzas[stanzas.length - 1]!.length > 0) stanzas.push([]);
+    } else stanzas[stanzas.length - 1]!.push(raw.replace(/\s+$/u, ''));
+  }
+  const moved = new Map<number, number>();
+  let next = 0;
+  let cut = false;
+  stanzas.forEach((lines, index) => {
+    if (lines.length === 0) return;
+    const passages = passageCountV7(lines);
+    if (passages === 1) moved.set(index, next);
+    else cut = true;
+    next += passages;
+  });
+  return cut ? moved : undefined;
+}
+
+function passageCountV7(lines: readonly string[]): number {
+  if (lines.length <= 8) return 1;
+  const closure = (line: string) => {
+    const end = line.replace(/[\s"'’”»)\]]+$/u, '');
+    return /[.!?…]$/u.test(end) ? 3 : /[;:]$/u.test(end) ? 2 : /[,\-–—]$/u.test(end) ? 1 : 0;
+  };
+  const cost: number[] = [0];
+  const count: number[] = [0];
+  for (let i = 1; i <= lines.length; i += 1) {
+    cost[i] = Infinity;
+    for (let size = 4; size <= 8 && size <= i; size += 1) {
+      const j = i - size;
+      const total = cost[j]! + (j === 0 ? 0 : (3 - closure(lines[j - 1]!)) * 3) + Math.abs(size - 6);
+      if (total < cost[i]!) {
+        cost[i] = total;
+        count[i] = count[j]! + 1;
+      }
+    }
+  }
+  return count[lines.length]!;
+}
 
 export const latestVersion = migrations.reduce((v, m) => Math.max(v, m.version), 0);
 
@@ -100,6 +179,7 @@ export async function migrate(db: Db, target = latestVersion): Promise<number> {
     if (migration.version <= from || migration.version > target) continue;
     await db.transaction(async () => {
       for (const statement of migration.statements) await db.run(statement);
+      await migration.run?.(db);
       // PRAGMA takes no bound parameters; the version is a number from this file.
       await db.run(`PRAGMA user_version = ${migration.version}`);
     });
