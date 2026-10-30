@@ -1,0 +1,3 @@
+/* The reasons iOS shows when Mnemo first asks to listen. Keep in step with Info.plist. */
+"NSMicrophoneUsageDescription" = "Mnemo listens while you recite a poem from memory, to show which words came back. If you choose to keep your latest recital, it is saved on this iPhone only.";
+"NSSpeechRecognitionUsageDescription" = "Mnemo recognises your recital on this iPhone itself, to line it up with the poem. Nothing is sent away.";

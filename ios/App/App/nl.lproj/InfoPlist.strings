@@ -1,0 +1,3 @@
+/* De redenen die iOS toont als Mnemo voor het eerst vraagt om te luisteren. */
+"NSMicrophoneUsageDescription" = "Mnemo luistert terwijl je een gedicht uit je hoofd opzegt, om te laten zien welke woorden terugkwamen. Kies je ervoor je laatste voordracht te bewaren, dan blijft die alleen op deze iPhone.";
+"NSSpeechRecognitionUsageDescription" = "Mnemo herkent je voordracht op deze iPhone zelf, om die naast het gedicht te leggen. Er gaat niets weg van je telefoon.";
