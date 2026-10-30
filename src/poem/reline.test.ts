@@ -38,6 +38,7 @@ describe('reline', () => {
           { family: 1, line: 2, start: 4, end: 9 },
         ],
         splits: { 3: { 0: [2] } },
+        styles: {},
       },
       moved,
     );

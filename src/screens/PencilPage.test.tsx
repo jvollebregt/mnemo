@@ -146,19 +146,24 @@ describe('the pencil', () => {
     fireEvent.click(screen.getByRole('button', { name: 'echoes' }));
     await screen.findByRole('dialog', { name: 'echoes' });
     fireEvent.click(screen.getByRole('button', { name: 'put it away' }));
-    fireEvent.click(screen.getByRole('button', { name: 'dashed underline' }));
+    // A blank poem offers one pen; another comes once the first has a sound.
+    expect(Array.from(screen.getByRole('group', { name: 'underlines' }).children, (b) => b.getAttribute('aria-label'))).toEqual([
+      'dotted underline',
+    ]);
 
     stroke(2, 23, 21); // the oul of soul, drawn backwards
     expect(document.querySelectorAll('.rhyme')).toHaveLength(0);
     stroke(4, 22, 23); // the ll of all
-    expect(Array.from(document.querySelectorAll('.verse .echo-2'), (e) => e.textContent)).toEqual(['oul', 'll']);
+    expect(Array.from(document.querySelectorAll('.verse .echo-1'), (e) => e.textContent)).toEqual(['oul', 'll']);
     expect(Array.from(document.querySelectorAll('.rhyme'), (r) => r.textContent)).toEqual(['a', 'a']);
+    // The words the pen has underlined, so the reader can tell which sound it holds.
+    expect(document.querySelector('.echo-words')?.textContent).toBe('soul · all');
     // The pen stays in one family, so the first time it spans two lines, a fresh underline draws the eye.
-    await waitFor(() => expect(screen.getByRole('button', { name: 'dotted underline' }).className).toContain('beckon'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'dashed underline' }).className).toContain('beckon'));
 
     // One tap on an underline rubs out the whole echo, and the letters go with it.
     stroke(4, 23, 23);
-    expect(Array.from(document.querySelectorAll('.verse .echo-2'), (e) => e.textContent)).toEqual(['oul']);
+    expect(Array.from(document.querySelectorAll('.verse .echo-1'), (e) => e.textContent)).toEqual(['oul']);
     expect(document.querySelectorAll('.rhyme')).toHaveLength(0);
 
     // A rhyme sounds in the last syllable: an echo earlier in the last word doesn't close the line.
@@ -173,9 +178,9 @@ describe('the pencil', () => {
     stroke(4, 23, 23);
 
     // A tap on a bare letter underlines just that letter.
-    fireEvent.click(screen.getByRole('button', { name: 'dotted underline' }));
+    fireEvent.click(screen.getByRole('button', { name: 'dashed underline' }));
     stroke(3, 4, 4);
-    expect(document.querySelector('.verse .echo-1')?.textContent).toBe('s');
+    expect(document.querySelector('.verse .echo-2')?.textContent).toBe('s');
     await waitFor(async () => expect((await store.marks.get(poem.id)).echoes).toHaveLength(2));
   });
 

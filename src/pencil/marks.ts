@@ -5,9 +5,19 @@
  * other syllables, which only shows how many there are.
  */
 
-/** Underline styles, one per echo family. Never colours. */
-export const ECHO_FAMILIES = [1, 2, 3, 4, 5] as const;
-export type EchoFamily = (typeof ECHO_FAMILIES)[number];
+/**
+ * Underline styles, never colours: dotted, dashed, double, wavy, solid, thick,
+ * dash-dot, long dashes, and doubled dotted, dashed, wavy and dash-dot.
+ */
+export const ECHO_STYLES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+export type EchoStyle = (typeof ECHO_STYLES)[number];
+
+/**
+ * One sound the reader hears echo through the poem. The first twelve each
+ * keep a style of their own; a poem with more sounds than that lends a style
+ * again, from the sound marked furthest away.
+ */
+export type EchoFamily = number;
 
 /** An echo: letters [start, end) of a line, underlined in one family's style. */
 export interface Echo {
@@ -27,9 +37,11 @@ export interface PoemMarks {
   pauses: string[];
   /** The reader's own syllable cuts: line → word offset → break offsets within the word. */
   splits: Record<number, Record<number, number[]>>;
+  /** The style lent to each sound past the twelfth, chosen when it is first drawn. */
+  styles: Record<number, EchoStyle>;
 }
 
-export const emptyMarks = (): PoemMarks => ({ beats: [], settled: [], echoes: [], pauses: [], splits: {} });
+export const emptyMarks = (): PoemMarks => ({ beats: [], settled: [], echoes: [], pauses: [], splits: {}, styles: {} });
 
 export const markKey = (line: number, offset: number) => `${line}:${offset}`;
 
@@ -58,14 +70,81 @@ export function echoAt(marks: PoemMarks, line: number, offset: number): Echo | u
 /** Adds an echo. A letter carries one underline, so echoes it draws over are replaced. */
 export function addEcho(marks: PoemMarks, echo: Echo): PoemMarks {
   if (echo.end <= echo.start) return marks;
-  return {
-    ...marks,
-    echoes: [...marks.echoes.filter((e) => !overlaps(e, echo.line, echo.start, echo.end)), echo],
-  };
+  const lent =
+    echo.family > ECHO_STYLES.length && !(echo.family in marks.styles)
+      ? { ...marks.styles, [echo.family]: styleFarFrom(marks, echo.line) }
+      : marks.styles;
+  return withEchoes(
+    { ...marks, styles: lent },
+    [...marks.echoes.filter((e) => !overlaps(e, echo.line, echo.start, echo.end)), echo],
+  );
 }
 
 export function eraseEcho(marks: PoemMarks, echo: Echo): PoemMarks {
-  return { ...marks, echoes: marks.echoes.filter((e) => e !== echo && !sameEcho(e, echo)) };
+  return withEchoes(marks, marks.echoes.filter((e) => e !== echo && !sameEcho(e, echo)));
+}
+
+/** A sound that no longer has an underline gives its lent style back. */
+const withEchoes = (marks: PoemMarks, echoes: Echo[]): PoemMarks => {
+  const used = new Set(echoes.map((e) => e.family));
+  const styles = Object.fromEntries(Object.entries(marks.styles).filter(([family]) => used.has(Number(family))));
+  return { ...marks, echoes, styles };
+};
+
+const keptStyle = (marks: PoemMarks, family: EchoFamily): EchoStyle | undefined =>
+  family <= ECHO_STYLES.length ? (family as EchoStyle) : marks.styles[family];
+
+/** How a sound is underlined. A sound past the twelfth not yet drawn shows the style it would most likely be lent. */
+export const echoStyle = (marks: PoemMarks, family: EchoFamily): EchoStyle =>
+  keptStyle(marks, family) ?? styleFarFrom(marks, undefined);
+
+/** The style whose underlines are furthest from this line, so two sounds that share one are seldom seen together. */
+function styleFarFrom(marks: PoemMarks, line: number | undefined): EchoStyle {
+  let best: EchoStyle = 1;
+  let bestDistance = -1;
+  for (const style of ECHO_STYLES) {
+    const lines = marks.echoes.filter((e) => keptStyle(marks, e.family) === style).map((e) => e.line);
+    const distance = lines.length === 0 ? Infinity : line === undefined ? 0 : Math.min(...lines.map((l) => Math.abs(l - line)));
+    if (distance > bestDistance) {
+      best = style;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+/** The sounds the reader has underlined, in the order they were first given a pen. */
+export const familiesInUse = (marks: PoemMarks): EchoFamily[] =>
+  [...new Set(marks.echoes.map((e) => e.family))].sort((a, b) => a - b);
+
+/** A pen for a sound not yet heard: the first one not in use. */
+export function freshFamily(marks: PoemMarks): EchoFamily {
+  const used = new Set(marks.echoes.map((e) => e.family));
+  let family = 1;
+  while (used.has(family)) family += 1;
+  return family;
+}
+
+/**
+ * The words that carry one sound, in the poem's order, each spelling once:
+ * the reader's own grouping, read back so they can tell their pens apart.
+ */
+export function echoWords(
+  marks: PoemMarks,
+  family: EchoFamily,
+  wordAt: (line: number, at: number) => string | undefined,
+): string[] {
+  const words = marks.echoes
+    .filter((e) => e.family === family)
+    .sort((a, b) => a.line - b.line || a.start - b.start)
+    .flatMap((e) => wordAt(e.line, e.start) ?? []);
+  const seen = new Set<string>();
+  return words.filter((word) => {
+    const key = word.toLocaleLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 const sameEcho = (a: Echo, b: Echo) => a.line === b.line && a.start === b.start && a.end === b.end && a.family === b.family;
@@ -165,12 +244,17 @@ export function readMarks(json: string | undefined): PoemMarks {
       ? data.echoes.filter(
           (e): e is Echo =>
             !!e &&
-            (ECHO_FAMILIES as readonly number[]).includes(e.family) &&
+            Number.isInteger(e.family) &&
+            e.family > 0 &&
             [e.line, e.start, e.end].every(Number.isInteger) &&
             e.end > e.start,
         )
       : [];
     marks.splits = data.splits && typeof data.splits === 'object' ? data.splits : {};
+    // Marks from before there were more than twelve sounds have no lent styles.
+    if (data.styles && typeof data.styles === 'object')
+      for (const [family, style] of Object.entries(data.styles))
+        if ((ECHO_STYLES as readonly unknown[]).includes(style)) marks.styles[Number(family)] = style;
   } catch {
     // Unreadable marks are dropped rather than breaking the poem.
   }

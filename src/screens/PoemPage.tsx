@@ -26,10 +26,13 @@ import { useSyllabifier } from '../page/useSyllabifier';
 import { isLetter, layoutLine, pauseAfter, strokeRange, syllableAt, tokenAt, type Stroke } from '../pencil/layout';
 import {
   addEcho,
-  ECHO_FAMILIES,
   echoAt,
+  echoStyle,
+  echoWords,
   emptyMarks,
   eraseEcho,
+  familiesInUse,
+  freshFamily,
   markedStanzaNear,
   markKey,
   recut,
@@ -100,6 +103,12 @@ interface Drawing {
 type Word = Extract<Token, { kind: 'word' }>;
 
 /** The line and letter under a point on the page, if any. */
+/** The first echo the reader underlined in a word, if any. */
+function echoIn(marks: PoemMarks, line: number, word: Token | undefined) {
+  if (word?.kind !== 'word') return undefined;
+  return marks.echoes.find((e) => e.line === line && e.start < word.start + word.text.length && word.start < e.end);
+}
+
 function hit(target: EventTarget | Element | null): { line: number; at: number } | undefined {
   if (!(target instanceof Element)) return undefined;
   const glyph = target.closest('[data-at]');
@@ -149,6 +158,8 @@ export function PoemPage({
   /** Words showing in pencil, as "line:offset" of the word, and every word peeked at in this step, which still counts once faded again. */
   const [peeked, setPeeked] = useState<ReadonlySet<string>>(new Set());
   const [looked, setLooked] = useState<ReadonlySet<string>>(new Set());
+  /** Words tapped once for their echo, in the order tapped: only the letters the reader underlined show. */
+  const [hinted, setHinted] = useState<readonly string[]>([]);
   /** On the blank page: what the reader typed, whether they are done, and the words they say they did have. */
   const [typed, setTyped] = useState('');
   const [done, setDone] = useState(false);
@@ -430,6 +441,7 @@ export function PoemPage({
     setStep(next);
     setPeeked(new Set());
     setLooked(new Set());
+    setHinted([]);
     const review = next.kind === 'stanza' && !!next.review;
     go(first, review);
     const stepNote = review ? RETURN_NOTE : STEP_NOTE[next.kind];
@@ -498,6 +510,7 @@ export function PoemPage({
     if (verdict === 'notYet') {
       setPeeked(new Set());
       setLooked(new Set());
+      setHinted([]);
       go('fadeWords');
       return;
     }
@@ -551,14 +564,22 @@ export function PoemPage({
     }
     if (at && canPeek(stage)) {
       // A tap on a faded word brings it back, in pencil; a second tap fades it again. Either way it was looked at.
+      // While the marks show, an underlined word comes back by its echo first, and whole on the next tap.
       const word = tokenAt(tokens.get(at.line) ?? [], at.at);
       if (word?.kind !== 'word') return;
       const key = markKey(at.line, word.start);
-      setPeeked((words) => {
-        const next = new Set(words);
-        if (!next.delete(key)) next.add(key);
-        return next;
-      });
+      if (hinted.includes(key)) {
+        setHinted((keys) => keys.filter((k) => k !== key));
+        setPeeked((words) => new Set(words).add(key));
+      } else if (!peeked.has(key) && showsMarks(stage) && echoIn(marks, at.line, word)) {
+        setHinted((keys) => [...keys, key]);
+      } else {
+        setPeeked((words) => {
+          const next = new Set(words);
+          if (!next.delete(key)) next.add(key);
+          return next;
+        });
+      }
       setLooked((words) => new Set(words).add(key));
       once(PEEK_NOTE[0], () => setNote(PEEK_NOTE[1]));
       return;
@@ -634,7 +655,7 @@ export function PoemPage({
     update((marks) => addEcho(marks, { family, line, ...range }));
     // Once a family echoes across two lines, point to a fresh underline for another sound: the pen stays in this one.
     const lines = new Set(marks?.echoes.filter((e) => e.family === family).map((e) => e.line));
-    const fresh = ECHO_FAMILIES.find((f) => f !== family && !marks?.echoes.some((e) => e.family === f));
+    const fresh = marks && freshFamily({ ...marks, echoes: [...marks.echoes, { family, line, ...range }] });
     if (fresh && (lines.size >= 2 || (lines.size === 1 && !lines.has(line)))) once(FAMILY_HINT, () => setBeckon(fresh));
   };
 
@@ -651,7 +672,13 @@ export function PoemPage({
 
   const ready = !!marks && !!syllabifier && started;
   const hasMarks = !!marks && (marks.beats.length > 0 || marks.echoes.length > 0 || marks.pauses.length > 0);
-  const activeFamily = pencil && tool === 'echoes' ? family : undefined;
+  // The sound last tapped for while fading stands out, so the reader can find the words that share it.
+  const lastHinted = hinted[hinted.length - 1]?.split(':').map(Number);
+  const litFamily =
+    marks && lastHinted && showsMarks(stage)
+      ? echoIn(marks, lastHinted[0]!, tokenAt(tokens.get(lastHinted[0]!) ?? [], lastHinted[1]!))?.family
+      : undefined;
+  const activeFamily = pencil && tool === 'echoes' ? family : litFamily;
 
   // Whatever the reader marked shows while it should; at the other stages, none of it does.
   const shown = marks && showsMarks(stage) ? marks : emptyMarks();
@@ -669,6 +696,7 @@ export function PoemPage({
           stage: inView.has(line.number) || wholePoem ? stage : 'fadeMarks',
           // Once the recital is done, every word looked at shows in pencil.
           peeked: onLine(done ? looked : peeked, line.number),
+          hinted: onLine(new Set(hinted), line.number),
           recalled: onLine(recalledKeys, line.number),
           done,
         },
@@ -683,6 +711,15 @@ export function PoemPage({
         {letter}
       </span>
     ) : null;
+  };
+
+  // The pens on the bar: every sound underlined so far, then a fresh one for the next.
+  const penFamilies = marks
+    ? [...new Set([...familiesInUse(marks), freshFamily(marks), family])].sort((a, b) => a - b)
+    : [family];
+  const wordText = (line: number, at: number) => {
+    const word = tokenAt(tokens.get(line) ?? [], at);
+    return word?.kind === 'word' ? word.text : undefined;
   };
 
   const recutWord = recutting
@@ -775,6 +812,10 @@ export function PoemPage({
           <PencilBar
             tool={tool}
             family={family}
+            families={penFamilies}
+            styleOf={(f) => echoStyle(marks ?? emptyMarks(), f)}
+            words={marks ? echoWords(marks, family, wordText) : []}
+            wordsLang={poem.language}
             onTool={pick}
             onFamily={(f) => {
               setBeckon(null);

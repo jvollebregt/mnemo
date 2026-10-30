@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   addEcho,
   echoAt,
+  echoStyle,
+  echoWords,
   emptyMarks,
   eraseEcho,
+  familiesInUse,
+  freshFamily,
   markedStanzaNear,
   readMarks,
   recut,
@@ -52,6 +56,45 @@ describe('echoes', () => {
 
   it('ignore an empty stroke', () => {
     expect(addEcho(emptyMarks(), { family: 1, line: 1, start: 4, end: 4 }).echoes).toEqual([]);
+  });
+});
+
+describe('pens for the sounds', () => {
+  const sounds = (count: number) =>
+    Array.from({ length: count }, (_, i) => i + 1).reduce(
+      (marks, family) => addEcho(marks, { family, line: family, start: 0, end: 2 }),
+      emptyMarks(),
+    );
+
+  it('offer the first pen not in use, and list the ones in use in order', () => {
+    const marks = addEcho(addEcho(emptyMarks(), { family: 3, line: 1, start: 0, end: 1 }), { family: 1, line: 2, start: 0, end: 1 });
+    expect(familiesInUse(marks)).toEqual([1, 3]);
+    expect(freshFamily(marks)).toBe(2);
+    expect(freshFamily(emptyMarks())).toBe(1);
+  });
+
+  it('give each of the first twelve sounds its own style for the whole poem', () => {
+    const marks = sounds(12);
+    expect(familiesInUse(marks).map((f) => echoStyle(marks, f))).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(marks.styles).toEqual({});
+  });
+
+  it('lend a thirteenth sound the style marked furthest from it, and take it back once it is rubbed out', () => {
+    const marks = addEcho(sounds(12), { family: 13, line: 2, start: 3, end: 5 });
+    // Sound 12 sits on line 12, the furthest from line 2.
+    expect(echoStyle(marks, 13)).toBe(12);
+    // Its style stays put as more is marked.
+    expect(echoStyle(addEcho(marks, { family: 13, line: 13, start: 0, end: 1 }), 13)).toBe(12);
+    const erased = eraseEcho(marks, marks.echoes.at(-1)!);
+    expect(erased.styles).toEqual({});
+  });
+
+  it('read back the words that carry a sound, in order, each spelling once', () => {
+    const text: Record<number, string> = { 1: 'Rome', 2: 'foam', 3: 'ROME', 4: 'comb' };
+    let marks = emptyMarks();
+    for (const line of [4, 1, 2, 3]) marks = addEcho(marks, { family: 1, line, start: 1, end: 3 });
+    marks = addEcho(marks, { family: 2, line: 5, start: 0, end: 1 });
+    expect(echoWords(marks, 1, (line) => text[line])).toEqual(['Rome', 'foam', 'comb']);
   });
 });
 
@@ -108,6 +151,12 @@ describe('recut', () => {
 });
 
 describe('stored marks', () => {
+  it('keep the styles lent to sounds past the twelfth, and read older marks without them', () => {
+    const stored = JSON.stringify({ echoes: [{ family: 14, line: 1, start: 0, end: 1 }], styles: { 14: 7, 15: 99 } });
+    expect(readMarks(stored).styles).toEqual({ 14: 7 });
+    expect(readMarks(JSON.stringify({ echoes: [] })).styles).toEqual({});
+  });
+
   it('round-trip through JSON', () => {
     let m = toggleBeat(emptyMarks(), 1, 1);
     m = setSplit(m, 1, 4, [5, 2]);
@@ -118,7 +167,7 @@ describe('stored marks', () => {
   it('drop what is unreadable instead of failing', () => {
     expect(readMarks('not json')).toEqual(emptyMarks());
     expect(readMarks(undefined)).toEqual(emptyMarks());
-    const partial = readMarks(JSON.stringify({ beats: ['1:0', 3], echoes: [{ family: 9, line: 1, start: 0, end: 1 }] }));
+    const partial = readMarks(JSON.stringify({ beats: ['1:0', 3], echoes: [{ family: 0, line: 1, start: 0, end: 1 }] }));
     expect(partial.beats).toEqual(['1:0']);
     expect(partial.echoes).toEqual([]);
   });

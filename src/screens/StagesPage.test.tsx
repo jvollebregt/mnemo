@@ -65,6 +65,11 @@ const looks = (line: number) =>
     }, []);
 
 /** The lines set in full, not faint around them. */
+const stroke = (line: number, from: number, to: number) => {
+  fireEvent.pointerDown(glyph(line, from));
+  fireEvent.pointerMove(glyph(line, to));
+  fireEvent.pointerUp(glyph(line, to));
+};
 const inHand = () => Array.from(document.querySelectorAll('[data-line]:not(.faint)'), (l) => l.getAttribute('data-line'));
 const stanza = (n: number) => document.querySelector(`[data-stanza="${n}"]`)!;
 
@@ -180,6 +185,44 @@ describe('the stages', () => {
     fireEvent.click(action('done'));
     expect(looks(2)).toEqual(['Thatperchesinthesoul:peek', '-:ink']);
     expect(await store.seen.has('note:peek')).toBe(true);
+  });
+
+  it('brings an underlined word back by its echo first, and lights the words that share it', async () => {
+    const { store, poem } = await storeWithPoem();
+    show(store, poem);
+    await ready();
+    fireEvent.click(action('mark what you hear'));
+    await screen.findByRole('dialog', { name: 'beats' });
+    fireEvent.click(action('put it away'));
+    fireEvent.click(action('echoes'));
+    await screen.findByRole('dialog', { name: 'echoes' });
+    fireEvent.click(action('put it away'));
+    stroke(2, 21, 23); // the oul of soul
+    stroke(4, 22, 23); // the ll of all
+    fireEvent.click(action('dashed underline'));
+    stroke(1, 26, 27); // the ea of feathers, another sound
+
+    fireEvent.click(action('fade the words'));
+    expect(looks(2).slice(-2)).toEqual(['s:ink', 'oul-:trace']);
+
+    // A first tap brings back only the letters the reader underlined, and the other sounds step back.
+    fireEvent.click(glyph(2, 22));
+    expect(looks(2).slice(-3)).toEqual(['s:ink', 'oul:peek', '-:trace']);
+    expect(document.querySelectorAll('[data-line="1"] .echo.dim')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-line="4"] .echo.dim')).toHaveLength(0);
+
+    // The next tap brings the whole word, and the one after fades it again.
+    fireEvent.click(glyph(2, 22));
+    expect(looks(2).slice(-2)).toEqual(['soul:peek', '-:trace']);
+    expect(document.querySelectorAll('.echo.dim')).toHaveLength(0);
+    fireEvent.click(glyph(2, 22));
+    expect(looks(2).slice(-2)).toEqual(['s:ink', 'oul-:trace']);
+
+    // Once the marks have faded, there is no echo to go by: a tap brings the whole word.
+    fireEvent.click(action('marks only'));
+    fireEvent.click(action('fade the marks'));
+    fireEvent.click(glyph(4, 22));
+    expect(looks(4).slice(-2)).toEqual(['all:peek', '-:trace']);
   });
 
   it('brings words back in ink as they are typed, and what was missed in pencil', async () => {

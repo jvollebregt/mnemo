@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canPeek, lookOf, nextStage, previousStage, showsMarks, STAGES } from './stages';
+import { canPeek, lookOf, nextStage, previousStage, showsMarks, STAGES, type Stage } from './stages';
 
 const word = (first = false, peeked = false) => ({ letter: true, first, peeked });
 const stop = (pause = false) => ({ letter: false, pause });
@@ -38,6 +38,16 @@ describe('lookOf', () => {
   it('leaves only traces once the marks fade, then nothing', () => {
     expect([word(true), stop(true)].map((c) => lookOf('fadeMarks', c))).toEqual(['trace', 'trace']);
     expect([word(true), stop(true)].map((c) => lookOf('blank', c))).toEqual(['gone', 'gone']);
+  });
+
+  it('brings back an underlined letter of a word tapped for its echo, only while the marks show', () => {
+    const echoed = { letter: true, hinted: true };
+    expect(['fadeWords', 'marksOnly', 'fadeMarks', 'blank'].map((stage) => lookOf(stage as Stage, echoed))).toEqual([
+      'peek',
+      'peek',
+      'trace',
+      'gone',
+    ]);
   });
 
   it('brings a peeked word back in pencil, on any faded stage and on the blank page', () => {

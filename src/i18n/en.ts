@@ -51,6 +51,13 @@ export const en = {
   echoDouble: 'double underline',
   echoWavy: 'wavy underline',
   echoSolid: 'solid underline',
+  echoThick: 'thick underline',
+  echoDashDot: 'dash-dot underline',
+  echoLongDash: 'long-dashed underline',
+  echoDoubleDotted: 'double dotted underline',
+  echoDoubleDashed: 'double dashed underline',
+  echoDoubleWavy: 'double wavy underline',
+  echoDoubleDashDot: 'double dash-dot underline',
   pencilNote:
     'Choose beats, echoes or pauses below, then tap the poem. Whatever you mark will outlast the words. If a word is split in the wrong place, press and hold it.',
   draftLesson: 'A draft lesson, still to be rewritten.',

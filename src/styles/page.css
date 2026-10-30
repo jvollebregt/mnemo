@@ -575,20 +575,35 @@ body {
   opacity: 0.7;
 }
 
-/* Echo families are told apart by the kind of underline, never by colour. */
+/* Registered, so an underline's ink can ease from trace to pencil and back. */
+@property --echo-ink {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #2e5a88;
+}
+
+/*
+ * Echo families are told apart by the kind of underline, never by colour.
+ * Five are the browser's own; thick is a heavier solid; the doubled dotted,
+ * dashed and wavy lines add a second underline on a span inside; dash-dot and
+ * long dashes are drawn as a pattern at the foot of the letters.
+ */
 .echo {
+  --echo-ink: var(--pencil);
   text-decoration-line: underline;
-  text-decoration-color: var(--pencil);
+  text-decoration-color: var(--echo-ink);
   text-decoration-thickness: 1.5px;
   text-underline-offset: 0.24em;
   text-decoration-skip-ink: none;
 }
 
-.echo-1 {
+.echo-1,
+.echo-9 {
   text-decoration-style: dotted;
 }
 
-.echo-2 {
+.echo-2,
+.echo-10 {
   text-decoration-style: dashed;
 }
 
@@ -596,7 +611,8 @@ body {
   text-decoration-style: double;
 }
 
-.echo-4 {
+.echo-4,
+.echo-11 {
   text-decoration-style: wavy;
 }
 
@@ -604,13 +620,87 @@ body {
   text-decoration-style: solid;
 }
 
+.echo-6 {
+  text-decoration-style: solid;
+  text-decoration-thickness: 3px;
+}
+
+.echo-9,
+.echo-10,
+.echo-11 {
+  text-underline-offset: 0.16em;
+}
+
+.echo .twin {
+  text-decoration-line: underline;
+  text-decoration-color: var(--echo-ink);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.42em;
+  text-decoration-skip-ink: none;
+}
+
+.echo-9 .twin {
+  text-decoration-style: dotted;
+}
+
+.echo-10 .twin {
+  text-decoration-style: dashed;
+}
+
+.echo-11 .twin {
+  text-decoration-style: wavy;
+}
+
+/* Drawn rather than decorated: the browser has no dash-dot or long dash. */
+.echo-7,
+.echo-8,
+.echo-12 {
+  text-decoration-line: none;
+  background-repeat: repeat-x;
+}
+
+.echo-7 {
+  background-image: linear-gradient(
+    to right,
+    var(--echo-ink) 0 6px,
+    transparent 6px 8.5px,
+    var(--echo-ink) 8.5px 10px,
+    transparent 10px
+  );
+  background-size: 12.5px 1.5px;
+  background-position: 0 100%;
+}
+
+.echo-8 {
+  background-image: linear-gradient(to right, var(--echo-ink) 0 10px, transparent 10px);
+  background-size: 14px 1.5px;
+  background-position: 0 100%;
+}
+
+.echo-12 {
+  --dash-dot: linear-gradient(
+    to right,
+    var(--echo-ink) 0 6px,
+    transparent 6px 8.5px,
+    var(--echo-ink) 8.5px 10px,
+    transparent 10px
+  );
+  background-image: var(--dash-dot), var(--dash-dot);
+  background-size: 12.5px 1.5px;
+  /* Room below the letters for the second line; it changes nothing in the layout of the line. */
+  padding-bottom: 3px;
+  background-position:
+    0 calc(100% - 4.5px),
+    0 100%;
+}
+
 .echo.preview {
-  text-decoration-color: rgb(46 90 136 / 50%);
+  --echo-ink: rgb(46 90 136 / 50%);
 }
 
 /* While one family is being drawn, the others step back. */
 .echo.dim {
-  text-decoration-color: rgb(46 90 136 / 25%);
+  --echo-ink: rgb(46 90 136 / 25%);
 }
 
 /* A pause the reader heard: the stop is inked in pencil, a breath between words gets a stroke. */
@@ -879,8 +969,39 @@ body {
 
 .families {
   display: flex;
-  justify-content: center;
+  max-width: 100%;
   min-height: var(--touch);
+  /* A poem with many sounds lets the pens run off to the side, to be swiped along. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* Centred while they fit, and still reachable from the first when they don't. */
+.families > :first-child {
+  margin-left: auto;
+}
+
+.families > :last-child {
+  margin-right: auto;
+}
+
+/* The words the pen in hand has underlined, just above the bar. */
+.echo-words {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  margin: 0;
+  padding: 2px var(--gutter);
+  background: var(--paper);
+  color: var(--grey);
+  font-size: 15px;
+  font-style: italic;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 .family {
@@ -897,11 +1018,11 @@ body {
 }
 
 .family .echo {
-  text-decoration-color: var(--trace);
+  --echo-ink: var(--trace);
 }
 
 .family[aria-pressed='true'] .echo {
-  text-decoration-color: var(--pencil);
+  --echo-ink: var(--pencil);
 }
 
 /* Once, without words: a fresh underline for another sound, or where a lesson put away lives. */
@@ -915,7 +1036,7 @@ body {
 
 @keyframes beckon-line {
   50% {
-    text-decoration-color: var(--pencil);
+    --echo-ink: var(--pencil);
   }
 }
 
@@ -928,7 +1049,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .family.beckon .echo {
     animation: none;
-    text-decoration-color: var(--pencil);
+    --echo-ink: var(--pencil);
   }
 
   .action.beckon {

@@ -73,6 +73,7 @@ export function relineMarks(marks: PoemMarks, { lines }: Reline): PoemMarks {
       return to === undefined ? [] : [{ ...echo, line: to }];
     }),
     splits,
+    styles: marks.styles,
   };
 }
 

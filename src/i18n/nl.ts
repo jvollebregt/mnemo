@@ -47,6 +47,13 @@ export const nl: Messages = {
   echoDouble: 'dubbele lijn',
   echoWavy: 'golflijn',
   echoSolid: 'doorgetrokken lijn',
+  echoThick: 'dikke lijn',
+  echoDashDot: 'streep-stiplijn',
+  echoLongDash: 'lang gestreepte lijn',
+  echoDoubleDotted: 'dubbele gestippelde lijn',
+  echoDoubleDashed: 'dubbele gestreepte lijn',
+  echoDoubleWavy: 'dubbele golflijn',
+  echoDoubleDashDot: 'dubbele streep-stiplijn',
   pencilNote:
     'Kies hieronder klemtonen, echo’s of pauzes en tik dan het gedicht aan. Wat je markeert blijft langer staan dan de woorden. Staat een woord verkeerd afgebroken, houd het dan even ingedrukt.',
   draftLesson: 'Een conceptles, wordt nog herschreven.',
