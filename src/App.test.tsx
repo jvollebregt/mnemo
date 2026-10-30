@@ -92,11 +92,13 @@ describe('App', () => {
     renderApp(store);
 
     fireEvent.click(await screen.findByRole('button', { name: 'add a poem' }));
-    const setPage = screen.getByRole('button', { name: 'set the page' });
-    expect((setPage as HTMLButtonElement).disabled).toBe(true);
+    // An empty sheet offers only *paste*; the page can be set once there are words.
+    expect(screen.getByRole('button', { name: 'paste' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'set the page' })).toBeNull();
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: WHITMAN_PASTED } });
-    fireEvent.click(setPage);
+    expect(screen.queryByRole('button', { name: 'paste' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'set the page' }));
 
     // The title and poet are read off the top of the paste.
     expect((screen.getByRole('textbox', { name: 'title' }) as HTMLInputElement).value).toBe(

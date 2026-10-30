@@ -77,6 +77,7 @@ export const en = {
   pastePlaceholder: 'Paste the poem here, as it is printed.',
   pasteNote:
     'Paste it as it is printed, title and all. Blank lines between stanzas are kept. On the next page you can set right anything the pasting got wrong.',
+  paste: 'paste',
   setPage: 'set the page',
   titlePlaceholder: 'title',
   poetPlaceholder: 'poet',

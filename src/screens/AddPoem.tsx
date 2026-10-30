@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LANGUAGE_NAMES } from '../i18n';
 import { useI18n } from '../i18n/context';
+import { readClipboard } from '../poem/clipboard';
 import { canJoin, closeUp, guessLanguage, looksDoubleSpaced, mend, readPasted, suspectBreaks } from '../poem/intake';
 import { lineLabel } from '../page/fit';
 import { poemLanguages, type PoemLanguage } from '../poem/language';
@@ -11,6 +12,8 @@ interface Props {
   correcting?: Poem;
   onKeep: (poem: NewPoem) => Promise<void>;
   onCancel: () => void;
+  /** Where *paste* reads from; the phone's clipboard by default. */
+  clipboard?: () => Promise<string>;
 }
 
 interface Proof {
@@ -29,7 +32,7 @@ interface Proof {
  * proof, where the reader checks the title and poet and mends any line the
  * source page broke. Nothing is changed without the reader's tap.
  */
-export function AddPoem({ correcting, onKeep, onCancel }: Props) {
+export function AddPoem({ correcting, onKeep, onCancel, clipboard = readClipboard }: Props) {
   const { m, locale } = useI18n();
   const [text, setText] = useState(correcting?.text ?? '');
   const [proof, setProof] = useState<Proof | null>(null);
@@ -80,9 +83,16 @@ export function AddPoem({ correcting, onKeep, onCancel }: Props) {
         />
         {!correcting && <p className="note">{m.pasteNote}</p>}
         <div className="foot">
-          <button type="button" className="action" disabled={!text.trim()} onClick={setPage}>
-            {m.setPage}
-          </button>
+          {/* While the sheet is empty, one tap puts the copied poem on it. */}
+          {text.trim() ? (
+            <button type="button" className="action" onClick={setPage}>
+              {m.setPage}
+            </button>
+          ) : (
+            <button type="button" className="action" onClick={() => void clipboard().then((pasted) => pasted.trim() && setText(pasted))}>
+              {m.paste}
+            </button>
+          )}
         </div>
       </main>
     );

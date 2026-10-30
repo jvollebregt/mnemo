@@ -71,6 +71,7 @@ export const nl: Messages = {
   pastePlaceholder: 'Plak hier het gedicht, zoals het gedrukt staat.',
   pasteNote:
     'Plak het zoals het gedrukt staat, met titel en al. Witregels tussen strofen blijven staan. Op de volgende bladzijde kun je rechtzetten wat er bij het plakken misging.',
+  paste: 'plak',
   setPage: 'zet de bladzijde',
   titlePlaceholder: 'titel',
   poetPlaceholder: 'dichter',
