@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stanzaAt } from './reading';
+import { stanzaAt, stillInView } from './reading';
 
 const boxes = [
   { top: 100, bottom: 200 },
@@ -17,5 +17,17 @@ describe('the stanza at the reading line', () => {
     expect(stanzaAt(boxes, 230)).toBe(1);
     expect(stanzaAt(boxes, 900)).toBe(2);
     expect(stanzaAt([], 300)).toBeUndefined();
+  });
+});
+
+describe('the stanza in hand', () => {
+  it('stays in hand while enough of it is on the screen', () => {
+    expect(stillInView({ top: 100, bottom: 300 }, 80, 700)).toBe(true);
+    // Scrolled up until only a sliver shows: it lets go.
+    expect(stillInView({ top: -150, bottom: 110 }, 80, 700)).toBe(false);
+    expect(stillInView({ top: -150, bottom: 150 }, 80, 700)).toBe(true);
+    // A short stanza must show whole.
+    expect(stillInView({ top: 660, bottom: 700 }, 80, 700)).toBe(true);
+    expect(stillInView({ top: 690, bottom: 730 }, 80, 700)).toBe(false);
   });
 });

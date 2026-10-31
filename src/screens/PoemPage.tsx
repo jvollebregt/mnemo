@@ -21,7 +21,8 @@ import { canPeek, nextStage, previousStage, showsMarks, STAGES, type Stage } fro
 import { roman } from '../page/fit';
 import { MarkedLine } from '../page/MarkedLine';
 import { letterAbove, letterAlong, letterNear, type LineBoxes } from '../page/reach';
-import { READING_LINE, stanzaAt } from '../page/reading';
+import { READING_LINE, stanzaAt, stillInView } from '../page/reading';
+import { sweepTo, wordsWithin, type Sweep as Along } from '../page/sweep';
 import { Sheet } from '../page/Sheet';
 import { useSwipeBack } from '../page/swipe';
 import { Verse } from '../page/Verse';
@@ -102,6 +103,8 @@ interface Sweep {
   show?: boolean;
   first?: string;
   moved: boolean;
+  /** Where along a line the stroke has got, once it is on one. */
+  along?: Along;
 }
 
 /** Which step a page belongs to, so the furthest page reached is kept per step. */
@@ -465,11 +468,14 @@ export function PoemPage({
     if (pencil) bringIntoView();
   }, [pencil]);
 
-  // While marking, the stanza in hand follows the scroll: the one across the reading line turns to ink.
+  // While marking, the stanza in hand follows the scroll: once it is scrolled off, the one across the reading line
+  // turns to ink. While it is still on the screen it stays in hand, so one just tapped never fades as it comes into view.
   const follow = useEffectEvent(() => {
     if (drawing || step.kind !== 'stanza') return;
     const stanzas = Array.from(verseRef.current?.querySelectorAll('[data-stanza]') ?? []);
     const foot = footRef.current?.getBoundingClientRect().top ?? window.innerHeight;
+    const current = stanzas.find((el) => Number(el.getAttribute('data-stanza')) === step.stanza);
+    if (current && stillInView(current.getBoundingClientRect(), pageTop(), foot)) return;
     const at = stanzaAt(
       stanzas.map((el) => el.getBoundingClientRect()),
       pageTop() + (foot - pageTop()) * READING_LINE,
@@ -769,7 +775,11 @@ export function PoemPage({
       // On the practice pages, a finger drawn along a line brings its words back, or, starting on one already back, lets them go.
       // A stroke that starts beside the words takes its cue from the first word it reaches.
       const first = wordKeyAt(e.target);
-      sweep.current = { x: e.clientX, y: e.clientY, show: first ? !peeked.has(first) : undefined, first, moved: false };
+      const show = first ? !peeked.has(first) : undefined;
+      const on = hit(e.target);
+      // Until the stroke reaches a word, it doesn't know yet whether it shows or hides, but it knows where it began.
+      const along = on ? { line: on.line, at: on.at, far: on.at, dir: 0 as const, show: show ?? true } : undefined;
+      sweep.current = { x: e.clientX, y: e.clientY, show, first, moved: false, along };
       return;
     }
     if (!pencil || !marks) return;
@@ -807,10 +817,26 @@ export function PoemPage({
       if (!sweeping.moved && sweeping.first && sweeping.show !== undefined) showWord(sweeping.first, sweeping.show);
       sweeping.moved = true;
       // A touch stays with the element it started on, so look for the word under the finger now.
-      const key = wordKeyAt(document.elementFromPoint?.(e.clientX, e.clientY) ?? null);
-      if (!key) return;
-      sweeping.show ??= !peeked.has(key);
-      showWord(key, sweeping.show);
+      const under = document.elementFromPoint?.(e.clientX, e.clientY) ?? null;
+      const on = hit(under);
+      if (!on) return;
+      const key = wordKeyAt(under);
+      if (sweeping.show === undefined) {
+        if (!key) return;
+        sweeping.show = !peeked.has(key);
+        if (sweeping.along) sweeping.along = { ...sweeping.along, show: sweeping.show };
+      }
+      if (sweeping.along?.line !== on.line) {
+        sweeping.along = { line: on.line, at: on.at, far: on.at, dir: 0, show: sweeping.show };
+        if (key) showWord(key, sweeping.show);
+        return;
+      }
+      const passed = sweepTo(sweeping.along, on.at);
+      if (!passed) return;
+      sweeping.along = passed.next;
+      sweeping.show = passed.show;
+      const spans = (tokens.get(on.line) ?? []).flatMap((t) => (t.kind === 'word' ? [{ start: t.start, end: t.start + t.text.length }] : []));
+      for (const start of wordsWithin(spans, passed.from, passed.to)) showWord(markKey(on.line, start), passed.show);
       return;
     }
     if (press.current && Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > PRESS_SLOP_PX) cancelPress();
@@ -1196,10 +1222,6 @@ function StageActions({
       <>
         <p className="rate-question">{m.rateQuestion}</p>
         <div className="stage-actions">
-          {/* Nothing is saved until the reader says how it went, so another try first costs nothing. */}
-          <button type="button" className="action soft" onClick={onAgain}>
-            {m.reciteAgain}
-          </button>
           <button type="button" className="action soft" onClick={() => onRate('notYet')}>
             {m.rateNotYet}
           </button>
@@ -1208,6 +1230,12 @@ function StageActions({
           </button>
           <button type="button" className="action" onClick={() => onRate('all')}>
             {m.rateAll}
+          </button>
+        </div>
+        {/* Nothing is saved until the reader says how it went, so another try first costs nothing. */}
+        <div className="stage-actions">
+          <button type="button" className="action soft" onClick={onAgain}>
+            {m.reciteAgain}
           </button>
         </div>
       </>

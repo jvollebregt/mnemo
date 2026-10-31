@@ -90,7 +90,8 @@ export function layoutLine(
 
   const runsOf = (text: string, start: number, context: Context = {}): Run[] => {
     const { word, owner, pause } = context;
-    // A letter comes back with its own word; punctuation with the word it goes with, or, alone on a line, once done.
+    // A letter comes back with its own word; punctuation with the word it goes with (peeked or recalled), or, alone on
+    // a line, once the recital is done.
     const said = word ?? owner;
     const firstLetter = word ? word.start + [...word.text].findIndex(isLetter) : -1;
     const runs: Run[] = [];
@@ -106,7 +107,7 @@ export function layoutLine(
             {
               letter,
               first: at === firstLetter,
-              peeked: !!word && fade.peeked.has(word.start),
+              peeked: !!said && fade.peeked.has(said.start),
               recalled: said ? !!fade.recalled?.has(said.start) : !letter && !!fade.done,
               passed: !!said && !!fade.passed?.has(said.start),
               pause,

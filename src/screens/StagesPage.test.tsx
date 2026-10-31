@@ -193,7 +193,7 @@ describe('the stages', () => {
 
     // A tap brings back the whole word, underlined or not, and a second tap fades it again.
     fireEvent.click(glyph(2, 22));
-    expect(looks(2).slice(-2)).toEqual(['soul:peek', '-:trace']);
+    expect(looks(2).slice(-1)).toEqual(['soul-:peek']);
     expect(await screen.findByText(/Peeking is fine here/)).toBeTruthy();
     fireEvent.click(glyph(2, 22));
     expect(looks(2).slice(-2)).toEqual(['s:ink', 'oul-:trace']);
@@ -207,21 +207,42 @@ describe('the stages', () => {
     // A finger drawn along a line brings back every word it passes, and drawn again, lets them go.
     const under = vi.fn((x: number) => glyph(1, Math.floor(x / 12)));
     document.elementFromPoint = under as unknown as typeof document.elementFromPoint;
-    const draw = (from: number, to: number) => {
+    const draw = (from: number, ...to: number[]) => {
       fireEvent.pointerDown(glyph(1, from), { clientX: from * 12 + 6, clientY: 10 });
-      for (let at = from + 1; at <= to; at += 1) fireEvent.pointerMove(glyph(1, from), { clientX: at * 12 + 6, clientY: 10 });
+      let at = from;
+      for (const end of to) {
+        const by = Math.sign(end - at);
+        while (at !== end) {
+          at += by;
+          fireEvent.pointerMove(glyph(1, from), { clientX: at * 12 + 6, clientY: 10 });
+        }
+      }
+      fireEvent.pointerUp(glyph(1, from), { clientX: at * 12 + 6, clientY: 10 });
+      fireEvent.click(glyph(1, from));
+    };
+    const fast = (from: number, to: number, by: number) => {
+      fireEvent.pointerDown(glyph(1, from), { clientX: from * 12 + 6, clientY: 10 });
+      for (let at = from + by; at <= to; at += by) fireEvent.pointerMove(glyph(1, from), { clientX: at * 12 + 6, clientY: 10 });
       fireEvent.pointerUp(glyph(1, from), { clientX: to * 12 + 6, clientY: 10 });
       fireEvent.click(glyph(1, from));
     };
-    draw(1, 16); // Hope … thing
-    expect(looks(1)).toEqual(['“:trace', 'Hope:peek', '”:trace', 'isthething:peek', 'withfeathers-:trace']);
+    draw(1, 16); // Hope … thing, and the quotes that go with Hope
+    expect(looks(1)).toEqual(['“Hope”isthething:peek', 'withfeathers-:trace']);
     draw(1, 16);
     expect(looks(1)).toEqual(['“Hope”isthethingwithfeathers-:trace']);
     // Drawn from beside the words, the stroke does what the first word it reaches needs.
     draw(0, 16);
-    expect(looks(1)).toEqual(['“:trace', 'Hope:peek', '”:trace', 'isthething:peek', 'withfeathers-:trace']);
+    expect(looks(1)).toEqual(['“Hope”isthething:peek', 'withfeathers-:trace']);
     draw(0, 16);
     expect(looks(1)).toEqual(['“Hope”isthethingwithfeathers-:trace']);
+    // A quick stroke, seen only every ten letters, misses nothing on the way, even from beside the words.
+    fast(0, 30, 10);
+    expect(looks(1)).toEqual(['“Hope”isthethingwithfeathers-:peek']);
+    draw(1, 34);
+    expect(looks(1)).toEqual(['“Hope”isthethingwithfeathers-:trace']);
+    // Turning back, without lifting the finger, lets go of what it passes again.
+    draw(1, 22, 12);
+    expect(looks(1)).toEqual(['“Hope”is:peek', 'thethingwithfeathers-:trace']);
 
     // At the recital, nothing comes back.
     fireEvent.click(action('recite'));

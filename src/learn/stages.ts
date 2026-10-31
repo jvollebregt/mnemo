@@ -28,7 +28,7 @@ export interface Character {
   letter: boolean;
   /** The first letter of its word: it stays when the words fade. */
   first?: boolean;
-  /** Its word has been peeked at in this stanza. */
+  /** Its word (for punctuation, the word it goes with) has been peeked at in this stanza. */
   peeked?: boolean;
   /** Punctuation the reader marked as a pause. */
   pause?: boolean;
@@ -41,6 +41,12 @@ export interface Character {
 /** `done`: on the blank page, the reader has finished reciting. */
 export function lookOf(stage: Stage, c: Character, done = false): Look {
   if (c.letter && c.peeked && canPeek(stage)) return 'peek';
+  const look = stageLook(stage, c, done);
+  // Punctuation is peeked at with its word, unless it is on the page anyway, as a marked pause.
+  return !c.letter && c.peeked && canPeek(stage) && look !== 'ink' ? 'peek' : look;
+}
+
+function stageLook(stage: Stage, c: Character, done: boolean): Look {
   switch (stage) {
     case 'read':
     case 'mark':

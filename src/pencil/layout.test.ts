@@ -70,9 +70,9 @@ describe('fading', () => {
     expect(pieces.flatMap((p) => p.runs.filter((r) => r.echo).map((r) => r.echo))).toEqual([1]);
   });
 
-  it('brings a peeked word back whole', () => {
+  it('brings a peeked word back whole, with its punctuation', () => {
     const pieces = layoutLine(tokens, emptyMarks(), 2, undefined, { stage: 'fadeMarks', peeked: new Set([20]) });
-    expect(looks(pieces).filter((l) => !l.endsWith(':trace') && !/^\s+:/.test(l))).toEqual(['soul:peek']);
+    expect(looks(pieces).filter((l) => !l.endsWith(':trace') && !/^\s+:/.test(l))).toEqual(['soul:peek', '—:peek']);
   });
 
   it('brings recalled words back in ink on the blank page, with their punctuation, and the rest in pencil once done', () => {
