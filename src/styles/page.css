@@ -790,6 +790,8 @@ body {
 }
 
 .pencil-bar {
+  /* As wide as the foot, not as its widest row, so a long row of pens scrolls within it rather than widening the page. */
+  align-self: stretch;
   display: flex;
   flex-direction: column;
   align-items: center;

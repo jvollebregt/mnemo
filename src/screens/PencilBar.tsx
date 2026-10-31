@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import { useI18n } from '../i18n/context';
 import type { MessageKey } from '../i18n';
 import { Underlined } from '../page/MarkedLine';
@@ -50,6 +50,25 @@ export function PencilBar({
   onAbout: () => void;
 }) {
   const { m } = useI18n();
+  // When a fresh pen appears, the row slides along to show it, if the pens run off the side.
+  const row = useRef<HTMLDivElement>(null);
+  const count = families.length;
+  useEffect(() => {
+    const pens = row.current;
+    if (!pens || pens.scrollWidth <= pens.clientWidth) return;
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    pens.scrollTo?.({ left: pens.scrollWidth, behavior: still ? 'auto' : 'smooth' });
+  }, [count]);
+  // Taking up echoes, or another pen, keeps the pen in hand in view.
+  useEffect(() => {
+    const pens = row.current;
+    const pen = pens?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!pens || !pen) return;
+    const left = pen.offsetLeft - pens.offsetLeft;
+    if (left < pens.scrollLeft || left + pen.offsetWidth > pens.scrollLeft + pens.clientWidth) {
+      pens.scrollTo?.({ left: left - (pens.clientWidth - pen.offsetWidth) / 2 });
+    }
+  }, [tool, family]);
   return (
     <div className="pencil-bar">
       <div className="tools" role="group" aria-label={m.pencil}>
@@ -65,7 +84,7 @@ export function PencilBar({
       {/* The underlines' row keeps its place for every tool, so the bar never jumps. */}
       {tool !== 'echoes' && <div className="families" aria-hidden="true" />}
       {tool === 'echoes' && (
-        <div className="families" role="group" aria-label={m.underlines}>
+        <div ref={row} className="families" role="group" aria-label={m.underlines}>
           {families.map((f) => (
             <button
               type="button"
