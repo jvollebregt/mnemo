@@ -27,6 +27,9 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  /* The page never slides sideways, not even in the phone's elastic bounce. Clip, not hidden, keeps the foot sticky. */
+  overflow-x: clip;
+  overscroll-behavior-x: none;
   background: var(--paper);
   color: var(--ink);
   font-family: var(--serif);
@@ -1039,8 +1042,12 @@ body {
   display: flex;
   max-width: 100%;
   min-height: var(--touch);
-  /* A poem with many sounds lets the pens run off to the side, to be swiped along. */
+  /* Just under the tool names: the two rows' touch areas overlap in their empty margins. */
+  margin-top: -16px;
+  /* A poem with many sounds lets the pens run off to the side, to be swiped along, on their own: the page stays put. */
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
   scrollbar-width: none;
 }
 
