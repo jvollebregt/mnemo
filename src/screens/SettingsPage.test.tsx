@@ -49,6 +49,11 @@ describe('the settings page', () => {
     expect((await screen.findByRole('button', { name: 'English' })).getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('says at its foot which build of the app this is', async () => {
+    await openSettings(await freshStore());
+    expect((await screen.findByText(/^version of \d+ \w+ \d{4}/)).textContent).toMatch(/^version of \d+ \w+ \d{4}( · \w+)?$/);
+  });
+
   it('keeps how the reader likes to recite', async () => {
     const store = await freshStore();
     await openSettings(store);

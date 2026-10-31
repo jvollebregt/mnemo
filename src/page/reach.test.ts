@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { letterNear, type LetterBox, type LineBoxes } from './reach';
+import { letterAbove, letterAlong, letterNear, type LetterBox, type LineBoxes } from './reach';
 
 /** A row of letters 10 wide, with their tops at `top` and 20 tall. */
 const row = (top: number, first: number, count: number, left = 0): LetterBox[] =>
@@ -44,5 +44,31 @@ describe('letterNear', () => {
 
   it('skips a line with no letters', () => {
     expect(letterNear([{ line: 0, letters: [] }, ...lines], 25, 90, reach)).toEqual({ line: 1, at: 2 });
+  });
+});
+
+describe('letterAbove', () => {
+  const reach = { below: 15, beside: 12 };
+  it('gives the space below a line, where its underlines go, to that line', () => {
+    expect(letterAbove(lines, 25, 125, reach)).toEqual({ line: 1, at: 2 });
+    expect(letterAbove(lines, 45, 155, reach)).toEqual({ line: 2, at: 4 });
+  });
+
+  it('takes a tap on a letter as that letter, and lets one far below the lines go', () => {
+    expect(letterAbove(lines, 25, 140, reach)).toEqual({ line: 2, at: 2 });
+    expect(letterAbove(lines, 25, 170, reach)).toBeUndefined();
+  });
+});
+
+describe('letterAlong', () => {
+  it('follows the finger along the line, even below or past its letters', () => {
+    expect(letterAlong(lines[0]!, 33, 128)).toBe(3);
+    expect(letterAlong(lines[0]!, 200, 110)).toBe(4);
+    expect(letterAlong(lines[0]!, -20, 110)).toBe(0);
+  });
+
+  it('keeps to the row nearest the finger in a line that turns over', () => {
+    const turning: LineBoxes = { line: 1, letters: [...row(100, 0, 5), ...row(130, 5, 3, 30)] };
+    expect(letterAlong(turning, 45, 152)).toBe(6);
   });
 });

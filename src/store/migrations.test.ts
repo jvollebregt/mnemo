@@ -160,6 +160,58 @@ describe('migrations', () => {
     }
   });
 
+  it('in version 8, gather stanzas into parts, keeping the weakest card of those joined', async () => {
+    const db = await openSqlJs();
+    await migrate(db, 7);
+    const insert = (id: string, text: string) =>
+      db.run(
+        `INSERT INTO poems (id, title, poet, language, text, created_at, updated_at)
+         VALUES (?, 'A poem', '', 'en', ?, '2026-10-28T12:00:00.000Z', '2026-10-28T12:00:00.000Z')`,
+        [id, text],
+      );
+    const long = (name: string, n: number) =>
+      Array.from({ length: n }, (_, i) => `${name} line ${i + 1} with words enough to count`).join('\n');
+    // Crane: two short stanzas, now one part.
+    await insert('crane', 'In the desert\nI saw a creature\n\nI said\nIs it good');
+    // Four lines, then two couplets that join, then four more.
+    await insert('couplets', [long('a', 4), long('b', 2), long('c', 2), long('d', 4)].join('\n\n'));
+    // Four-line stanzas stay as they were.
+    await insert('quatrains', [long('a', 4), long('b', 4), long('c', 4)].join('\n\n'));
+    const card = (poem: string, unit: string, due: string) =>
+      db.run(`INSERT INTO cards (poem_id, unit, data, updated_at) VALUES (?, ?, ?, '2026-10-28T12:00:00.000Z')`, [
+        poem,
+        unit,
+        JSON.stringify({ due }),
+      ]);
+    const review = (poem: string, unit: string) =>
+      db.run(`INSERT INTO reviews (poem_id, unit, grade, reviewed_at) VALUES (?, ?, 3, '2026-10-28T12:00:00.000Z')`, [poem, unit]);
+    await card('crane', 'stanza:0', '2026-11-05');
+    await card('crane', 'line:3', '2026-11-05');
+    await review('crane', 'stanza:0');
+    await card('couplets', 'stanza:0', '2026-11-01');
+    await card('couplets', 'stanza:1', '2026-11-09');
+    await card('couplets', 'stanza:2', '2026-11-03');
+    await card('couplets', 'stanza:3', '2026-11-04');
+    await review('couplets', 'stanza:2');
+    await review('couplets', 'stanza:3');
+    await card('quatrains', 'stanza:1', '2026-11-02');
+
+    expect(await migrate(db, 8)).toBe(7);
+    const cards = async (poem: string) =>
+      (await db.all<{ unit: string; data: string }>(`SELECT unit, data FROM cards WHERE poem_id = ? ORDER BY unit`, [poem])).map(
+        (r) => `${r.unit} ${(JSON.parse(r.data) as { due: string }).due}`,
+      );
+    const reviews = async (poem: string) =>
+      (await db.all<{ unit: string }>(`SELECT unit FROM reviews WHERE poem_id = ? ORDER BY unit`, [poem])).map((r) => r.unit);
+    // Crane's second stanza was never learned, so the poem, now one part, starts afresh; its lines keep their cards.
+    expect(await cards('crane')).toEqual(['line:3 2026-11-05']);
+    expect(await reviews('crane')).toEqual(['stanza:0']);
+    // The couplets become part 1 with the sooner due of the two; the last stanza moves up to part 2.
+    expect(await cards('couplets')).toEqual(['stanza:0 2026-11-01', 'stanza:1 2026-11-03', 'stanza:2 2026-11-04']);
+    expect(await reviews('couplets')).toEqual(['stanza:1', 'stanza:2']);
+    expect(await cards('quatrains')).toEqual(['stanza:1 2026-11-02']);
+  });
+
   it('survive saving and reopening the database file', async () => {
     const db = await openSqlJs();
     await migrate(db);

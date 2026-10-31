@@ -1,8 +1,11 @@
+import { partsOf } from './parts';
 import { passagesOf } from './passages';
 
 /**
- * Turns pasted text into the poet's lines and stanzas. A stanza too long to
- * learn in one go is cut into passages, which are learned as stanzas are.
+ * Turns pasted text into the poet's lines, gathered into the parts that are
+ * learned one at a time (parts.ts). In the code a part is still called a
+ * stanza: most are one. A stanza too long to learn in one go is cut into
+ * passages; short stanzas, or a whole short poem, are joined.
  *
  * A line is a line as the poet wrote it. However the page later sets it
  * (shrunk to fit, or turned over with a hanging indent), it stays one line:
@@ -14,6 +17,8 @@ export interface Line {
   text: string;
   /** 1-based position among all the poem's lines, across stanzas. */
   number: number;
+  /** A line that starts a stanza of the poet's inside a part: the page keeps the blank line before it. */
+  gap?: boolean;
 }
 
 export interface Stanza {
@@ -30,13 +35,14 @@ export interface ParsedPoem {
 // Unicode line and paragraph separators turn up in text copied from web pages and PDFs.
 export const LINE_BREAK = /\r\n|\r|\n|\u2028|\u2029/;
 
-export function parsePoem(text: string): ParsedPoem {
-  const stanzas: Stanza[] = [];
+/** The poet's stanzas as written, with any too long to learn in one go cut into passages. */
+export function poetStanzas(text: string): Stanza[] {
+  const units: Stanza[] = [];
   let current: Line[] = [];
   let number = 0;
 
   const close = () => {
-    passagesOf(current).forEach((lines, i) => stanzas.push(i === 0 ? { lines } : { lines, continues: true }));
+    passagesOf(current).forEach((lines, i) => units.push(i === 0 ? { lines } : { lines, continues: true }));
     current = [];
   };
   for (const raw of text.split(LINE_BREAK)) {
@@ -49,6 +55,18 @@ export function parsePoem(text: string): ParsedPoem {
     current.push({ text: line, number });
   }
   if (current.length > 0) close();
+  return units;
+}
 
-  return { stanzas, lineCount: number };
+export function parsePoem(text: string): ParsedPoem {
+  const units = poetStanzas(text);
+  const words = (lines: readonly Line[]) => lines.reduce((n, l) => n + l.text.split(/\s+/u).filter(Boolean).length, 0);
+  const stanzas = partsOf(units.map((u) => ({ lines: u.lines.length, words: words(u.lines) }))).map((part): Stanza => {
+    const [first, ...rest] = part.map((i) => units[i]!);
+    return {
+      lines: [...first!.lines, ...rest.flatMap((u) => u.lines.map((l, i) => (i === 0 && !u.continues ? { ...l, gap: true } : l)))],
+      ...(first!.continues ? { continues: true } : {}),
+    };
+  });
+  return { stanzas, lineCount: units.reduce((n, u) => n + u.lines.length, 0) };
 }

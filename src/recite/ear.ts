@@ -17,9 +17,17 @@ export interface Ear {
   /**
    * Starts listening. `onHeard` gets everything heard so far, each time it
    * grows; `onStop` is called once when listening ends, with a reason when
-   * it ended by itself (no microphone, or permission refused).
+   * it ended by itself (no microphone, or permission refused). `expect` are
+   * the words of the lines being recited, which a phone that can be told
+   * what to listen for hears better: a rare word like "bestial" over a
+   * common one like "Bastille".
    */
-  listen(language: PoemLanguage, onHeard: (text: string) => void, onStop: (problem?: string) => void): Listening;
+  listen(
+    language: PoemLanguage,
+    onHeard: (text: string) => void,
+    onStop: (problem?: string) => void,
+    expect?: readonly string[],
+  ): Listening;
 }
 
 
@@ -43,6 +51,22 @@ function recognitionConstructor(): RecognitionConstructor | undefined {
   if (typeof window === 'undefined') return undefined;
   const w = window as unknown as { SpeechRecognition?: RecognitionConstructor; webkitSpeechRecognition?: RecognitionConstructor };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition;
+}
+
+/** The most a recogniser is told to listen for; past this, Apple says it helps less. */
+export const MOST_EXPECTED = 100;
+
+/**
+ * The words worth telling a recogniser to expect: each once, the longest
+ * (and so rarest) first, since common short words are heard well anyway.
+ */
+export function expected(words: readonly string[]): string[] {
+  const seen = new Map<string, string>();
+  for (const word of words) {
+    const bare = word.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+    if (bare && !seen.has(bare.toLowerCase())) seen.set(bare.toLowerCase(), bare);
+  }
+  return [...seen.values()].sort((a, b) => b.length - a.length).slice(0, MOST_EXPECTED);
 }
 
 /** Joins what was heard before a restart with what is heard after it. */

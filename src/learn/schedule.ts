@@ -1,8 +1,9 @@
 /**
- * When each part of a poem comes back. Every stanza and every line has its
- * own FSRS card, graded from what the reader actually recalled: their own
- * rating for the stanza, and for each line the words they got without
- * looking. A peek always counts against the schedule.
+ * When each part of a poem comes back. Every part (a "stanza" here) and
+ * every line has its own FSRS card, graded from what the reader actually
+ * recalled: their own rating for the part in hand, the words they missed for
+ * any other part recited with it, and for each line the words they got. The
+ * recital has no aids, so nothing was seen that needs counting against them.
  */
 import { createEmptyCard, fsrs, Rating, State, type Card, type Grade } from 'ts-fsrs';
 import type { Stage } from './stages';
@@ -28,15 +29,26 @@ export function review(card: Card | undefined, grade: Grade, now: Date): Card {
   return scheduler.next(card ?? createEmptyCard(now), now, grade).card;
 }
 
-export function stanzaGrade(verdict: Verdict, peeked: boolean): Grade {
+export function stanzaGrade(verdict: Verdict): Grade {
   if (verdict === 'notYet') return Rating.Again;
-  return verdict === 'all' && !peeked ? Rating.Good : Rating.Hard;
+  return verdict === 'all' ? Rating.Good : Rating.Hard;
 }
 
-/** A line is good when every word came back unseen; hard when at least half did; otherwise it starts again. */
-export function lineGrade(recalled: number, words: number, peeked: boolean): Grade {
-  if (words > 0 && recalled >= words && !peeked) return Rating.Good;
+/** A line, or a part recited beside the one in hand, is good when every word came back; hard when at least half did; otherwise it starts again. */
+export function lineGrade(recalled: number, words: number): Grade {
+  if (words > 0 && recalled >= words) return Rating.Good;
   return recalled * 2 >= words ? Rating.Hard : Rating.Again;
+}
+
+/**
+ * A part already learned, recited along with the part in hand or with the
+ * whole poem: graded by the words missed in it, never better than the reader's
+ * own rating. Recited without a miss before it was due, it is left as it was,
+ * so going over it again doesn't push it further off than it has earned.
+ */
+export function alongGrade(verdict: Verdict, recalled: number, words: number, card: Card, now: Date): Grade | undefined {
+  if (recalled >= words && !isDue(card, now)) return undefined;
+  return Math.min(stanzaGrade(verdict), lineGrade(recalled, words)) as Grade;
 }
 
 const endOfDay = (now: Date) => new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);

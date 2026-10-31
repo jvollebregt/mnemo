@@ -70,15 +70,18 @@ describe('fading', () => {
     expect(pieces.flatMap((p) => p.runs.filter((r) => r.echo).map((r) => r.echo))).toEqual([1]);
   });
 
-  it('brings a peeked word back whole', () => {
-    const pieces = layoutLine(tokens, emptyMarks(), 2, undefined, { stage: 'blank', peeked: new Set([20]) });
-    expect(looks(pieces).filter((l) => !l.endsWith(':gone') && !/^\s+:/.test(l))).toEqual(['soul:peek']);
+  it('brings a peeked word back whole, with its punctuation', () => {
+    const pieces = layoutLine(tokens, emptyMarks(), 2, undefined, { stage: 'fadeMarks', peeked: new Set([20]) });
+    expect(looks(pieces).filter((l) => !l.endsWith(':trace') && !/^\s+:/.test(l))).toEqual(['soul:peek', '—:peek']);
   });
 
-  it('brings recalled words back in ink on the blank page, and the rest in pencil once done', () => {
+  it('brings recalled words back in ink on the blank page, with their punctuation, and the rest in pencil once done', () => {
     const fade = { stage: 'blank' as const, peeked: new Set<number>(), recalled: new Set([0, 20]) };
     const visible = (l: string) => !l.endsWith(':gone') && !/^\s+:/.test(l);
-    expect(looks(layoutLine(tokens, emptyMarks(), 2, undefined, fade)).filter(visible)).toEqual(['That:ink', 'soul:ink']);
+    expect(looks(layoutLine(tokens, emptyMarks(), 2, undefined, fade)).filter(visible)).toEqual(['That:ink', 'soul:ink', '—:ink']);
+    // Gone past without being said, a word and its punctuation show in pencil.
+    const missed = { ...fade, recalled: new Set([0]), passed: new Set([20]) };
+    expect(looks(layoutLine(tokens, emptyMarks(), 2, undefined, missed)).filter(visible)).toEqual(['That:ink', 'soul:peek', '—:peek']);
     expect(looks(layoutLine(tokens, emptyMarks(), 2, undefined, { ...fade, done: true })).filter(visible)).toEqual([
       'That:ink',
       'perch:peek',

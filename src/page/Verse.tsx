@@ -87,7 +87,12 @@ export function Verse({
             data-stanza={index}
           >
             {shown.map((line, i) => (
-              <div className={focus && !focus.has(line.number) ? 'line faint' : 'line'} key={line.number} data-line={line.number}>
+              <div
+                // A stanza of the poet's that starts inside a part keeps its blank line.
+                className={['line', line.gap && 'gap', focus && !focus.has(line.number) && 'faint'].filter(Boolean).join(' ')}
+                key={line.number}
+                data-line={line.number}
+              >
                 {/* While learning a poem the reader goes by stanza, not by line number. */}
                 <span className="line-number" aria-hidden={i === 0 && numeral ? undefined : true}>
                   {i === 0 ? numeral?.(index) : null}
