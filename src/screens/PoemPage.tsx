@@ -21,7 +21,7 @@ import { canPeek, nextStage, previousStage, showsMarks, STAGES, type Stage } fro
 import { roman } from '../page/fit';
 import { MarkedLine } from '../page/MarkedLine';
 import { letterAbove, letterAlong, letterNear, type LineBoxes } from '../page/reach';
-import { READING_LINE, stanzaAt, stillInView } from '../page/reading';
+import { inHandAfter } from '../page/reading';
 import { sweepTo, wordsWithin, type Sweep as Along } from '../page/sweep';
 import { Sheet } from '../page/Sheet';
 import { useSwipeBack } from '../page/swipe';
@@ -468,18 +468,24 @@ export function PoemPage({
     if (pencil) bringIntoView();
   }, [pencil]);
 
-  // While marking, the stanza in hand follows the scroll: once it is scrolled off, the one across the reading line
-  // turns to ink. While it is still on the screen it stays in hand, so one just tapped never fades as it comes into view.
+  // While marking, the stanza in hand follows the scroll: once it leaves the band around the reading line, the one
+  // across the line turns to ink. A stanza just tapped is held until it reaches the band, so it never fades on its way.
+  const held = useRef(false);
   const follow = useEffectEvent(() => {
     if (drawing || step.kind !== 'stanza') return;
     const stanzas = Array.from(verseRef.current?.querySelectorAll('[data-stanza]') ?? []);
     const foot = footRef.current?.getBoundingClientRect().top ?? window.innerHeight;
-    const current = stanzas.find((el) => Number(el.getAttribute('data-stanza')) === step.stanza);
-    if (current && stillInView(current.getBoundingClientRect(), pageTop(), foot)) return;
-    const at = stanzaAt(
+    const current = stanzas.findIndex((el) => Number(el.getAttribute('data-stanza')) === step.stanza);
+    const after = inHandAfter(
       stanzas.map((el) => el.getBoundingClientRect()),
-      pageTop() + (foot - pageTop()) * READING_LINE,
+      current,
+      pageTop(),
+      foot,
+      held.current,
     );
+    held.current = after.held;
+    // Scrolled right back to the top, the first stanza is in hand, though the reading line may never reach it.
+    const at = window.scrollY <= 0 && !after.held ? 0 : after.index;
     const index = at === undefined ? undefined : Number(stanzas[at]!.getAttribute('data-stanza'));
     if (index === undefined || index === step.stanza) return;
     scrolledTo.current = true;
@@ -702,6 +708,7 @@ export function PoemPage({
     const other = pencil ? (e.target as Element).closest('.stanza.faint') : null;
     if (other) {
       e.stopPropagation();
+      held.current = true;
       markStanza(Number(other.getAttribute('data-stanza')));
       return;
     }
