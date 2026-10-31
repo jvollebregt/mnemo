@@ -37,13 +37,15 @@ public class MnemoEarPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func start(_ call: CAPPluginCall) {
         let language = call.getString("language") ?? "en-GB"
+        // The words of the lines being recited: told to expect them, the recogniser hears a rare word as itself.
+        let expect = call.getArray("expect", String.self) ?? []
         SFSpeechRecognizer.requestAuthorization { status in
             guard status == .authorized else { return call.reject("not-allowed") }
             AVAudioSession.sharedInstance().requestRecordPermission { granted in
                 DispatchQueue.main.async {
                     guard granted else { return call.reject("not-allowed") }
                     do {
-                        try self.begin(language)
+                        try self.begin(language, expect: expect)
                         call.resolve()
                     } catch let problem as EarProblem {
                         call.reject(problem.rawValue)
@@ -101,7 +103,7 @@ public class MnemoEarPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    private func begin(_ language: String) throws {
+    private func begin(_ language: String, expect: [String]) throws {
         guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: language)) else {
             throw EarProblem.languageNotSupported
         }
@@ -115,6 +117,7 @@ public class MnemoEarPlugin: CAPPlugin, CAPBridgedPlugin {
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.requiresOnDeviceRecognition = true
+        request.contextualStrings = Array(expect.prefix(100))
         self.request = request
 
         if wantsRecording { makeRecording() }

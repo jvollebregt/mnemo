@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalize, recalled, typedWords } from './recall';
+import { alignment, keptBefore, normalize, reached, recalled, saidInstead, typedPieces, typedWords } from './recall';
 
 const words = (text: string) => text.split(' ').map(normalize);
 
@@ -50,5 +50,36 @@ describe('spelling', () => {
     expect(heard('in the night', 'in the might')).toEqual([0, 1]);
     expect(heard('de maan', 'de man', 'nl')).toEqual([0]);
     expect(heard('our song', 'or song')).toEqual([1]);
+  });
+});
+
+describe('while reciting', () => {
+  const poem = words('In the desert I saw a creature naked bestial Who squatting upon the ground');
+
+  it('knows how far the reader has got, past a word missed, but not on one stray word far ahead', () => {
+    expect(reached(recalled(poem, words('In the desert I saw a creature naked pastille who squatting')))).toBe(11);
+    expect(reached(recalled(poem, words('In the desert I saw a')))).toBe(6);
+    // "ground" alone, far past "saw", doesn't carry the reader there.
+    expect(reached(new Set([0, 1, 2, 3, 4, 13]))).toBe(5);
+    expect(reached(new Set())).toBe(0);
+  });
+
+  it('says what was heard in place of a missed word', () => {
+    const said = 'In the desert I saw a creature naked pastille who'.split(' ');
+    const pairs = alignment(poem, said.map(normalize));
+    expect(saidInstead(pairs, said, 8)).toEqual(['pastille']);
+    expect(saidInstead(alignment(poem, words('In the desert I saw')), [], 6)).toEqual([]);
+  });
+
+  it('keeps what was said before a line taken again', () => {
+    const said = words('In the desert I saw a creature naked pastille who sat');
+    expect(keptBefore(alignment(poem, said), said.length, 9)).toBe(9);
+    expect(keptBefore(alignment(poem, said), said.length, 0)).toBe(0);
+    // Not yet got as far as the line taken again: everything said stays.
+    expect(keptBefore(alignment(poem, said), said.length, 12)).toBe(said.length);
+  });
+
+  it('keeps the words as written beside the words as compared', () => {
+    expect(typedPieces('Is it good, friend?', true)).toEqual(['Is', 'it', 'good', 'friend']);
   });
 });

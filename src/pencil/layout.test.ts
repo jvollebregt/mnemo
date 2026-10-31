@@ -71,8 +71,8 @@ describe('fading', () => {
   });
 
   it('brings a peeked word back whole', () => {
-    const pieces = layoutLine(tokens, emptyMarks(), 2, undefined, { stage: 'blank', peeked: new Set([20]) });
-    expect(looks(pieces).filter((l) => !l.endsWith(':gone') && !/^\s+:/.test(l))).toEqual(['soul:peek']);
+    const pieces = layoutLine(tokens, emptyMarks(), 2, undefined, { stage: 'fadeMarks', peeked: new Set([20]) });
+    expect(looks(pieces).filter((l) => !l.endsWith(':trace') && !/^\s+:/.test(l))).toEqual(['soul:peek']);
   });
 
   it('brings recalled words back in ink on the blank page, and the rest in pencil once done', () => {

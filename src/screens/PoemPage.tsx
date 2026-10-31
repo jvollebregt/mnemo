@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from 'react';
-import type { MessageKey } from '../i18n';
+import { fill, type MessageKey } from '../i18n';
 import { useI18n } from '../i18n/context';
 import type { LessonKey } from '../i18n/lessons';
-import { recalled, normalize, typedWords } from '../learn/recall';
+import { alignment, keptBefore, normalize, reached, saidInstead, typedPieces } from '../learn/recall';
 import {
+  alongGrade,
   lineGrade,
   lineUnit,
   review,
@@ -14,8 +15,8 @@ import {
   type Unit,
   type Verdict,
 } from '../learn/schedule';
-import type { Grade } from 'ts-fsrs';
-import { firstStart, linesOf, nextStart, reviewStart, stanzasOf, startOf, type Start, type Step } from '../learn/session';
+import { Rating, type Grade } from 'ts-fsrs';
+import { chainFrom, firstStart, leadIn, linesOf, newStart, nextStart, reviewStart, stanzasOf, type Start, type Step } from '../learn/session';
 import { canPeek, nextStage, previousStage, showsMarks, type Stage } from '../learn/stages';
 import { roman } from '../page/fit';
 import { MarkedLine } from '../page/MarkedLine';
@@ -81,19 +82,26 @@ const STAGE_NOTE: Record<Stage, [string, MessageKey]> = {
 };
 const PEEK_NOTE: [string, MessageKey] = ['note:peek', 'notePeek'];
 const MISSED_NOTE: [string, MessageKey] = ['note:missed', 'noteMissed'];
+const PAUSED_NOTE: [string, MessageKey] = ['note:paused', 'notePaused'];
+const CHAIN_NOTE: [string, MessageKey] = ['note:chain', 'noteChain'];
 /** Shown once, without words: the next fresh underline, when one pen first spans two lines. */
 const FAMILY_HINT = 'hint:echo-family';
 const BECKON_MS = 3000;
-const STEP_NOTE: Partial<Record<Step['kind'], [string, MessageKey]>> = {
-  seam: ['note:seam', 'noteSeam'],
-  chain: ['note:chain', 'noteChain'],
-};
 const RETURN_NOTE: [string, MessageKey] = ['note:return', 'noteReturn'];
 const NEXT_STANZA_NOTE: [string, MessageKey] = ['note:next-stanza', 'noteNextStanza'];
 const LONG_PRESS_MS = 550;
 // How far below the top, and above the foot, a stanza scrolled into view comes to rest.
 const SCROLL_FOOT = 24;
 const PRESS_SLOP_PX = 10;
+
+/** A finger drawn along faded words, bringing them back or letting them go, as it found the first. */
+interface Sweep {
+  x: number;
+  y: number;
+  show: boolean;
+  first?: string;
+  moved: boolean;
+}
 
 /** A stroke being drawn under letters: from the letter where the finger went down to the one under it now. */
 interface Drawing {
@@ -109,12 +117,6 @@ interface Drawing {
 type Word = Extract<Token, { kind: 'word' }>;
 
 /** The line and letter under a point on the page, if any. */
-/** The first echo the reader underlined in a word, if any. */
-function echoIn(marks: PoemMarks, line: number, word: Token | undefined) {
-  if (word?.kind !== 'word') return undefined;
-  return marks.echoes.find((e) => e.line === line && e.start < word.start + word.text.length && word.start < e.end);
-}
-
 function hit(target: EventTarget | Element | null): { line: number; at: number } | undefined {
   if (!(target instanceof Element)) return undefined;
   const glyph = target.closest('[data-at]');
@@ -186,20 +188,24 @@ export function PoemPage({
   const [lastGrades, setLastGrades] = useState<ReadonlyMap<Unit, Grade>>(new Map());
   /** Nothing shows until the session knows where to begin, so a review never flashes the words. */
   const [started, setStarted] = useState(false);
-  /** Stanzas recited well enough in this session not to come back in it. */
+  /** Parts recited well enough in this session not to come back in it. */
   const practised = useRef(new Set<number>());
-  /** While the pencil moves on through the poem, the stanza that the fading comes back to. */
+  /** While the pencil moves on through the poem, the part that the fading comes back to. */
   const [step, setStep] = useState<Step>({ kind: 'stanza', stanza: 0 });
   const [stage, setStage] = useState<Stage>('read');
-  /** Words showing in pencil, as "line:offset" of the word, and every word peeked at in this step, which still counts once faded again. */
+  const stageNow = useRef<Stage>('read');
+  /** On the practice pages, the words brought back in pencil, as "line:offset" of the word. */
   const [peeked, setPeeked] = useState<ReadonlySet<string>>(new Set());
-  const [looked, setLooked] = useState<ReadonlySet<string>>(new Set());
-  /** Words tapped once for their echo, in the order tapped: only the letters the reader underlined show. */
-  const [hinted, setHinted] = useState<readonly string[]>([]);
-  /** On the blank page: what the reader typed, whether they are done, and the words they say they did have. */
+  const sweep = useRef<Sweep | null>(null);
+  const swept = useRef(false);
+  /**
+   * At the recital: what the reader said or typed, whether they are done, the
+   * words they say they did have, and the word in pencil they asked about.
+   */
   const [typed, setTyped] = useState('');
   const [done, setDone] = useState(false);
   const [granted, setGranted] = useState<ReadonlySet<string>>(new Set());
+  const [asked, setAsked] = useState<string | null>(null);
   /** Speaking is the default wherever the device can listen; typing always works. */
   const [reciteBy, setReciteBy] = useState<ReciteBy>(ear.available ? 'speaking' : 'typing');
   const [hearing, setHearing] = useState(false);
@@ -318,10 +324,14 @@ export function PoemPage({
       });
   };
 
-  const stopListening = (keep = false) => {
+  /** A pause keeps the recording going; it ends when the reader is done, or leaves. */
+  const pause = () => {
     listening.current?.stop();
     listening.current = null;
     setHearing(false);
+  };
+  const stopListening = (keep = false) => {
+    pause();
     endTake(keep);
   };
   useEffect(
@@ -334,9 +344,9 @@ export function PoemPage({
   );
   useEffect(() => () => void (recital && URL.revokeObjectURL(recital)), [recital]);
 
-  // Listening goes on until the reader is done; a second start carries on from what was heard.
-  const listen = () => {
-    const before = typed;
+  // Listening goes on until the reader pauses or is done; going on carries on from what was heard.
+  /** `expect`: the words of the lines being recited. Told what to listen for, the phone hears a rare word as itself. */
+  const listen = (before: string, expect: readonly string[]) => {
     setHearing(true);
     if (keepRecitals && recorder.available && !taking.current) taking.current = recorder.start();
     listening.current = ear.listen(
@@ -351,6 +361,7 @@ export function PoemPage({
           setNote('noteNoEar');
         }
       },
+      expect,
     );
   };
 
@@ -360,7 +371,8 @@ export function PoemPage({
     void store.settings.setReciteBy(by);
   };
 
-  const go = (next: Stage, quiet = false) => {
+  const go = (next: Stage, quiet = false, forStep = step) => {
+    stageNow.current = next;
     stopListening();
     settleActive();
     setDrawing(null);
@@ -370,31 +382,43 @@ export function PoemPage({
     setDone(false);
     setRecital(null);
     setGranted(new Set());
+    setAsked(null);
     if (next === 'mark') pick('beats');
     if (quiet) return;
     const [key, note] = STAGE_NOTE[next];
     const text = next === 'blank' && reciteBy === 'typing' ? 'noteBlankTyping' : note;
-    once(key, () => setNote(text));
+    // A recital that takes in more than one part says so, once, after the first recital has said what it is.
+    const chain = next === 'blank' && stanzasOf(forStep, 'blank', stanzaLines.length).length > 1;
+    // A note that comes too late, once the reader has moved on, is kept for the next time.
+    void seen.has(key).then((already) => {
+      if (stageNow.current !== next) return;
+      if (!already) once(key, () => setNote(text));
+      else if (chain) once(CHAIN_NOTE[0], () => setNote(CHAIN_NOTE[1]));
+    });
   };
+
+  /** A new part, its recital taking in the parts learned before it. */
+  const freshStep = (stanza: number): Step => ({ kind: 'stanza', stanza, from: chainFrom(stanza, cards ?? new Map()) });
 
   /** The pencil moves to another stanza, so the whole poem can be marked before any of it fades. */
   const markStanza = (stanza: number) => {
     settleActive();
     setDrawing(null);
     setNote(null);
-    setStep({ kind: 'stanza', stanza });
+    setStep(freshStep(stanza));
   };
 
   /** On through the method. From the pencil, the words fade on the stanza in hand, or the nearest one marked. */
   const goOn = (next: Stage) => {
     if (pencil && next === 'fadeWords' && marks && step.kind === 'stanza') {
       const to = markedStanzaNear(step.stanza, stanzaLines, marks);
-      if (to !== step.stanza) setStep({ kind: 'stanza', stanza: to });
+      if (to !== step.stanza) setStep(freshStep(to));
     }
     go(next);
   };
 
-  const inView = useMemo(() => new Set(linesOf(step, parsed)), [step, parsed]);
+  const inView = useMemo(() => new Set(linesOf(step, stage, parsed)), [step, stage, parsed]);
+  const leading = leadIn(step, stage, parsed);
 
   // When the reader, or the pencil, moves to another stanza, the page scrolls just enough to bring it
   // into view between the top and the foot, and not at all if it is already there or came there by scrolling.
@@ -403,7 +427,7 @@ export function PoemPage({
   const topRef = useRef<HTMLDivElement>(null);
   // The running head stays at the top of the screen, so the page's working area starts below it.
   const pageTop = () => (topRef.current?.getBoundingClientRect().bottom ?? 0) + SCROLL_FOOT;
-  const inHand = stanzasOf(step)[0] ?? 0;
+  const inHand = stanzasOf(step, stage, stanzaLines.length)[0] ?? 0;
   const lastInHand = useRef(inHand);
   const scrolledTo = useRef(false);
   const bringIntoView = useEffectEvent(() => {
@@ -456,42 +480,51 @@ export function PoemPage({
     };
   }, [pencil]);
 
-  // The words of the lines in view, in order, to line up with what the reader types.
+  // The words of the lines in view, in order, to line up with what the reader says or types.
   const words = useMemo(
     () =>
       lines
         .filter((line) => inView.has(line.number))
         .flatMap((line) =>
           (tokens.get(line.number) ?? []).flatMap((t) =>
-            t.kind === 'word' ? [{ key: markKey(line.number, t.start), word: normalize(t.text) }] : [],
+            t.kind === 'word' ? [{ key: markKey(line.number, t.start), word: normalize(t.text), text: t.text }] : [],
           ),
         ),
     [lines, inView, tokens],
   );
-  const recalledKeys = useMemo(() => {
-    if (stage !== 'blank') return new Set<string>();
-    const found = recalled(
+  /**
+   * The recital so far: what was said, lined up with the poem. A spoken word
+   * counts as soon as it is heard; a typed one once the reader moves past it.
+   * Words gone past without being said show in pencil at once, so the page
+   * never seems stuck.
+   */
+  const heard = useMemo(() => {
+    const said = stage === 'blank' ? typedPieces(typed, done || reciteBy === 'speaking') : [];
+    const pairs = alignment(
       words.map((w) => w.word),
-      typedWords(typed, done),
+      said.map(normalize),
       poem.language,
     );
-    return new Set([...granted, ...[...found].map((i) => words[i]!.key)]);
-  }, [stage, words, typed, done, granted, poem.language]);
+    const found = new Set(pairs.map(([i]) => i));
+    const recalledKeys = new Set([...granted, ...[...found].map((i) => words[i]!.key)]);
+    const far = reached(found);
+    const passed = new Set(words.slice(0, far).flatMap((w) => (recalledKeys.has(w.key) ? [] : [w.key])));
+    return { said, pairs, recalledKeys, passed, far };
+  }, [stage, words, typed, done, reciteBy, granted, poem.language]);
+  const { recalledKeys } = heard;
+  const paused = stage === 'blank' && reciteBy === 'speaking' && !hearing && !done && typed.trim() !== '';
 
   // A new stanza starts from reading it, a review from the marks, a seam or a chain from reciting.
   const open = ({ step: next, stage: first }: Start) => {
     setStep(next);
     setPeeked(new Set());
-    setLooked(new Set());
-    setHinted([]);
     const review = next.kind === 'stanza' && !!next.review;
-    go(first, review);
-    const stepNote = review ? RETURN_NOTE : STEP_NOTE[next.kind];
-    if (stepNote) once(stepNote[0], () => setNote(stepNote[1]));
+    go(first, review, next);
+    if (review) once(RETURN_NOTE[0], () => setNote(RETURN_NOTE[1]));
   };
 
   const openStanza = (i: number) =>
-    open(cards?.has(stanzaUnit(i)) ? reviewStart(i, stanzaLines, cards, new Date()) : startOf({ kind: 'stanza', stanza: i }));
+    open(cards?.has(stanzaUnit(i)) ? reviewStart(i, stanzaLines, cards, new Date()) : newStart(i, cards ?? new Map()));
 
   useEffect(() => {
     let live = true;
@@ -526,20 +559,41 @@ export function PoemPage({
   }, [store, poem.id]);
 
   /**
-   * Grades what was just recited. The stanza takes the reader's own verdict;
-   * each line takes the words that came back unseen, when the reader typed or
-   * said anything at all.
+   * Grades what was just recited. The part in hand takes the reader's own
+   * verdict, and its lines the words that came back, when the reader said or
+   * typed anything at all. Every other part recited with it is graded by what
+   * was missed in it (alongGrade), and so are its lines.
    */
   const grade = (verdict: Verdict, now: Date) => {
-    if (!cards) return cards;
-    const grades: [Unit, ReturnType<typeof lineGrade>][] = [];
-    if (step.kind === 'stanza') grades.push([stanzaUnit(step.stanza), stanzaGrade(verdict, looked.size > 0)]);
-    if (typedWords(typed, true).length > 0 || granted.size > 0) {
-      for (const line of inView) {
-        const keys = words.filter((w) => w.key.startsWith(`${line}:`)).map((w) => w.key);
-        if (keys.length === 0) continue;
-        const unseen = keys.filter((k) => recalledKeys.has(k) && !looked.has(k)).length;
-        grades.push([lineUnit(line), lineGrade(unseen, keys.length, keys.some((k) => looked.has(k)))]);
+    if (!cards) return { cards, again: [] as Unit[] };
+    const grades: [Unit, Grade][] = [];
+    const said = heard.said.length > 0 || granted.size > 0;
+    const count = (numbers: readonly number[]) => {
+      const keys = words.filter((w) => numbers.some((n) => w.key.startsWith(`${n}:`))).map((w) => w.key);
+      return { got: keys.filter((k) => recalledKeys.has(k)).length, of: keys.length };
+    };
+    const inHand = step.kind === 'stanza' ? step.stanza : undefined;
+    for (const part of stanzasOf(step, 'blank', stanzaLines.length)) {
+      const numbers = stanzaLines[part] ?? [];
+      if (part === inHand) {
+        grades.push([stanzaUnit(part), stanzaGrade(verdict)]);
+        if (!said) continue;
+        for (const line of numbers) {
+          const { got, of } = count([line]);
+          if (of > 0) grades.push([lineUnit(line), lineGrade(got, of)]);
+        }
+        continue;
+      }
+      const card = cards.get(stanzaUnit(part));
+      if (!card || !said) continue;
+      const { got, of } = count(numbers);
+      const g = alongGrade(verdict, got, of, card, now);
+      if (g !== undefined) grades.push([stanzaUnit(part), g]);
+      for (const line of numbers) {
+        const lineCard = cards.get(lineUnit(line));
+        const words = count([line]);
+        const lg = lineCard && alongGrade(verdict, words.got, words.of, lineCard, now);
+        if (lg !== undefined && lg !== null) grades.push([lineUnit(line), lg]);
       }
     }
     const graded = grades.map(([unit, g]) => ({ unit, card: review(cards.get(unit), g, now), grade: g }));
@@ -548,32 +602,47 @@ export function PoemPage({
     for (const { unit, card } of graded) next.set(unit, card);
     setCards(next);
     setLastGrades(new Map([...lastGrades, ...graded.map(({ unit, grade }) => [unit, grade] as const)]));
-    return next;
+    return { cards: next, again: graded.filter(({ grade }) => grade === Rating.Again).map(({ unit }) => unit) };
   };
 
-  // How it went. Not yet: back to the fading. Otherwise on to what comes next, or back to the contents.
+  // How it went. Not yet: back to the fading of the part in hand. Otherwise on to what comes next, or back to the contents.
   const rate = (verdict: Verdict) => {
     const now = new Date();
-    const graded = grade(verdict, now);
-    if (verdict === 'notYet') {
+    const { cards: next, again } = grade(verdict, now);
+    if (verdict === 'notYet' && step.kind === 'stanza') {
       setPeeked(new Set());
-      setLooked(new Set());
-      setHinted([]);
       go('fadeWords');
       return;
     }
-    if (step.kind === 'stanza') practised.current.add(step.stanza);
-    const next = graded && nextStart(step, stanzaLines, graded, now, practised.current);
-    if (!next) return onBack();
-    open(next);
+    for (const part of stanzasOf(step, 'blank', stanzaLines.length)) {
+      if (!again.includes(stanzaUnit(part))) practised.current.add(part);
+    }
+    const start = next && nextStart(stanzaLines, next, now, practised.current);
+    if (!start) return onBack();
+    open(start);
     // The page turns back to reading, so say once what just happened and what comes now.
-    if (next.step.kind === 'stanza' && !next.step.review) once(NEXT_STANZA_NOTE[0], () => setNote(NEXT_STANZA_NOTE[1]));
+    if (start.step.kind === 'stanza' && !start.step.review) once(NEXT_STANZA_NOTE[0], () => setNote(NEXT_STANZA_NOTE[1]));
   };
 
   const finish = () => {
     stopListening(true);
     setDone(true);
     once(MISSED_NOTE[0], () => setNote(MISSED_NOTE[1]));
+  };
+
+  const pauseRecital = () => {
+    pause();
+    once(PAUSED_NOTE[0], () => setNote(PAUSED_NOTE[1]));
+  };
+
+  /** Paused, a tap on a line already reached takes the recital again from there: what was said from it on is let go. */
+  const takeAgainFrom = (line: number) => {
+    const first = words.findIndex((w) => w.key.startsWith(`${line}:`));
+    if (first < 0 || first > heard.far) return;
+    const kept = heard.said.slice(0, keptBefore(heard.pairs, heard.said.length, first)).join(' ');
+    setTyped(kept);
+    setNote(null);
+    listen(kept, words.map((w) => w.text));
   };
 
   const back = () => {
@@ -589,6 +658,22 @@ export function PoemPage({
     press.current = null;
   };
 
+  /** The word under a point, as "line:offset", on any line of the page. */
+  const wordKeyAt = (target: EventTarget | Element | null) => {
+    const at = hit(target);
+    const word = at && tokenAt(tokens.get(at.line) ?? [], at.at);
+    return at && word?.kind === 'word' ? markKey(at.line, word.start) : undefined;
+  };
+
+  const showWord = (key: string, show: boolean) =>
+    setPeeked((words) => {
+      if (words.has(key) === show) return words;
+      const next = new Set(words);
+      if (show) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+
   const onTap = (e: MouseEvent) => {
     if (!marks) return;
     // A tap on a faint stanza takes the pencil there. While fading, the traces stay still.
@@ -598,40 +683,37 @@ export function PoemPage({
       markStanza(Number(other.getAttribute('data-stanza')));
       return;
     }
+    if (swept.current) {
+      swept.current = false;
+      return;
+    }
     const found = hit(e.target);
     // Only the lines in hand answer a tap; the rest of the poem is there to keep one's place.
     const at = found && inView.has(found.line) ? found : undefined;
-    if (at && stage === 'blank' && done) {
-      // Once done, a tap on a word in pencil says the reader did have it, unless they peeked at it.
-      const word = tokenAt(tokens.get(at.line) ?? [], at.at);
-      const key = word?.kind === 'word' ? markKey(at.line, word.start) : undefined;
-      if (!key || looked.has(key)) return;
-      setGranted((words) => {
-        const next = new Set(words);
-        if (!next.delete(key)) next.add(key);
-        return next;
-      });
+    if (stage === 'blank' && !done) {
+      // Listening, a tap anywhere pauses; paused, a tap on a line takes it again from there.
+      if (hearing) pauseRecital();
+      else if (paused) {
+        const line = (e.target as Element).closest('[data-line]');
+        const number = line ? Number(line.getAttribute('data-line')) : undefined;
+        if (number !== undefined && inView.has(number)) takeAgainFrom(number);
+      }
       return;
     }
-    if (at && canPeek(stage)) {
-      // A tap on a faded word brings it back, in pencil; a second tap fades it again. Either way it was looked at.
-      // While the marks show, an underlined word comes back by its echo first, and whole on the next tap.
-      const word = tokenAt(tokens.get(at.line) ?? [], at.at);
-      if (word?.kind !== 'word') return;
-      const key = markKey(at.line, word.start);
-      if (hinted.includes(key)) {
-        setHinted((keys) => keys.filter((k) => k !== key));
-        setPeeked((words) => new Set(words).add(key));
-      } else if (!peeked.has(key) && showsMarks(stage) && echoIn(marks, at.line, word)) {
-        setHinted((keys) => [...keys, key]);
-      } else {
-        setPeeked((words) => {
-          const next = new Set(words);
-          if (!next.delete(key)) next.add(key);
-          return next;
-        });
-      }
-      setLooked((words) => new Set(words).add(key));
+    if (stage === 'blank' && done) {
+      // Once done, a tap on a word in pencil asks what was heard there; one counted as said goes back to pencil.
+      const key = at && wordKeyAt(e.target);
+      if (key && granted.has(key)) {
+        setGranted((words) => new Set([...words].filter((k) => k !== key)));
+        setAsked(null);
+      } else setAsked(key && !recalledKeys.has(key) ? key : null);
+      return;
+    }
+    if (canPeek(stage)) {
+      // A tap on a faded word brings it back, in pencil; a second tap fades it again. The other stanzas can be read too.
+      const key = wordKeyAt(e.target);
+      if (!key) return;
+      showWord(key, !peeked.has(key));
       once(PEEK_NOTE[0], () => setNote(PEEK_NOTE[1]));
       return;
     }
@@ -667,6 +749,12 @@ export function PoemPage({
 
   const onPointerDown = (e: PointerEvent) => {
     pressed.current = false;
+    if (canPeek(stage)) {
+      // On the practice pages, a finger drawn along a line brings its words back, or, starting on one already back, lets them go.
+      const first = wordKeyAt(e.target);
+      sweep.current = { x: e.clientX, y: e.clientY, show: !first || !peeked.has(first), first, moved: false };
+      return;
+    }
     if (!pencil || !marks) return;
     const direct = hit(e.target);
     // An underline goes below its letters, so a stroke may start there rather than on the letters.
@@ -696,6 +784,16 @@ export function PoemPage({
   };
 
   const onPointerMove = (e: PointerEvent) => {
+    const sweeping = sweep.current;
+    if (sweeping) {
+      if (!sweeping.moved && Math.hypot(e.clientX - sweeping.x, e.clientY - sweeping.y) <= PRESS_SLOP_PX) return;
+      if (!sweeping.moved && sweeping.first) showWord(sweeping.first, sweeping.show);
+      sweeping.moved = true;
+      // A touch stays with the element it started on, so look for the word under the finger now.
+      const key = wordKeyAt(document.elementFromPoint?.(e.clientX, e.clientY) ?? null);
+      if (key) showWord(key, sweeping.show);
+      return;
+    }
     if (press.current && Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > PRESS_SLOP_PX) cancelPress();
     if (!drawing) return;
     // A thumb rolls a little as it taps: until it really moves, it stays a tap on the letter it came down on.
@@ -709,6 +807,13 @@ export function PoemPage({
 
   const onPointerUp = () => {
     cancelPress();
+    if (sweep.current) {
+      // A stroke along the words is not also a tap.
+      swept.current = sweep.current.moved;
+      sweep.current = null;
+      if (swept.current) once(PEEK_NOTE[0], () => setNote(PEEK_NOTE[1]));
+      return;
+    }
     if (!drawing) return;
     const { line, from, to } = drawing;
     setDrawing(null);
@@ -731,6 +836,7 @@ export function PoemPage({
 
   const onPointerCancel = () => {
     cancelPress();
+    sweep.current = null;
     setDrawing(null);
   };
 
@@ -742,19 +848,23 @@ export function PoemPage({
 
   const ready = !!marks && !!syllabifier && started;
   const hasMarks = !!marks && (marks.beats.length > 0 || marks.echoes.length > 0 || marks.pauses.length > 0);
-  // The sound last tapped for while fading stands out, so the reader can find the words that share it.
-  const lastHinted = hinted[hinted.length - 1]?.split(':').map(Number);
-  const litFamily =
-    marks && lastHinted && showsMarks(stage)
-      ? echoIn(marks, lastHinted[0]!, tokenAt(tokens.get(lastHinted[0]!) ?? [], lastHinted[1]!))?.family
-      : undefined;
-  const activeFamily = pencil && tool === 'echoes' ? family : litFamily;
+  const activeFamily = pencil && tool === 'echoes' ? family : undefined;
 
   // Whatever the reader marked shows while it should; at the other stages, none of it does.
   const shown = marks && showsMarks(stage) ? marks : emptyMarks();
   const onLine = (keys: ReadonlySet<string>, line: number) =>
     new Set([...keys].filter((key) => key.startsWith(`${line}:`)).map((key) => Number(key.split(':')[1])));
-  // From fading on, the lines not in hand are only the traces of their shapes, so nothing gives the words away.
+  /**
+   * How a line not in hand is set. Reading and marking, in faint words; on
+   * the practice pages, in traces of their shapes, which a tap or a stroke
+   * can bring back; at the recital, not at all, but for the line just before
+   * it, in faint words, the way one comes to it.
+   */
+  const stageOf = (line: number): Stage => {
+    if (inView.has(line) || wholePoem) return stage;
+    if (stage !== 'blank') return 'fadeMarks';
+    return line === leading ? 'read' : 'blank';
+  };
   const renderLine = (line: Line) => (
     <MarkedLine
       pieces={layoutLine(
@@ -763,12 +873,11 @@ export function PoemPage({
         line.number,
         stroke(line.number),
         {
-          stage: inView.has(line.number) || wholePoem ? stage : 'fadeMarks',
-          // Once the recital is done, every word looked at shows in pencil.
-          peeked: onLine(done ? looked : peeked, line.number),
-          hinted: onLine(new Set(hinted), line.number),
-          recalled: onLine(recalledKeys, line.number),
-          done,
+          stage: stageOf(line.number),
+          peeked: onLine(peeked, line.number),
+          recalled: onLine(inView.has(line.number) ? recalledKeys : new Set(), line.number),
+          passed: onLine(inView.has(line.number) ? heard.passed : new Set(), line.number),
+          done: done && inView.has(line.number),
         },
       )}
       // Other sounds step back only in the stanza in hand; a faint stanza stays evenly faint.
@@ -797,6 +906,26 @@ export function PoemPage({
     ? (tokenAt(tokens.get(recutting.line) ?? [], recutting.start) as Word | undefined)
     : undefined;
 
+  /** What the phone heard where a word in pencil should have been. */
+  const heardAt = (key: string) => {
+    const index = words.findIndex((w) => w.key === key);
+    return index < 0 ? [] : saidInstead(heard.pairs, heard.said, index);
+  };
+  const grant = (key: string) => {
+    setGranted((words) => new Set(words).add(key));
+    setAsked(null);
+  };
+
+  /** Before a recital begins, the reader may start it at a later part, or, reciting the whole poem, at any. */
+  const startAt = (i: number) => {
+    if (step.kind === 'whole') setStep({ kind: 'whole', from: i });
+    else if (i >= chainFrom(step.stanza, cards ?? new Map()) && i <= step.stanza) setStep({ ...step, from: i });
+  };
+
+  /** The whole poem, recited whenever the reader likes, once some of it is learned. */
+  const reciteWhole = () => open({ step: { kind: 'whole', from: 0 }, stage: 'blank' });
+  const anyLearned = stanzaLines.some((_, i) => cards?.has(stanzaUnit(i)));
+
   // Each stanza's numeral, in the margin beside it, is set in the tone of how it stands now.
   const now = new Date();
   const numeral = (i: number) => {
@@ -808,12 +937,15 @@ export function PoemPage({
         type="button"
         className={`action ${className}`}
         aria-label={`${m.stanza} ${i + 1}`}
-        aria-pressed={stanzasOf(step).includes(i)}
-        // On the first page it opens the stanza; from fading on, it leads back to the whole poem.
+        aria-pressed={stanzasOf(step, stage, stanzaLines.length).includes(i)}
+        // On the first page it opens the stanza; on the practice pages it leads back to the whole poem; before a
+        // recital begins, it says where to start.
         onClick={(e) => {
           e.stopPropagation();
           if (stage === 'read') openStanza(i);
-          else go('read');
+          else if (stage !== 'blank') go('read');
+          else if (hearing) pauseRecital();
+          else if (!done && !typed.trim()) startAt(i);
         }}
       >
         {roman(i + 1)}
@@ -822,7 +954,15 @@ export function PoemPage({
   };
 
   return (
-    <main className="page poem-page" lang={poem.language} onClick={pencil ? settleActive : undefined}>
+    <main
+      className="page poem-page"
+      lang={poem.language}
+      onClick={(e) => {
+        if (pencil) settleActive();
+        // Listening, a tap anywhere on the page pauses, but for the words at its foot.
+        else if (hearing && !(e.target as Element).closest('.stage-foot, button')) pauseRecital();
+      }}
+    >
       <div ref={topRef} className="top running-top">
         <button type="button" className="action" onClick={back}>
           {m.contents}
@@ -907,12 +1047,23 @@ export function PoemPage({
             canSpeak={ear.available}
             text={typed}
             hearing={hearing}
+            paused={paused}
             language={poem.language}
             onType={setTyped}
-            onListen={listen}
+            onListen={() => {
+              setNote(null);
+              listen(
+                typed,
+                words.map((w) => w.text),
+              );
+            }}
+            onPause={pauseRecital}
+            onDone={finish}
+            onBack={() => (step.kind === 'whole' ? go('read') : go('fadeMarks'))}
             onSwitch={switchWay}
           />
         )}
+        {asked && <Heard words={heardAt(asked)} onSaid={() => grant(asked)} />}
         {done && recital && (
           <div className="stage-actions">
             <button type="button" className="action soft" onClick={() => void new Audio(recital).play()}>
@@ -925,8 +1076,8 @@ export function PoemPage({
           done={done}
           ready={ready}
           onGo={goOn}
-          onDone={finish}
           onRate={rate}
+          onRecite={stage === 'read' && anyLearned ? reciteWhole : undefined}
         />
         {stage === 'read' && onCorrect && (
           <div className="poem-care">
@@ -976,21 +1127,37 @@ export function PoemPage({
   );
 }
 
+/** Once a recital is done: what the phone heard where a word in pencil should have been, and a way to say it was right. */
+function Heard({ words, onSaid }: { words: readonly string[]; onSaid: () => void }) {
+  const { m } = useI18n();
+  return (
+    <div className="heard">
+      <p className="note foot-note">{words.length > 0 ? fill(m.heardThere, { words: words.join(' ') }) : m.heardNothing}</p>
+      <div className="stage-actions">
+        <button type="button" className="action" onClick={onSaid}>
+          {m.saidThat}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** The words at the foot of the page that move a stanza through the method. */
 function StageActions({
   stage,
   done,
   ready,
   onGo,
-  onDone,
   onRate,
+  onRecite,
 }: {
   stage: Stage;
   done: boolean;
   ready: boolean;
   onGo: (stage: Stage) => void;
-  onDone: () => void;
   onRate: (verdict: Verdict) => void;
+  /** On the first page, once some of the poem is learned: recite the whole of it. */
+  onRecite?: () => void;
 }) {
   const { m } = useI18n();
   if (stage === 'blank' && done) {
@@ -1008,6 +1175,8 @@ function StageActions({
       </div>
     );
   }
+  // The recital has its own words at the foot.
+  if (stage === 'blank') return null;
   const back = previousStage(stage);
   const next = nextStage(stage);
   return (
@@ -1024,9 +1193,9 @@ function StageActions({
           {m[STAGE_ACTION[next]]}
         </button>
       )}
-      {stage === 'blank' && (
-        <button type="button" className="action" onClick={onDone}>
-          {m.reciteDone}
+      {onRecite && (
+        <button type="button" className="action" disabled={!ready} onClick={onRecite}>
+          {m.stageBlank}
         </button>
       )}
     </div>

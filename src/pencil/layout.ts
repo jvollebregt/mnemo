@@ -50,10 +50,9 @@ export interface Stroke {
 export interface Fade {
   stage: Stage;
   peeked: ReadonlySet<number>;
-  /** Words tapped once for their echo: only the letters the reader underlined come back. */
-  hinted?: ReadonlySet<number>;
-  /** At the check: the words recalled so far (by offset), and whether the reader is done. */
+  /** At the recital: the words recalled so far, and those gone past without being said (by offset), and whether the reader is done. */
   recalled?: ReadonlySet<number>;
+  passed?: ReadonlySet<number>;
   done?: boolean;
 }
 
@@ -91,8 +90,8 @@ export function layoutLine(
               letter,
               first: at === firstLetter,
               peeked: !!word && fade.peeked.has(word.start),
-              hinted: !!echo && !preview && !!word && !!fade.hinted?.has(word.start),
               recalled: !!word && !!fade.recalled?.has(word.start),
+              passed: !!word && !!fade.passed?.has(word.start),
               pause,
             },
             fade.done,

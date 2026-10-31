@@ -3,26 +3,32 @@ import { emptyMarks } from '../pencil/marks';
 import { parsePoem } from './parse';
 import { reline, relineMarks, relineUnit } from './reline';
 
-const BEFORE = 'Hope is the thing\nthat perches in the soul\n\nAnd sings the tune\nwithout the words';
+// Stanzas of four long-enough lines each, so that each is learned as a part of its own.
+const stanza = (name: string) => [1, 2, 3, 4].map((n) => `${name} line ${n} with words enough to count`).join('\n');
+const BEFORE = `Hope is the thing\nthat perches in the soul\nand sings the tune\nwithout the words\n\n${stanza('second')}\n\n${stanza('third')}`;
 
 describe('reline', () => {
   it('follows unchanged lines past a line added above them', () => {
-    const moved = reline(parsePoem(BEFORE), parsePoem(`Hope is the thing with feathers\nthat perches in the soul\n\nAnd sings the tune\nwithout the words\nAnd never stops`));
-    expect([...moved.lines]).toEqual([
+    const after = BEFORE.replace('Hope is the thing', 'Hope is the thing with feathers').replace('second line 4 with words enough to count', 'second line 4 with words enough to count\nand never stops');
+    const moved = reline(parsePoem(BEFORE), parsePoem(after));
+    expect([...moved.lines].slice(0, 4)).toEqual([
       [2, 2],
       [3, 3],
       [4, 4],
+      [5, 5],
     ]);
-    // The first stanza had a line changed, the second gained one: neither carries over as a whole.
-    expect([...moved.stanzas]).toEqual([]);
+    expect(moved.lines.get(9)).toBe(10);
+    // The first stanza had a line changed, the second gained one: neither carries over as a whole; the third does.
+    expect([...moved.stanzas]).toEqual([[2, 2]]);
   });
 
   it('keeps a stanza that is word for word the same, wherever it moved', () => {
-    const moved = reline(parsePoem(BEFORE), parsePoem(`A new first stanza\n\n${BEFORE}`));
-    expect(moved.lines.get(1)).toBe(2);
+    const moved = reline(parsePoem(BEFORE), parsePoem(`${stanza('new')}\n\n${BEFORE}`));
+    expect(moved.lines.get(1)).toBe(5);
     expect([...moved.stanzas]).toEqual([
       [0, 1],
       [1, 2],
+      [2, 3],
     ]);
   });
 
@@ -53,10 +59,10 @@ describe('reline', () => {
   });
 
   it('moves scheduled units, and lets go of those that changed', () => {
-    const moved = reline(parsePoem(BEFORE), parsePoem(`New\n\n${BEFORE.replace('the words', 'a word')}`));
-    expect(relineUnit('line:1', moved)).toBe('line:2');
+    const moved = reline(parsePoem(BEFORE), parsePoem(`${stanza('new')}\n\n${BEFORE.replace('the words', 'a word')}`));
+    expect(relineUnit('line:1', moved)).toBe('line:5');
     expect(relineUnit('line:4', moved)).toBeUndefined();
-    expect(relineUnit('stanza:0', moved)).toBe('stanza:1');
-    expect(relineUnit('stanza:1', moved)).toBeUndefined();
+    expect(relineUnit('stanza:0', moved)).toBeUndefined();
+    expect(relineUnit('stanza:1', moved)).toBe('stanza:2');
   });
 });

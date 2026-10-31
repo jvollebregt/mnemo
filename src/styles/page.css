@@ -305,6 +305,10 @@ body {
   margin-top: 0;
 }
 
+.verse .line.gap {
+  margin-top: 1em;
+}
+
 .line {
   display: grid;
   grid-template-columns: 22px 1fr;
@@ -867,17 +871,8 @@ body {
   line-height: 1.5;
 }
 
-.recite::placeholder,
-.recite.heard.empty {
+.recite::placeholder {
   color: var(--trace);
-}
-
-/* What was heard, written out on the same ruled line. */
-.recite.heard {
-  text-align: left;
-  min-height: calc(3 * 1.5em + 12px);
-  max-height: 30vh;
-  overflow-y: auto;
 }
 
 /* While marking, a pencil line sets the tools apart from the poem. */
@@ -904,6 +899,11 @@ body {
 
 .verse .line.faint {
   opacity: 0.3;
+}
+
+/* From fading on, the other stanzas are only traces, which must still be seen to keep one's place. */
+.verse:not(.stage-read):not(.stage-mark) .line.faint {
+  opacity: 0.6;
 }
 
 .verse .stanza.in-focus {
@@ -961,10 +961,18 @@ body {
 }
 
 
-/* The fade. A trace keeps a word's length without its letters; a peeked word comes back in pencil. */
+/*
+ * The fade. A trace keeps a word's length without its letters, as a fine line
+ * through where the letters stood, so it is never taken for an echo's
+ * underline. A peeked word comes back in pencil.
+ */
 .trace {
   color: transparent;
-  border-bottom: 1px solid var(--trace);
+}
+
+/* Underlined letters keep their echo's line instead. */
+.trace:not(.echo) {
+  text-decoration: line-through 1.5px var(--trace);
 }
 
 .gone {
@@ -979,6 +987,11 @@ body {
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* A finger drawn along a line brings its words back; up and down still scrolls the page. */
+.verse.peekable .line-text {
+  touch-action: pan-y;
 }
 
 .tools,
