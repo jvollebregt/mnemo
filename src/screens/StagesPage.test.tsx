@@ -10,6 +10,7 @@ import { migrate } from '../store/migrations';
 import type { Poem } from '../store/poems';
 import { openSqlJs } from '../store/sqljs';
 import { PoemPage } from './PoemPage';
+import { letterBox } from '../testing/letters';
 
 const HOPE = [
   '“Hope” is the thing with feathers -',
@@ -66,9 +67,9 @@ const looks = (line: number) =>
 
 /** The lines set in full, not faint around them. */
 const stroke = (line: number, from: number, to: number) => {
-  fireEvent.pointerDown(glyph(line, from), { clientX: from * 12 });
-  fireEvent.pointerMove(glyph(line, to), { clientX: to * 12 });
-  fireEvent.pointerUp(glyph(line, to), { clientX: to * 12 });
+  fireEvent.pointerDown(glyph(line, from), { clientX: from * 12 + 6 });
+  fireEvent.pointerMove(glyph(line, to), { clientX: to * 12 + 6 });
+  fireEvent.pointerUp(glyph(line, to), { clientX: to * 12 + 6 });
 };
 const inHand = () => Array.from(document.querySelectorAll('[data-line]:not(.faint)'), (l) => l.getAttribute('data-line'));
 const stanza = (n: number) => document.querySelector(`[data-stanza="${n}"]`)!;
@@ -80,7 +81,9 @@ async function ready() {
 
 describe('the stages', () => {
   beforeEach(() => {
-    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({ width: 200 }) as DOMRect);
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      return letterBox(this) ?? ({ width: 200 } as DOMRect);
+    });
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(330);
   });
   afterEach(() => {

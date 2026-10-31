@@ -558,9 +558,9 @@ body {
   -webkit-touch-callout: none;
 }
 
-/* Drawing an echo must not scroll the page; the margins still do. */
+/* An echo is drawn along a line, so a stroke across the page draws and one up or down still scrolls. */
 .verse.tool-echoes .line-text {
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .line {
@@ -801,6 +801,11 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* Whatever comes last before the foot, a poem's last line or a note, stands clear of the fade above it. */
+.page.poem-page > :has(+ .stage-foot) {
+  margin-bottom: 40px;
 }
 
 /* A long poem runs on under the foot: its lines fade into the paper just above it rather than end on a cut. */

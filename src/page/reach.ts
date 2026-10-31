@@ -81,3 +81,29 @@ function nearestIn(row: readonly LetterBox[], line: number, x: number, beside: n
   const nearest = row.reduce((best, l) => (distance(l) < distance(best) ? l : best));
   return { line, at: nearest.at };
 }
+
+/**
+ * The same for an echo, whose underline runs below its letters: the space
+ * below a line, where its underlines go, belongs to that line, and `below`
+ * is how far under the last line in hand still counts.
+ */
+export function letterAbove(
+  lines: readonly LineBoxes[],
+  x: number,
+  y: number,
+  { below, beside }: { below: number; beside: number },
+): { line: number; at: number } | undefined {
+  // Turned upside down, the space below a line is the space above it.
+  const flip = (l: LetterBox): LetterBox => ({ ...l, top: -l.bottom, bottom: -l.top });
+  const flipped = [...lines].reverse().map(({ line, letters }) => ({ line, letters: letters.map(flip) }));
+  return letterNear(flipped, x, -y, { above: below, beside });
+}
+
+/** While a stroke is drawn along a line, the letter of that line nearest the finger, wherever it strays. */
+export function letterAlong(line: LineBoxes, x: number, y: number): number | undefined {
+  const rows = rowsOf(line.letters);
+  if (rows.length === 0) return undefined;
+  const middle = (row: readonly Box[]) => (topOf(row) + bottomOf(row)) / 2;
+  const row = rows.reduce((best, r) => (Math.abs(middle(r) - y) < Math.abs(middle(best) - y) ? r : best));
+  return nearestIn(row, line.line, x, Infinity)?.at;
+}

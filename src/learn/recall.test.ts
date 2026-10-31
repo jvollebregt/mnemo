@@ -29,3 +29,26 @@ describe('recall', () => {
     expect(recalled(poem, []).size).toBe(0);
   });
 });
+
+describe('spelling', () => {
+  const heard = (poem: string, said: string, language?: string) => [...recalled(words(poem), words(said), language)];
+
+  it('lets a recital through whatever spelling the recogniser writes', () => {
+    expect(heard('Tyger Tyger burning bright', 'tiger tiger burning bright')).toEqual([0, 1, 2, 3]);
+    expect(heard('the colour of the centre', 'the color of the center')).toEqual([0, 1, 2, 3, 4]);
+    expect(heard('When I heard the learn’d astronomer', 'when I heard the learned astronomer')).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(heard('o’er the four hills', 'over the 4 hills')).toEqual([0, 1, 2, 3]);
+    expect(heard('travelled far', 'traveled far')).toEqual([0, 1]);
+  });
+
+  it('knows old Dutch spellings', () => {
+    expect(heard('de visch zyn vrij', 'de vis zijn vrij', 'nl')).toEqual([0, 1, 2, 3]);
+    expect(heard('drie maal', '3 maal', 'nl')).toEqual([0, 1]);
+  });
+
+  it('still tells different words apart', () => {
+    expect(heard('in the night', 'in the might')).toEqual([0, 1]);
+    expect(heard('de maan', 'de man', 'nl')).toEqual([0]);
+    expect(heard('our song', 'or song')).toEqual([1]);
+  });
+});

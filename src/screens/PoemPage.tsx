@@ -19,7 +19,7 @@ import { firstStart, linesOf, nextStart, reviewStart, stanzasOf, startOf, type S
 import { canPeek, nextStage, previousStage, showsMarks, type Stage } from '../learn/stages';
 import { roman } from '../page/fit';
 import { MarkedLine } from '../page/MarkedLine';
-import { letterNear } from '../page/reach';
+import { letterAbove, letterAlong, letterNear, type LineBoxes } from '../page/reach';
 import { READING_LINE, stanzaAt } from '../page/reading';
 import { Sheet } from '../page/Sheet';
 import { useSwipeBack } from '../page/swipe';
@@ -123,10 +123,10 @@ function hit(target: EventTarget | Element | null): { line: number; at: number }
   return { line: Number(line.getAttribute('data-line')), at: Number(glyph.getAttribute('data-at')) };
 }
 
-/** For a beats tap that missed the letters: the letter of a line in hand nearest the finger, if it fell near one. */
-function nearHit(verse: Element | null, inHand: ReadonlySet<number>, x: number, y: number) {
-  if (!verse) return undefined;
-  const lines = Array.from(verse.querySelectorAll('[data-line]'))
+/** The letters of the lines in hand, where they are on the screen. */
+function lettersOnScreen(verse: Element | null, inHand: ReadonlySet<number>): LineBoxes[] {
+  if (!verse) return [];
+  return Array.from(verse.querySelectorAll('[data-line]'))
     .filter((el) => inHand.has(Number(el.getAttribute('data-line'))))
     .map((el) => ({
       line: Number(el.getAttribute('data-line')),
@@ -135,10 +135,26 @@ function nearHit(verse: Element | null, inHand: ReadonlySet<number>, x: number, 
         return { at: Number(g.getAttribute('data-at')), left, right, top, bottom };
       }),
     }));
-  // A beat stands about a letter's height above the line; the reach either side is half that.
+}
+
+/** A mark's reach around the letters: about a letter's height above or below the line, and half that either side. */
+function letterHeight(lines: readonly LineBoxes[]) {
   const first = lines.find((l) => l.letters.length > 0)?.letters[0];
-  const height = first ? first.bottom - first.top : 0;
+  return first ? first.bottom - first.top : 0;
+}
+
+/** For a beats tap that missed the letters: the letter of a line in hand nearest the finger, if it fell near one. */
+function nearHit(verse: Element | null, inHand: ReadonlySet<number>, x: number, y: number) {
+  const lines = lettersOnScreen(verse, inHand);
+  const height = letterHeight(lines);
   return letterNear(lines, x, y, { above: height, beside: height / 2 });
+}
+
+/** For an echo begun where its underline goes, below the letters: the letter above the finger. */
+function underHit(verse: Element | null, inHand: ReadonlySet<number>, x: number, y: number) {
+  const lines = lettersOnScreen(verse, inHand);
+  const height = letterHeight(lines);
+  return letterAbove(lines, x, y, { below: height, beside: height / 2 });
 }
 
 export function PoemPage({
@@ -457,9 +473,10 @@ export function PoemPage({
     const found = recalled(
       words.map((w) => w.word),
       typedWords(typed, done),
+      poem.language,
     );
     return new Set([...granted, ...[...found].map((i) => words[i]!.key)]);
-  }, [stage, words, typed, done, granted]);
+  }, [stage, words, typed, done, granted, poem.language]);
 
   // A new stanza starts from reading it, a review from the marks, a seam or a chain from reciting.
   const open = ({ step: next, stage: first }: Start) => {
@@ -478,12 +495,18 @@ export function PoemPage({
 
   useEffect(() => {
     let live = true;
+    // A read that fails must not leave a blank page: the poem opens with what could be read, and says why in the log.
+    const orElse = <T,>(read: Promise<T>, fallback: T) =>
+      read.catch((error: unknown) => {
+        console.error('Mnemo could not read part of a poem', error);
+        return fallback;
+      });
     void Promise.all([
-      store.marks.get(poem.id),
-      store.schedule.cards(poem.id),
-      store.settings.reciteBy(),
-      store.settings.keepRecitals(),
-      store.schedule.lastGrades(poem.id),
+      orElse(store.marks.get(poem.id), emptyMarks()),
+      orElse(store.schedule.cards(poem.id), new Map<Unit, Card>()),
+      orElse(store.settings.reciteBy(), undefined),
+      orElse(store.settings.keepRecitals(), false),
+      orElse(store.schedule.lastGrades(poem.id), new Map<Unit, Grade>()),
     ]).then(([stored, scheduled, by, keep, last]) => {
       if (!live) return;
       setLastGrades(last);
@@ -645,7 +668,12 @@ export function PoemPage({
   const onPointerDown = (e: PointerEvent) => {
     pressed.current = false;
     if (!pencil || !marks) return;
-    const at = hit(e.target);
+    const direct = hit(e.target);
+    // An underline goes below its letters, so a stroke may start there rather than on the letters.
+    const at =
+      tool === 'echoes' && !(direct && isLetter(lineText(direct.line)[direct.at] ?? ''))
+        ? underHit(verseRef.current, inView, e.clientX, e.clientY)
+        : direct;
     if (!at || !inView.has(at.line)) return;
     if (tool === 'echoes') {
       if (!isLetter(lineText(at.line)[at.at] ?? '')) return;
@@ -672,10 +700,11 @@ export function PoemPage({
     if (!drawing) return;
     // A thumb rolls a little as it taps: until it really moves, it stays a tap on the letter it came down on.
     if (!drawing.moved && Math.hypot(e.clientX - drawing.x, e.clientY - drawing.y) <= PRESS_SLOP_PX) return;
-    // A touch stays with the element it started on, so find the letter under the finger now.
-    const under = document.elementFromPoint?.(e.clientX, e.clientY) ?? e.target;
-    const at = hit(under);
-    if (at && at.line === drawing.line && (at.at !== drawing.to || !drawing.moved)) setDrawing({ ...drawing, to: at.at, moved: true });
+    // A touch stays with the element it started on, so find the letter nearest the finger now. The stroke keeps
+    // to its line, so a finger drawing below the letters, where the underline goes, still draws.
+    const line = lettersOnScreen(verseRef.current, new Set([drawing.line]))[0];
+    const at = line && letterAlong(line, e.clientX, e.clientY);
+    if (at !== undefined && (at !== drawing.to || !drawing.moved)) setDrawing({ ...drawing, to: at, moved: true });
   };
 
   const onPointerUp = () => {

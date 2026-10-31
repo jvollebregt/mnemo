@@ -127,12 +127,14 @@ public class MnemoEarPlugin: CAPPlugin, CAPBridgedPlugin {
         try engine.start()
 
         task = recognizer.recognitionTask(with: request) { [weak self] result, error in
-            guard let self else { return }
-            if let result {
-                self.notifyListeners("heard", data: ["text": result.bestTranscription.formattedString])
-            }
-            if error != nil || result?.isFinal == true {
-                DispatchQueue.main.async {
+            DispatchQueue.main.async {
+                // A stretch that has already ended can still call back, with a last result or an error, after the
+                // next one began. Only the stretch under way may speak, or it would cut the new one short.
+                guard let self, self.request === request else { return }
+                if let result {
+                    self.notifyListeners("heard", data: ["text": result.bestTranscription.formattedString])
+                }
+                if error != nil || result?.isFinal == true {
                     self.finish()
                     // The recogniser stops after a silence, sometimes with an error; the page listens on.
                     self.notifyListeners("ended", data: [:])
@@ -142,13 +144,14 @@ public class MnemoEarPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func finish() {
-        if engine.isRunning {
-            engine.stop()
-            engine.inputNode.removeTap(onBus: 0)
-        }
+        if engine.isRunning { engine.stop() }
+        // The tap goes even when the engine never started, or the next stretch couldn't install its own.
+        engine.inputNode.removeTap(onBus: 0)
         request?.endAudio()
         request = nil
         task = nil
+        // Hand the audio back, so a recital kept can be played and other apps' sound comes back.
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }
 
