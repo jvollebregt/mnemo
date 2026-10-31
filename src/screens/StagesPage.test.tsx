@@ -64,7 +64,7 @@ const glyph = (line: number, at: number) => document.querySelector(`[data-line="
 /** How each run of letters in a line is set: "text:look". */
 const looks = (line: number) =>
   Array.from(document.querySelectorAll(`[data-line="${line}"] .line-text [data-at]`))
-    .map((g) => ({ ch: g.textContent!, look: ['trace', 'gone', 'peek'].find((c) => g.parentElement!.classList.contains(c)) ?? 'ink' }))
+    .map((g) => ({ ch: g.textContent!, look: ['trace', 'ghost', 'gone', 'peek'].find((c) => g.parentElement!.classList.contains(c)) ?? 'ink' }))
     .filter((g) => g.ch.trim())
     .reduce<string[]>((runs, g, i, all) => {
       if (i > 0 && all[i - 1]!.look === g.look) runs[runs.length - 1] = runs[runs.length - 1]!.replace(/:/, `${g.ch}:`);
@@ -118,8 +118,8 @@ describe('the stages', () => {
     fireEvent.click(action('fade the words'));
     expect(looks(2)).toEqual(['T:ink', 'hat:trace', 'p:ink', 'erches:trace', 'i:ink', 'n:trace', 't:ink', 'he:trace', 's:ink', 'oul:trace', '-:ink']);
     expect(document.querySelectorAll('[data-line="2"] .syl.beat')).toHaveLength(1);
-    // Punctuation the reader didn't mark fades with the words.
-    expect(looks(1).at(-1)).toBe('eathers-:trace');
+    // Punctuation the reader didn't mark fades with the words, to a faint copy of itself.
+    expect(looks(1).slice(-2)).toEqual(['eathers:trace', '-:ghost']);
     expect(await screen.findByText(/The words fade; your marks stay/)).toBeTruthy();
 
     fireEvent.click(action('marks only'));
@@ -196,7 +196,7 @@ describe('the stages', () => {
     expect(looks(2).slice(-1)).toEqual(['soul-:peek']);
     expect(await screen.findByText(/Peeking is fine here/)).toBeTruthy();
     fireEvent.click(glyph(2, 22));
-    expect(looks(2).slice(-2)).toEqual(['s:ink', 'oul-:trace']);
+    expect(looks(2).slice(-3)).toEqual(['s:ink', 'oul:trace', '-:ghost']);
 
     // The other stanzas can be read too.
     fireEvent.click(action('marks only'));

@@ -30,9 +30,10 @@ describe('lookOf', () => {
 
   it('keeps a marked pause and fades unmarked punctuation with the words', () => {
     expect(lookOf('fadeWords', stop(true))).toBe('ink');
-    expect(lookOf('fadeWords', stop())).toBe('trace');
+    expect(lookOf('fadeWords', stop())).toBe('ghost');
     expect(lookOf('marksOnly', stop(true))).toBe('ink');
     expect(lookOf('marksOnly', word(true))).toBe('trace');
+    expect(lookOf('marksOnly', stop())).toBe('ghost');
   });
 
   it('leaves only traces once the marks fade, then nothing', () => {

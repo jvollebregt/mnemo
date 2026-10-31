@@ -12,7 +12,8 @@ export const STAGES = ['read', 'mark', 'fadeWords', 'marksOnly', 'fadeMarks', 'b
 export type Stage = (typeof STAGES)[number];
 
 /** How a character is set: in ink, as a faint trace of its width, not at all, or peeked at, in pencil. */
-export type Look = 'ink' | 'trace' | 'gone' | 'peek';
+/** `ghost`: faded punctuation, a faint copy of itself, so it isn't taken for a missing letter. */
+export type Look = 'ink' | 'trace' | 'ghost' | 'gone' | 'peek';
 
 export const nextStage = (stage: Stage): Stage | undefined => STAGES[STAGES.indexOf(stage) + 1];
 export const previousStage = (stage: Stage): Stage | undefined => STAGES[STAGES.indexOf(stage) - 1];
@@ -53,10 +54,12 @@ function stageLook(stage: Stage, c: Character, done: boolean): Look {
       return 'ink';
     case 'fadeWords':
       if (c.letter) return c.first ? 'ink' : 'trace';
-      return c.pause ? 'ink' : 'trace';
+      return c.pause ? 'ink' : 'ghost';
     case 'marksOnly':
-      return !c.letter && c.pause ? 'ink' : 'trace';
+      if (c.letter) return 'trace';
+      return c.pause ? 'ink' : 'ghost';
     case 'fadeMarks':
+      // Only the shape of the lines is left: punctuation, marked or not, goes with the letters.
       return 'trace';
     case 'blank':
       // Punctuation comes back with the word it goes with, in ink or in pencil like it.

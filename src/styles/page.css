@@ -983,10 +983,9 @@ body {
   text-decoration: line-through 1.5px var(--trace);
 }
 
-/* Faded punctuation is a faint copy of itself, so it isn't taken for a missing letter. */
-.stop .trace:not(.echo) {
+/* Faded punctuation, while the words fade, is a faint copy of itself, so it isn't taken for a missing letter. */
+.ghost {
   color: var(--trace);
-  text-decoration: none;
 }
 
 .gone {
