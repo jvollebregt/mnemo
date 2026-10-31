@@ -80,7 +80,7 @@ export const en = {
   reciteByTyping: 'type instead',
   reciteBySpeaking: 'speak instead',
   reciteDone: 'done',
-  reciteAgain: 'again',
+  reciteAgain: 'once more',
   playBack: 'play it back',
 
   // Adding a poem

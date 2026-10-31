@@ -287,7 +287,7 @@ describe('the stages', () => {
 
     // The reader judges how it went, or first tries again on a clear page.
     expect(screen.getByText('How much of it did you know?')).toBeTruthy();
-    fireEvent.click(action('again'));
+    fireEvent.click(action('once more'));
     expect((screen.getByRole('textbox', { name: 'recite' }) as HTMLTextAreaElement).value).toBe('');
     expect(looks(2)).toEqual(['Thatperchesinthesoul-:gone']);
     expect(screen.queryByRole('button', { name: 'all of it' })).toBeNull();

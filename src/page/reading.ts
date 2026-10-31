@@ -21,8 +21,11 @@ export function stanzaAt(boxes: readonly { top: number; bottom: number }[], line
 /** How much of a stanza must still show to count as on the screen: about two lines, or all of a shorter one. */
 export const STAYS = 60;
 
-/** The band around the reading line, as parts of the working area from its top, that the stanza in hand may cross. */
-export const BAND = [0.3, 0.5] as const;
+/**
+ * The band, as parts of the working area from its top, that the stanza in hand may cross: going down, it hands over
+ * as soon as its last line passes the reading line; going up, once its first line has dropped a little below it.
+ */
+export const BAND = [READING_LINE, 0.5] as const;
 
 /** Whether a stanza is still on the screen, between `top` and `bottom`. */
 export function stillInView(box: { top: number; bottom: number }, top: number, bottom: number): boolean {

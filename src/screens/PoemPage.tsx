@@ -446,6 +446,8 @@ export function PoemPage({
   const inHand = stanzasOf(step, stage, stanzaLines.length)[0] ?? 0;
   const lastInHand = useRef(inHand);
   const scrolledTo = useRef(false);
+  // A stanza the page scrolls to by itself, or one just tapped, is held in hand until it reaches the reading line.
+  const held = useRef(false);
   const bringIntoView = useEffectEvent(() => {
     const box = verseRef.current?.querySelector(`[data-stanza="${inHand}"]`)?.getBoundingClientRect();
     if (!box) return;
@@ -453,6 +455,7 @@ export function PoemPage({
     const bottom = (footRef.current?.getBoundingClientRect().top ?? window.innerHeight) - SCROLL_FOOT;
     const by = box.top < top ? box.top - top : box.bottom > bottom ? Math.min(box.bottom - bottom, box.top - top) : 0;
     if (by === 0) return;
+    held.current = true;
     const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     window.scrollBy?.({ top: by, behavior: still ? 'auto' : 'smooth' });
   });
@@ -470,7 +473,6 @@ export function PoemPage({
 
   // While marking, the stanza in hand follows the scroll: once it leaves the band around the reading line, the one
   // across the line turns to ink. A stanza just tapped is held until it reaches the band, so it never fades on its way.
-  const held = useRef(false);
   const follow = useEffectEvent(() => {
     if (drawing || step.kind !== 'stanza') return;
     const stanzas = Array.from(verseRef.current?.querySelectorAll('[data-stanza]') ?? []);

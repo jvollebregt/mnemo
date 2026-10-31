@@ -21,15 +21,18 @@ describe('the stanza at the reading line', () => {
 });
 
 describe('the stanza in hand', () => {
-  // Quatrains 160 high with 40 between them, on a working area from 0 to 1000: the band runs from 300 to 500.
+  // Quatrains 160 high with 40 between them, on a working area from 0 to 1000: the band runs from the reading line at 400 down to 500.
   const at = (offset: number) => [0, 1, 2, 3, 4, 5].map((i) => ({ top: i * 200 - offset, bottom: i * 200 + 160 - offset }));
   const after = (offset: number, current: number, held = false) => inHandAfter(at(offset), current, 0, 1000, held);
 
   it('stays in hand while it crosses the band around the reading line', () => {
     expect(after(0, 2).index).toBe(2);
-    // Scrolled down until it has left the band at the top: the one across the reading line takes over.
-    expect(after(200, 2).index).toBe(2);
-    expect(after(320, 2).index).toBe(3);
+    // Scrolled down until its last line passes the reading line: the one across the line takes over.
+    expect(after(150, 2).index).toBe(2);
+    expect(after(190, 2).index).toBe(3);
+    // Scrolled up, it stays until its first line has dropped below the band.
+    expect(after(-90, 2).index).toBe(2);
+    expect(after(-110, 2).index).toBe(1);
   });
 
   it('passes from each stanza to the next, scrolling down and back up, skipping none', () => {
