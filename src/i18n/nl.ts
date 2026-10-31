@@ -124,6 +124,7 @@ export const nl: Messages = {
   importPoems: 'importeer',
   exchangeNote:
     'Eén bestand met je gedichten, je tekens en hoe het met elk gedicht gaat, om veilig te bewaren of mee te nemen naar een nieuwe telefoon. Voordrachten zitten er niet in.',
+  version: 'versie van {date}',
   importedNote: 'Gedichten ingelezen uit het bestand: {count}. Een gedicht dat je al had, heeft nu de tekens en planning uit het bestand.',
   importNotMnemo: 'Dat bestand is geen Mnemo-export, dus er is niets ingelezen.',
   importNewer: 'Dat bestand komt uit een nieuwere versie van Mnemo. Werk de app eerst bij en lees het dan in.',

@@ -165,6 +165,13 @@ body {
   color: var(--grey);
 }
 
+.colophon {
+  margin: 48px 0 0;
+  font-size: 13px;
+  color: var(--trace);
+  text-align: center;
+}
+
 .setting-note .action {
   margin-left: 10px;
   font-style: normal;

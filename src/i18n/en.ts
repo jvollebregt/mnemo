@@ -129,6 +129,7 @@ export const en = {
   importPoems: 'import',
   exchangeNote:
     'One file with your poems, your marks and how each one is coming along, to keep somewhere safe or take to a new phone. Recitals are not in it.',
+  version: 'version of {date}',
   importedNote: 'Poems read in from the file: {count}. A poem you already had now has the file’s marks and schedule.',
   importNotMnemo: 'That file is not a Mnemo export, so nothing was read in.',
   importNewer: 'That file comes from a newer version of Mnemo. Update the app first, then read it in.',
