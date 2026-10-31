@@ -761,11 +761,16 @@ body {
   transform: none;
 }
 
-/* Rhyme letters, in the right-hand margin beside the end of the line. */
+/*
+ * Rhyme letters, in the right-hand margin beside the end of the line. The
+ * italic f curls well outside its own box, and the iPhone, taking a letter
+ * away, clears only its box: room around the letter keeps the curl inside it.
+ */
 .rhyme {
   position: absolute;
-  right: -14px;
-  bottom: 0;
+  right: calc(-14px - 0.3em);
+  bottom: -0.25em;
+  padding: 0.25em 0.3em;
   font-size: 0.85em;
   font-style: italic;
   color: var(--pencil);
@@ -983,8 +988,8 @@ body {
   color: transparent;
 }
 
-/* Underlined letters keep their echo's line instead. */
-.trace:not(.echo) {
+/* Drawn on each letter, so underlined letters keep the line too, with their echo's underline beneath. */
+.trace [data-at] {
   text-decoration: line-through 1.5px var(--trace);
 }
 
