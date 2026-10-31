@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { parsePoem } from './parse';
+import { parsePoem, poetStanzas } from './parse';
 
-const texts = (text: string) => parsePoem(text).stanzas.map((s) => s.lines.map((l) => l.text));
+const texts = (text: string) => poetStanzas(text).map((s) => s.lines.map((l) => l.text));
 
 describe('parsePoem', () => {
   it('splits stanzas on blank lines', () => {
@@ -19,9 +19,8 @@ describe('parsePoem', () => {
   });
 
   it('numbers the poet’s lines across stanzas, skipping blank lines', () => {
-    const { stanzas, lineCount } = parsePoem('a\nb\n\n\nc\n');
-    expect(stanzas.map((s) => s.lines.map((l) => l.number))).toEqual([[1, 2], [3]]);
-    expect(lineCount).toBe(3);
+    expect(poetStanzas('a\nb\n\n\nc\n').map((s) => s.lines.map((l) => l.number))).toEqual([[1, 2], [3]]);
+    expect(parsePoem('a\nb\n\n\nc\n').lineCount).toBe(3);
   });
 
   it('treats several blank lines, or lines of only spaces, as one break', () => {
@@ -64,5 +63,20 @@ describe('parsePoem, long stanzas', () => {
     // The poet's lines are counted as ever, across the cut.
     expect(stanzas[2]?.lines[0]).toEqual({ text: 'line 9,', number: 11 });
     expect(lineCount).toBe(16);
+  });
+});
+
+describe('parsePoem, parts', () => {
+  it('learns a short poem whole, keeping the blank line between its stanzas', () => {
+    const { stanzas } = parsePoem('In the desert\nI saw a creature\n\nI said\nIs it good');
+    expect(stanzas).toHaveLength(1);
+    expect(stanzas[0]!.lines.map((l) => !!l.gap)).toEqual([false, false, true, false]);
+  });
+
+  it('joins short stanzas of a longer poem into parts of four lines or more', () => {
+    const couplet = (n: number) => `line ${n} of a couplet with words enough\nand its second line with words enough`;
+    const { stanzas } = parsePoem([1, 2, 3, 4, 5, 6, 7].map(couplet).join('\n\n'));
+    expect(stanzas.map((s) => s.lines.length)).toEqual([4, 4, 6]);
+    expect(stanzas[0]!.lines[2]).toMatchObject({ number: 3, gap: true });
   });
 });

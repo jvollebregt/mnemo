@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { fill, LANGUAGE_NAMES, locales, type Locale, type MessageKey } from '../i18n';
+import { build } from '../build';
 import { useI18n } from '../i18n/context';
 import { useSwipeBack } from '../page/swipe';
 import { useStore } from '../store/context';
@@ -206,6 +207,16 @@ export function SettingsPage({ canSpeak, canRecord, onLocale, onBack, onImported
         <p className="setting-note">{m.exchangeNote}</p>
         {note && <p className="note">{note}</p>}
       </section>
+
+      {/* Which build this is, so the reader can tell whether the phone has the newest. */}
+      {build.date && (
+        <p className="colophon">
+          {fill(m.version, {
+            date: new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(build.date)),
+          })}
+          {build.commit && ` · ${build.commit}`}
+        </p>
+      )}
     </main>
   );
 }

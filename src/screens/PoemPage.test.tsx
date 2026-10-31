@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createStore, type Store } from '../store';
 import { StoreContext } from '../store/context';
@@ -61,5 +61,16 @@ describe('PoemPage', () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByText(NOTE)).toBeNull();
     expect(await store.seen.has('long-lines')).toBe(false);
+  });
+
+  it('opens the poem even when part of what was kept for it cannot be read', async () => {
+    lineWidth = 200;
+    const { store, poem } = await storeWithPoem('Short\nlines');
+    vi.spyOn(store.schedule, 'lastGrades').mockRejectedValue(new Error('locked'));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    show(store, poem);
+    const mark = (await screen.findByRole('button', { name: 'mark what you hear' })) as HTMLButtonElement;
+    await waitFor(() => expect(mark.disabled).toBe(false), { timeout: 5000 });
+    expect(document.querySelector('[data-line="1"]')?.textContent).toContain('Short');
   });
 });

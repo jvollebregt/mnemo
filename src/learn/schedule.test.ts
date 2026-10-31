@@ -5,6 +5,7 @@ import {
   dueStanzas,
   firstNewStanza,
   isDue,
+  alongGrade,
   lineGrade,
   lineUnit,
   poemState,
@@ -33,18 +34,27 @@ const reviewing = (due: Date, interval = 3): Card => ({
 });
 
 describe('grading', () => {
-  it('takes the reader\'s own rating for a stanza, and a peek counts against it', () => {
-    expect(stanzaGrade('notYet', false)).toBe(Rating.Again);
-    expect(stanzaGrade('most', false)).toBe(Rating.Hard);
-    expect(stanzaGrade('all', false)).toBe(Rating.Good);
-    expect(stanzaGrade('all', true)).toBe(Rating.Hard);
+  it('takes the reader\'s own rating for the part in hand', () => {
+    expect(stanzaGrade('notYet')).toBe(Rating.Again);
+    expect(stanzaGrade('most')).toBe(Rating.Hard);
+    expect(stanzaGrade('all')).toBe(Rating.Good);
   });
 
-  it('grades a line by the words that came back unseen', () => {
-    expect(lineGrade(5, 5, false)).toBe(Rating.Good);
-    expect(lineGrade(5, 5, true)).toBe(Rating.Hard);
-    expect(lineGrade(3, 5, false)).toBe(Rating.Hard);
-    expect(lineGrade(2, 5, false)).toBe(Rating.Again);
+  it('grades a line by the words that came back', () => {
+    expect(lineGrade(5, 5)).toBe(Rating.Good);
+    expect(lineGrade(3, 5)).toBe(Rating.Hard);
+    expect(lineGrade(2, 5)).toBe(Rating.Again);
+  });
+
+  it('grades a part recited along with another by its misses, and leaves one recited well before it was due', () => {
+    const now = new Date(2026, 9, 28, 12);
+    const later = reviewing(new Date(2026, 10, 10), 10);
+    const due = reviewing(new Date(2026, 9, 27), 10);
+    expect(alongGrade('all', 20, 20, later, now)).toBeUndefined();
+    expect(alongGrade('all', 20, 20, due, now)).toBe(Rating.Good);
+    expect(alongGrade('all', 15, 20, later, now)).toBe(Rating.Hard);
+    expect(alongGrade('all', 5, 20, later, now)).toBe(Rating.Again);
+    expect(alongGrade('notYet', 20, 20, due, now)).toBe(Rating.Again);
   });
 
   it('brings a well-recalled card back later than a missed one', () => {

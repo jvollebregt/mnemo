@@ -8,11 +8,11 @@
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { fromBase64 } from '../store/base64';
 import { speechLanguage } from '../i18n/region';
-import { joinHeard, type Ear } from './ear';
+import { expected, joinHeard, type Ear } from './ear';
 import { noRecorder, type Recorder } from './recorder';
 
 export interface MnemoEarPlugin {
-  start(options: { language: string }): Promise<void>;
+  start(options: { language: string; expect?: string[] }): Promise<void>;
   stop(): Promise<void>;
   startRecording(): Promise<void>;
   stopRecording(): Promise<{ data?: string; type?: string }>;
@@ -29,7 +29,7 @@ const EMPTY_MS = 1000;
 export function phoneEar(plugin: MnemoEarPlugin = MnemoEar, clock: () => number = Date.now): Ear {
   return {
     available: true,
-    listen(language, onHeard, onStop) {
+    listen(language, onHeard, onStop, expect = []) {
       let stopped = false;
       let running = false;
       let ended = false;
@@ -48,7 +48,7 @@ export function phoneEar(plugin: MnemoEarPlugin = MnemoEar, clock: () => number 
       const start = () => {
         running = true;
         began = clock();
-        plugin.start({ language: speechLanguage(language) }).catch((error: unknown) => {
+        plugin.start({ language: speechLanguage(language), expect: expected(expect) }).catch((error: unknown) => {
           running = false;
           end(error instanceof Error && error.message ? error.message : 'unavailable');
         });
@@ -56,6 +56,9 @@ export function phoneEar(plugin: MnemoEarPlugin = MnemoEar, clock: () => number 
 
       const handles = [
         plugin.addListener('heard', ({ text }) => {
+          // After the reader stops, the phone can send an empty last result: it isn't the words taken back.
+          if (!text?.trim()) return;
+          if (startsOver(current, text)) before = joinHeard(before, current);
           current = text;
           onHeard(joinHeard(before, current));
         }),
@@ -84,6 +87,22 @@ export function phoneEar(plugin: MnemoEarPlugin = MnemoEar, clock: () => number 
       };
     },
   };
+}
+
+const wordsOf = (text: string) => text.trim().split(/\s+/).filter(Boolean);
+
+/**
+ * Within one stretch, iOS can start its transcription over after a pause, so
+ * the next result holds only the words since. A revision of the words so far
+ * keeps their start and about their length; a result that is much shorter, or
+ * shorter and begins differently, is a new start, and the words before stay heard.
+ */
+export function startsOver(current: string, next: string): boolean {
+  const was = wordsOf(current);
+  const now = wordsOf(next);
+  if (now.length >= was.length) return false;
+  const sameStart = was[0]?.toLowerCase() === now[0]?.toLowerCase();
+  return !sameStart || now.length <= was.length / 2;
 }
 
 /** Only the iPhone plugin can record beside listening; elsewhere recitals aren't kept yet. */

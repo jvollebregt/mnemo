@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalize, recalled, typedWords } from './recall';
+import { alignment, gonePast, recalled, keptBefore, normalize, placed, saidInstead, typedPieces, typedWords } from './recall';
 
 const words = (text: string) => text.split(' ').map(normalize);
 
@@ -27,5 +27,76 @@ describe('recall', () => {
     // A repeated word is matched where it belongs.
     expect([...recalled(poem, words('in the soul'))]).toEqual([8, 9, 10]);
     expect(recalled(poem, []).size).toBe(0);
+  });
+});
+
+describe('spelling', () => {
+  const heard = (poem: string, said: string, language?: string) => [...recalled(words(poem), words(said), language)];
+
+  it('lets a recital through whatever spelling the recogniser writes', () => {
+    expect(heard('Tyger Tyger burning bright', 'tiger tiger burning bright')).toEqual([0, 1, 2, 3]);
+    expect(heard('the colour of the centre', 'the color of the center')).toEqual([0, 1, 2, 3, 4]);
+    expect(heard('When I heard the learn’d astronomer', 'when I heard the learned astronomer')).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(heard('o’er the four hills', 'over the 4 hills')).toEqual([0, 1, 2, 3]);
+    expect(heard('travelled far', 'traveled far')).toEqual([0, 1]);
+  });
+
+  it('knows old Dutch spellings', () => {
+    expect(heard('de visch zyn vrij', 'de vis zijn vrij', 'nl')).toEqual([0, 1, 2, 3]);
+    expect(heard('drie maal', '3 maal', 'nl')).toEqual([0, 1]);
+  });
+
+  it('still tells different words apart', () => {
+    expect(heard('in the night', 'in the might')).toEqual([0, 1]);
+    expect(heard('de maan', 'de man', 'nl')).toEqual([0]);
+    expect(heard('our song', 'or song')).toEqual([1]);
+  });
+});
+
+describe('while reciting', () => {
+  const poem = words('In the desert I saw a creature naked bestial Who squatting upon the ground');
+
+  // Set as four lines: In the desert / I saw a creature, naked, bestial, / Who, squatting / upon the ground,
+  const lineOf = [0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3];
+  const follow = (said: string) => {
+    const heard = said ? words(said) : [];
+    const pairs = placed(alignment(poem, heard), lineOf);
+    return { at: pairs.map(([i]) => i), gone: [...gonePast(pairs, heard.length, poem.length)].sort((a, b) => a - b) };
+  };
+
+  it('places a word only in the line the reader is on or the next, unless three are said in a row further on', () => {
+    // "ground" belongs two lines on: it isn't placed there, and the word due goes to pencil.
+    expect(follow('In the desert ground')).toEqual({ at: [0, 1, 2], gone: [3] });
+    // "creature", one line on, is: the words skipped on the way go to pencil.
+    expect(follow('In the desert creature')).toEqual({ at: [0, 1, 2, 6], gone: [3, 4, 5] });
+    // A reader who skips a line and says three in a row is followed there.
+    expect(follow('In the desert upon the ground')).toEqual({ at: [0, 1, 2, 11, 12, 13], gone: [3, 4, 5, 6, 7, 8, 9, 10] });
+  });
+
+  it('shows the word due in pencil as soon as something said doesn’t fit, and in ink once it is said after all', () => {
+    expect(follow('In the desert I saw a creature naked pastille')).toEqual({ at: [0, 1, 2, 3, 4, 5, 6, 7], gone: [8] });
+    expect(follow('In the desert I saw a creature naked pastille bestial').gone).toEqual([]);
+    expect(follow('In the desert I saw a creature naked pastille who').gone).toEqual([8]);
+    expect(follow('In the desert').gone).toEqual([]);
+    expect(follow('').gone).toEqual([]);
+  });
+
+  it('says what was heard in place of a missed word', () => {
+    const said = 'In the desert I saw a creature naked pastille who'.split(' ');
+    const pairs = alignment(poem, said.map(normalize));
+    expect(saidInstead(pairs, said, 8)).toEqual(['pastille']);
+    expect(saidInstead(alignment(poem, words('In the desert I saw')), [], 6)).toEqual([]);
+  });
+
+  it('keeps what was said before a line taken again', () => {
+    const said = words('In the desert I saw a creature naked pastille who sat');
+    expect(keptBefore(alignment(poem, said), said.length, 9)).toBe(9);
+    expect(keptBefore(alignment(poem, said), said.length, 0)).toBe(0);
+    // Not yet got as far as the line taken again: everything said stays.
+    expect(keptBefore(alignment(poem, said), said.length, 12)).toBe(said.length);
+  });
+
+  it('keeps the words as written beside the words as compared', () => {
+    expect(typedPieces('Is it good, friend?', true)).toEqual(['Is', 'it', 'good', 'friend']);
   });
 });

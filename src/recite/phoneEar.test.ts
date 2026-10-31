@@ -1,6 +1,6 @@
 import type { PluginListenerHandle } from '@capacitor/core';
 import { describe, expect, it, vi } from 'vitest';
-import { phoneEar, phoneRecorder, type MnemoEarPlugin } from './phoneEar';
+import { phoneEar, phoneRecorder, startsOver, type MnemoEarPlugin } from './phoneEar';
 
 /** A stand-in for the native plugin: the test says what is heard and when a stretch ends. */
 function fakePlugin(refuse?: string) {
@@ -81,6 +81,44 @@ describe('listening on the phone', () => {
     await settle();
     expect(onStop).toHaveBeenCalledWith(undefined);
     expect(plugin.starts).toEqual([]);
+  });
+
+  it('keeps the words heard when the phone starts its transcription over after a pause', async () => {
+    const plugin = fakePlugin();
+    const heard: string[] = [];
+    phoneEar(plugin as unknown as MnemoEarPlugin).listen('en', (t) => heard.push(t), () => {});
+    await settle();
+    plugin.hear('Shall I compare thee');
+    plugin.hear('Shall I compare thee to a summer’s day');
+    plugin.hear('Thou art');
+    plugin.hear('Thou art more lovely');
+    expect(heard.at(-1)).toBe('Shall I compare thee to a summer’s day Thou art more lovely');
+  });
+
+  it('takes no empty last result for the words taken back', async () => {
+    const plugin = fakePlugin();
+    const heard: string[] = [];
+    const listening = phoneEar(plugin as unknown as MnemoEarPlugin).listen('en', (t) => heard.push(t), () => {});
+    await settle();
+    plugin.hear('Shall I compare thee');
+    listening.stop();
+    plugin.hear('');
+    (plugin.hear as (text?: string) => void)(undefined);
+    plugin.end();
+    expect(heard).toEqual(['Shall I compare thee']);
+  });
+});
+
+describe('startsOver', () => {
+  it('takes a revision of the words so far as the same start', () => {
+    expect(startsOver('Shall I compare', 'Shall I compare thee')).toBe(false);
+    expect(startsOver('Shall I compare thee to', 'Shall I compare the')).toBe(false);
+    expect(startsOver('', 'Shall')).toBe(false);
+  });
+
+  it('takes a shorter result that begins differently, or a much shorter one, as a new start', () => {
+    expect(startsOver('Shall I compare thee to a summer’s day', 'Thou art')).toBe(true);
+    expect(startsOver('Shall I compare thee to a summer’s day', 'Shall I')).toBe(true);
   });
 });
 

@@ -48,20 +48,24 @@ describe('Poems', () => {
   });
 
   it('keeps corrections, moving marks and schedule along with the unchanged lines', async () => {
-    const before = await poems.add({ title: 'The Fall', poet: 'W.H. Ayden', language: 'en', text: 'a line\ntoo lines\n\nthird' });
+    // Stanzas of four lines with words enough, so that each is learned as a part of its own.
+    const stanza = (...firsts: string[]) => firsts.map((w) => `${w} line of words enough to count`).join('\n');
+    const text = [stanza('a', 'too', 'more', 'last'), stanza('third', 'b', 'c', 'd'), stanza('e', 'f', 'g', 'h')].join('\n\n');
+    const before = await poems.add({ title: 'The Fall', poet: 'W.H. Ayden', language: 'en', text });
     const marks = new MarksStore(db);
-    await marks.save(before.id, { ...(await marks.get(before.id)), beats: ['1:0', '2:0', '3:0'], settled: [1, 2, 3] });
-    for (const unit of ['line:1', 'line:2', 'line:3', 'stanza:0', 'stanza:1'])
+    await marks.save(before.id, { ...(await marks.get(before.id)), beats: ['1:0', '2:0', '5:0'], settled: [1, 2, 5] });
+    for (const unit of ['line:1', 'line:2', 'line:5', 'stanza:0', 'stanza:1'])
       await db.run("INSERT INTO cards (poem_id, unit, data, updated_at) VALUES (?, ?, '{}', 'x')", [before.id, unit]);
     await db.run("INSERT INTO reviews (poem_id, unit, grade, reviewed_at) VALUES (?, 'stanza:1', 3, 'x')", [before.id]);
 
-    const after = await poems.correct(before, { ...before, poet: ' W.H. Auden ', text: 'new\n\na line\ntwo lines\n\nthird' });
+    const corrected = `${stanza('new', 'new', 'new', 'new')}\n\n${text.replace('too line', 'two line')}`;
+    const after = await poems.correct(before, { ...before, poet: ' W.H. Auden ', text: corrected });
     expect(after).toMatchObject({ id: before.id, poet: 'W.H. Auden', createdAt: before.createdAt });
     expect(after.updatedAt > before.updatedAt).toBe(true);
     expect(await poems.get(before.id)).toEqual(after);
-    expect(await marks.get(before.id)).toMatchObject({ beats: ['2:0', '4:0'], settled: [2, 4] });
+    expect(await marks.get(before.id)).toMatchObject({ beats: ['5:0', '9:0'], settled: [5, 9] });
     const units = await db.all<{ unit: string }>('SELECT unit FROM cards WHERE poem_id = ? ORDER BY unit', [before.id]);
-    expect(units.map((u) => u.unit)).toEqual(['line:2', 'line:4', 'stanza:2']);
+    expect(units.map((u) => u.unit)).toEqual(['line:5', 'line:9', 'stanza:2']);
     expect(await db.all('SELECT unit, grade FROM reviews')).toEqual([{ unit: 'stanza:2', grade: 3 }]);
   });
 

@@ -37,13 +37,15 @@ public class MnemoEarPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func start(_ call: CAPPluginCall) {
         let language = call.getString("language") ?? "en-GB"
+        // The words of the lines being recited: told to expect them, the recogniser hears a rare word as itself.
+        let expect = call.getArray("expect", String.self) ?? []
         SFSpeechRecognizer.requestAuthorization { status in
             guard status == .authorized else { return call.reject("not-allowed") }
             AVAudioSession.sharedInstance().requestRecordPermission { granted in
                 DispatchQueue.main.async {
                     guard granted else { return call.reject("not-allowed") }
                     do {
-                        try self.begin(language)
+                        try self.begin(language, expect: expect)
                         call.resolve()
                     } catch let problem as EarProblem {
                         call.reject(problem.rawValue)
@@ -101,7 +103,7 @@ public class MnemoEarPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    private func begin(_ language: String) throws {
+    private func begin(_ language: String, expect: [String]) throws {
         guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: language)) else {
             throw EarProblem.languageNotSupported
         }
@@ -115,6 +117,7 @@ public class MnemoEarPlugin: CAPPlugin, CAPBridgedPlugin {
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.requiresOnDeviceRecognition = true
+        request.contextualStrings = Array(expect.prefix(100))
         self.request = request
 
         if wantsRecording { makeRecording() }
@@ -127,12 +130,15 @@ public class MnemoEarPlugin: CAPPlugin, CAPBridgedPlugin {
         try engine.start()
 
         task = recognizer.recognitionTask(with: request) { [weak self] result, error in
-            guard let self else { return }
-            if let result {
-                self.notifyListeners("heard", data: ["text": result.bestTranscription.formattedString])
-            }
-            if error != nil || result?.isFinal == true {
-                DispatchQueue.main.async {
+            DispatchQueue.main.async {
+                // A stretch that has already ended can still call back, with a last result or an error, after the
+                // next one began. Only the stretch under way may speak, or it would cut the new one short.
+                guard let self, self.request === request else { return }
+                // After the audio ends, the last result can come back empty; the words heard still stand.
+                if let text = result?.bestTranscription.formattedString, !text.isEmpty {
+                    self.notifyListeners("heard", data: ["text": text])
+                }
+                if error != nil || result?.isFinal == true {
                     self.finish()
                     // The recogniser stops after a silence, sometimes with an error; the page listens on.
                     self.notifyListeners("ended", data: [:])
@@ -142,13 +148,14 @@ public class MnemoEarPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func finish() {
-        if engine.isRunning {
-            engine.stop()
-            engine.inputNode.removeTap(onBus: 0)
-        }
+        if engine.isRunning { engine.stop() }
+        // The tap goes even when the engine never started, or the next stretch couldn't install its own.
+        engine.inputNode.removeTap(onBus: 0)
         request?.endAudio()
         request = nil
         task = nil
+        // Hand the audio back, so a recital kept can be played and other apps' sound comes back.
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }
 
