@@ -65,6 +65,7 @@ export const en = {
   splitHere: 'split here',
 
   // How it went
+  rateQuestion: 'How much of it did you know?',
   rateNotYet: 'not yet',
   rateMost: 'most of it',
   rateAll: 'all of it',
@@ -79,6 +80,7 @@ export const en = {
   reciteByTyping: 'type instead',
   reciteBySpeaking: 'speak instead',
   reciteDone: 'done',
+  reciteAgain: 'again',
   playBack: 'play it back',
 
   // Adding a poem

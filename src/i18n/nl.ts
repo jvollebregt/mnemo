@@ -61,6 +61,7 @@ export const nl: Messages = {
   recutNote: 'Tik tussen twee letters om het woord daar te splitsen. Tik een splitsing aan om hem weer te sluiten.',
   splitHere: 'splits hier',
 
+  rateQuestion: 'Hoeveel ervan wist je?',
   rateNotYet: 'nog niet',
   rateMost: 'het meeste',
   rateAll: 'alles',
@@ -76,6 +77,7 @@ export const nl: Messages = {
   reciteBySpeaking: 'liever hardop',
   playBack: 'speel het af',
   reciteDone: 'klaar',
+  reciteAgain: 'nog eens',
 
   back: 'terug',
   pastePlaceholder: 'Plak hier het gedicht, zoals het gedrukt staat.',

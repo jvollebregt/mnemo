@@ -32,7 +32,7 @@ export interface Character {
   peeked?: boolean;
   /** Punctuation the reader marked as a pause. */
   pause?: boolean;
-  /** On the blank page: its word has been recalled. */
+  /** On the blank page: its word (for punctuation, the word it goes with) has been recalled. */
   recalled?: boolean;
   /** On the blank page: the reader has gone past its word without saying it. */
   passed?: boolean;
@@ -53,7 +53,7 @@ export function lookOf(stage: Stage, c: Character, done = false): Look {
     case 'fadeMarks':
       return 'trace';
     case 'blank':
-      if (!c.letter) return done ? 'ink' : 'gone';
+      // Punctuation comes back with the word it goes with, in ink or in pencil like it.
       return c.recalled ? 'ink' : done || c.passed ? 'peek' : 'gone';
   }
 }

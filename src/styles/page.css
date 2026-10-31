@@ -891,6 +891,14 @@ body {
   color: var(--grey);
 }
 
+/* Above the ratings after a recital: the reader is the judge of how it went. */
+.rate-question {
+  margin: 0 0 2px;
+  text-align: center;
+  font-style: italic;
+  color: var(--grey);
+}
+
 /* Under the stanza being marked, set to the right like a catchword at the foot of a printed page. */
 /* The lines not in hand stay on the page, faint: in words while reading and marking, in traces from fading on. */
 .verse .line {

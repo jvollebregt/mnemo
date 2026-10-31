@@ -58,7 +58,22 @@ export interface Fade {
 
 interface Context {
   word?: Extract<Token, { kind: 'word' }>;
+  /** Punctuation: the word it goes with, so that at the recital it comes back with that word. */
+  owner?: Extract<Token, { kind: 'word' }>;
   pause?: boolean;
+}
+
+/**
+ * The word a piece of punctuation goes with: an opening quote or bracket
+ * with the word it opens, anything else with the word before it.
+ */
+function ownerOf(tokens: readonly Token[], index: number): Extract<Token, { kind: 'word' }> | undefined {
+  const after = tokens[index + 1];
+  const opens = after?.kind === 'word' && tokens[index - 1]?.kind !== 'word';
+  const before = tokens.slice(0, index).reverse().find((t) => t.kind === 'word');
+  const next = tokens.slice(index + 1).find((t) => t.kind === 'word');
+  const owner = opens ? after : (before ?? next);
+  return owner?.kind === 'word' ? owner : undefined;
 }
 
 export function layoutLine(
@@ -74,7 +89,9 @@ export function layoutLine(
   const light = hasBeat && marks.settled.includes(line);
 
   const runsOf = (text: string, start: number, context: Context = {}): Run[] => {
-    const { word, pause } = context;
+    const { word, owner, pause } = context;
+    // A letter comes back with its own word; punctuation with the word it goes with, or, alone on a line, once done.
+    const said = word ?? owner;
     const firstLetter = word ? word.start + [...word.text].findIndex(isLetter) : -1;
     const runs: Run[] = [];
     let at = start;
@@ -90,8 +107,8 @@ export function layoutLine(
               letter,
               first: at === firstLetter,
               peeked: !!word && fade.peeked.has(word.start),
-              recalled: !!word && !!fade.recalled?.has(word.start),
-              passed: !!word && !!fade.passed?.has(word.start),
+              recalled: said ? !!fade.recalled?.has(said.start) : !letter && !!fade.done,
+              passed: !!said && !!fade.passed?.has(said.start),
               pause,
             },
             fade.done,
@@ -115,10 +132,18 @@ export function layoutLine(
   const end = lineEnd(tokens);
   const endPause: Piece[] = marks.pauses.includes(markKey(line, end)) ? [{ kind: 'end', start: end, pause: true, runs: [] }] : [];
 
-  return tokens.flatMap((token): Piece[] => {
+  return tokens.flatMap((token, index): Piece[] => {
     if (token.kind !== 'word') {
       const pause = marks.pauses.includes(markKey(line, token.start));
-      return [{ kind: token.kind, start: token.start, ...(pause ? { pause } : {}), runs: runsOf(token.text, token.start, { pause }) }];
+      const owner = token.kind === 'punct' ? ownerOf(tokens, index) : undefined;
+      return [
+        {
+          kind: token.kind,
+          start: token.start,
+          ...(pause ? { pause } : {}),
+          runs: runsOf(token.text, token.start, { pause, ...(owner ? { owner } : {}) }),
+        },
+      ];
     }
     if (token.syllables.length === 0) {
       return [{ kind: 'word', start: token.start, runs: runsOf(token.text, token.start, { word: token }) }];

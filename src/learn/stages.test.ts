@@ -50,7 +50,10 @@ describe('lookOf', () => {
   it('starts the blank page empty, brings recalled words back in ink, and the rest in pencil once done', () => {
     const recalled = { letter: true, recalled: true };
     expect([recalled, word(), stop()].map((c) => lookOf('blank', c))).toEqual(['ink', 'gone', 'gone']);
-    expect([recalled, word(), stop()].map((c) => lookOf('blank', c, true))).toEqual(['ink', 'peek', 'ink']);
+    expect([recalled, word(), stop()].map((c) => lookOf('blank', c, true))).toEqual(['ink', 'peek', 'peek']);
+    // Punctuation comes back with the word it goes with.
+    expect(lookOf('blank', { letter: false, recalled: true })).toBe('ink');
+    expect(lookOf('blank', { letter: false, passed: true })).toBe('peek');
     // A word gone past without being said shows in pencil at once.
     expect(lookOf('blank', { letter: true, passed: true })).toBe('peek');
   });

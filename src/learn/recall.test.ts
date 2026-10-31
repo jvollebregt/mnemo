@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alignment, keptBefore, normalize, reached, recalled, saidInstead, typedPieces, typedWords } from './recall';
+import { alignment, gonePast, recalled, keptBefore, normalize, placed, saidInstead, typedPieces, typedWords } from './recall';
 
 const words = (text: string) => text.split(' ').map(normalize);
 
@@ -56,12 +56,29 @@ describe('spelling', () => {
 describe('while reciting', () => {
   const poem = words('In the desert I saw a creature naked bestial Who squatting upon the ground');
 
-  it('knows how far the reader has got, past a word missed, but not on one stray word far ahead', () => {
-    expect(reached(recalled(poem, words('In the desert I saw a creature naked pastille who squatting')))).toBe(11);
-    expect(reached(recalled(poem, words('In the desert I saw a')))).toBe(6);
-    // "ground" alone, far past "saw", doesn't carry the reader there.
-    expect(reached(new Set([0, 1, 2, 3, 4, 13]))).toBe(5);
-    expect(reached(new Set())).toBe(0);
+  // Set as four lines: In the desert / I saw a creature, naked, bestial, / Who, squatting / upon the ground,
+  const lineOf = [0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3];
+  const follow = (said: string) => {
+    const heard = said ? words(said) : [];
+    const pairs = placed(alignment(poem, heard), lineOf);
+    return { at: pairs.map(([i]) => i), gone: [...gonePast(pairs, heard.length, poem.length)].sort((a, b) => a - b) };
+  };
+
+  it('places a word only in the line the reader is on or the next, unless three are said in a row further on', () => {
+    // "ground" belongs two lines on: it isn't placed there, and the word due goes to pencil.
+    expect(follow('In the desert ground')).toEqual({ at: [0, 1, 2], gone: [3] });
+    // "creature", one line on, is: the words skipped on the way go to pencil.
+    expect(follow('In the desert creature')).toEqual({ at: [0, 1, 2, 6], gone: [3, 4, 5] });
+    // A reader who skips a line and says three in a row is followed there.
+    expect(follow('In the desert upon the ground')).toEqual({ at: [0, 1, 2, 11, 12, 13], gone: [3, 4, 5, 6, 7, 8, 9, 10] });
+  });
+
+  it('shows the word due in pencil as soon as something said doesn’t fit, and in ink once it is said after all', () => {
+    expect(follow('In the desert I saw a creature naked pastille')).toEqual({ at: [0, 1, 2, 3, 4, 5, 6, 7], gone: [8] });
+    expect(follow('In the desert I saw a creature naked pastille bestial').gone).toEqual([]);
+    expect(follow('In the desert I saw a creature naked pastille who').gone).toEqual([8]);
+    expect(follow('In the desert').gone).toEqual([]);
+    expect(follow('').gone).toEqual([]);
   });
 
   it('says what was heard in place of a missed word', () => {

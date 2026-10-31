@@ -103,20 +103,40 @@ export function recalled(poemWords: readonly string[], said: readonly string[], 
   return new Set(alignment(poemWords, said, language).map(([i]) => i));
 }
 
-/** How close together recalled words must be to show how far the reader has got. */
-const RUN = 3;
+/**
+ * The matched words that count as said where they stand: those in the line
+ * the reader is on, or the next, and those further on only when three are
+ * said in a row there. A stray word that happens to occur later in the poem
+ * is never placed there, while a reader who really skips ahead is followed.
+ * `lineOf` gives each poem word's line.
+ */
+export function placed(pairs: readonly [number, number][], lineOf: readonly number[]): [number, number][] {
+  const kept: [number, number][] = [];
+  let due = 0;
+  pairs.forEach(([i, j], p) => {
+    const near = (lineOf[i] ?? 0) <= (lineOf[due] ?? 0) + 1;
+    const run = [1, 2].every((d) => pairs[p + d]?.[0] === i + d && pairs[p + d]?.[1] === j + d);
+    if (!near && !run) return;
+    kept.push([i, j]);
+    due = i + 1;
+  });
+  return kept;
+}
 
 /**
- * How far into the poem the reader has got: just past the last word recalled
- * close after another, so that one stray word, matched far ahead, doesn't
- * make every word before it look missed. Words before this are behind them.
+ * The poem words to show in pencil as the reader goes: every word before the
+ * last one said that wasn't said, and, when the reader has just said
+ * something that doesn't fit, the word they were due to say. If they then say
+ * it after all, it comes back in ink.
  */
-export function reached(found: ReadonlySet<number>): number {
-  const sorted = [...found].sort((a, b) => a - b);
-  for (let k = sorted.length - 1; k > 0; k -= 1) {
-    if (sorted[k]! - sorted[k - 1]! <= RUN) return sorted[k]! + 1;
-  }
-  return 0;
+export function gonePast(pairs: readonly [number, number][], said: number, words: number): Set<number> {
+  const last = pairs.at(-1);
+  const due = last ? last[0] + 1 : 0;
+  const found = new Set(pairs.map(([i]) => i));
+  const gone = new Set<number>();
+  for (let i = 0; i < due; i += 1) if (!found.has(i)) gone.add(i);
+  if (said > (last ? last[1] + 1 : 0) && due < words) gone.add(due);
+  return gone;
 }
 
 /** What the reader said where a poem word was missed: the said words between the recalled ones on either side of it. */

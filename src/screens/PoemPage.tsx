@@ -2,7 +2,7 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, type
 import { fill, type MessageKey } from '../i18n';
 import { useI18n } from '../i18n/context';
 import type { LessonKey } from '../i18n/lessons';
-import { alignment, keptBefore, normalize, reached, saidInstead, typedPieces } from '../learn/recall';
+import { alignment, gonePast, keptBefore, normalize, placed, saidInstead, typedPieces } from '../learn/recall';
 import {
   alongGrade,
   lineGrade,
@@ -17,7 +17,7 @@ import {
 } from '../learn/schedule';
 import { Rating, type Grade } from 'ts-fsrs';
 import { chainFrom, firstStart, leadIn, linesOf, newStart, nextStart, reviewStart, stanzasOf, type Start, type Step } from '../learn/session';
-import { canPeek, nextStage, previousStage, showsMarks, type Stage } from '../learn/stages';
+import { canPeek, nextStage, previousStage, showsMarks, STAGES, type Stage } from '../learn/stages';
 import { roman } from '../page/fit';
 import { MarkedLine } from '../page/MarkedLine';
 import { letterAbove, letterAlong, letterNear, type LineBoxes } from '../page/reach';
@@ -98,10 +98,14 @@ const PRESS_SLOP_PX = 10;
 interface Sweep {
   x: number;
   y: number;
-  show: boolean;
+  /** Whether the stroke brings words back or lets them go: set by the first word it touches. */
+  show?: boolean;
   first?: string;
   moved: boolean;
 }
+
+/** Which step a page belongs to, so the furthest page reached is kept per step. */
+const stepKey = (step: Step) => (step.kind === 'whole' ? 'whole' : `stanza:${step.stanza}`);
 
 /** A stroke being drawn under letters: from the letter where the finger went down to the one under it now. */
 interface Drawing {
@@ -193,6 +197,8 @@ export function PoemPage({
   /** While the pencil moves on through the poem, the part that the fading comes back to. */
   const [step, setStep] = useState<Step>({ kind: 'stanza', stanza: 0 });
   const [stage, setStage] = useState<Stage>('read');
+  // The furthest page reached with the step in hand, so that going back never means going all the way through again.
+  const [furthest, setFurthest] = useState<{ step: string; stage: Stage } | null>(null);
   const stageNow = useRef<Stage>('read');
   /** On the practice pages, the words brought back in pencil, as "line:offset" of the word. */
   const [peeked, setPeeked] = useState<ReadonlySet<string>>(new Set());
@@ -378,6 +384,8 @@ export function PoemPage({
     setDrawing(null);
     setNote(null);
     setStage(next);
+    const along = stepKey(forStep);
+    setFurthest((was) => (was?.step === along && STAGES.indexOf(was.stage) >= STAGES.indexOf(next) ? was : { step: along, stage: next }));
     setTyped('');
     setDone(false);
     setRecital(null);
@@ -412,7 +420,12 @@ export function PoemPage({
   const goOn = (next: Stage) => {
     if (pencil && next === 'fadeWords' && marks && step.kind === 'stanza') {
       const to = markedStanzaNear(step.stanza, stanzaLines, marks);
-      if (to !== step.stanza) setStep(freshStep(to));
+      if (to !== step.stanza) {
+        const moved = freshStep(to);
+        setStep(moved);
+        go(next, false, moved);
+        return;
+      }
     }
     go(next);
   };
@@ -487,7 +500,7 @@ export function PoemPage({
         .filter((line) => inView.has(line.number))
         .flatMap((line) =>
           (tokens.get(line.number) ?? []).flatMap((t) =>
-            t.kind === 'word' ? [{ key: markKey(line.number, t.start), word: normalize(t.text), text: t.text }] : [],
+            t.kind === 'word' ? [{ key: markKey(line.number, t.start), line: line.number, word: normalize(t.text), text: t.text }] : [],
           ),
         ),
     [lines, inView, tokens],
@@ -500,15 +513,18 @@ export function PoemPage({
    */
   const heard = useMemo(() => {
     const said = stage === 'blank' ? typedPieces(typed, done || reciteBy === 'speaking') : [];
-    const pairs = alignment(
-      words.map((w) => w.word),
-      said.map(normalize),
-      poem.language,
+    const pairs = placed(
+      alignment(
+        words.map((w) => w.word),
+        said.map(normalize),
+        poem.language,
+      ),
+      words.map((w) => w.line),
     );
-    const found = new Set(pairs.map(([i]) => i));
-    const recalledKeys = new Set([...granted, ...[...found].map((i) => words[i]!.key)]);
-    const far = reached(found);
-    const passed = new Set(words.slice(0, far).flatMap((w) => (recalledKeys.has(w.key) ? [] : [w.key])));
+    const recalledKeys = new Set([...granted, ...pairs.map(([i]) => words[i]!.key)]);
+    const passed = new Set([...gonePast(pairs, said.length, words.length)].map((i) => words[i]!.key).filter((key) => !recalledKeys.has(key)));
+    // The word the reader is due to say next.
+    const far = (pairs.at(-1)?.[0] ?? -1) + 1;
     return { said, pairs, recalledKeys, passed, far };
   }, [stage, words, typed, done, reciteBy, granted, poem.language]);
   const { recalledKeys } = heard;
@@ -751,8 +767,9 @@ export function PoemPage({
     pressed.current = false;
     if (canPeek(stage)) {
       // On the practice pages, a finger drawn along a line brings its words back, or, starting on one already back, lets them go.
+      // A stroke that starts beside the words takes its cue from the first word it reaches.
       const first = wordKeyAt(e.target);
-      sweep.current = { x: e.clientX, y: e.clientY, show: !first || !peeked.has(first), first, moved: false };
+      sweep.current = { x: e.clientX, y: e.clientY, show: first ? !peeked.has(first) : undefined, first, moved: false };
       return;
     }
     if (!pencil || !marks) return;
@@ -787,11 +804,13 @@ export function PoemPage({
     const sweeping = sweep.current;
     if (sweeping) {
       if (!sweeping.moved && Math.hypot(e.clientX - sweeping.x, e.clientY - sweeping.y) <= PRESS_SLOP_PX) return;
-      if (!sweeping.moved && sweeping.first) showWord(sweeping.first, sweeping.show);
+      if (!sweeping.moved && sweeping.first && sweeping.show !== undefined) showWord(sweeping.first, sweeping.show);
       sweeping.moved = true;
       // A touch stays with the element it started on, so look for the word under the finger now.
       const key = wordKeyAt(document.elementFromPoint?.(e.clientX, e.clientY) ?? null);
-      if (key) showWord(key, sweeping.show);
+      if (!key) return;
+      sweeping.show ??= !peeked.has(key);
+      showWord(key, sweeping.show);
       return;
     }
     if (press.current && Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > PRESS_SLOP_PX) cancelPress();
@@ -925,6 +944,10 @@ export function PoemPage({
   /** The whole poem, recited whenever the reader likes, once some of it is learned. */
   const reciteWhole = () => open({ step: { kind: 'whole', from: 0 }, stage: 'blank' });
   const anyLearned = stanzaLines.some((_, i) => cards?.has(stanzaUnit(i)));
+  const reachedStage = furthest?.step === stepKey(step) ? furthest.stage : undefined;
+  // Once a later page has been reached, its name stays at the foot. On the first page, *recite* goes back to the
+  // recital left there, or else recites the whole poem.
+  const ahead = reachedStage && stage !== 'blank' && STAGES.indexOf(reachedStage) > STAGES.indexOf(nextStage(stage) ?? stage) ? reachedStage : undefined;
 
   // Each stanza's numeral, in the margin beside it, is set in the tone of how it stands now.
   const now = new Date();
@@ -1077,7 +1100,9 @@ export function PoemPage({
           ready={ready}
           onGo={goOn}
           onRate={rate}
-          onRecite={stage === 'read' && anyLearned ? reciteWhole : undefined}
+          onAgain={() => go('blank', true)}
+          ahead={ahead}
+          onRecite={stage === 'read' && anyLearned && ahead !== 'blank' ? reciteWhole : undefined}
         />
         {stage === 'read' && onCorrect && (
           <div className="poem-care">
@@ -1149,6 +1174,8 @@ function StageActions({
   ready,
   onGo,
   onRate,
+  onAgain,
+  ahead,
   onRecite,
 }: {
   stage: Stage;
@@ -1156,23 +1183,34 @@ function StageActions({
   ready: boolean;
   onGo: (stage: Stage) => void;
   onRate: (verdict: Verdict) => void;
+  /** After the recital: clear the page and try it again. */
+  onAgain: () => void;
+  /** A later page already reached with this step, to go straight back to. */
+  ahead?: Stage;
   /** On the first page, once some of the poem is learned: recite the whole of it. */
   onRecite?: () => void;
 }) {
   const { m } = useI18n();
   if (stage === 'blank' && done) {
     return (
-      <div className="stage-actions">
-        <button type="button" className="action soft" onClick={() => onRate('notYet')}>
-          {m.rateNotYet}
-        </button>
-        <button type="button" className="action" onClick={() => onRate('most')}>
-          {m.rateMost}
-        </button>
-        <button type="button" className="action" onClick={() => onRate('all')}>
-          {m.rateAll}
-        </button>
-      </div>
+      <>
+        <p className="rate-question">{m.rateQuestion}</p>
+        <div className="stage-actions">
+          {/* Nothing is saved until the reader says how it went, so another try first costs nothing. */}
+          <button type="button" className="action soft" onClick={onAgain}>
+            {m.reciteAgain}
+          </button>
+          <button type="button" className="action soft" onClick={() => onRate('notYet')}>
+            {m.rateNotYet}
+          </button>
+          <button type="button" className="action" onClick={() => onRate('most')}>
+            {m.rateMost}
+          </button>
+          <button type="button" className="action" onClick={() => onRate('all')}>
+            {m.rateAll}
+          </button>
+        </div>
+      </>
     );
   }
   // The recital has its own words at the foot.
@@ -1191,6 +1229,11 @@ function StageActions({
         // The one word that hands over the pencil is written in it.
         <button type="button" className={next === 'mark' ? 'action to-pencil' : 'action'} disabled={!ready} onClick={() => onGo(next)}>
           {m[STAGE_ACTION[next]]}
+        </button>
+      )}
+      {ahead && (
+        <button type="button" className="action" disabled={!ready} onClick={() => onGo(ahead)}>
+          {m[STAGE_ACTION[ahead]]}
         </button>
       )}
       {onRecite && (

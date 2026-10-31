@@ -217,6 +217,11 @@ describe('the stages', () => {
     expect(looks(1)).toEqual(['“:trace', 'Hope:peek', '”:trace', 'isthething:peek', 'withfeathers-:trace']);
     draw(1, 16);
     expect(looks(1)).toEqual(['“Hope”isthethingwithfeathers-:trace']);
+    // Drawn from beside the words, the stroke does what the first word it reaches needs.
+    draw(0, 16);
+    expect(looks(1)).toEqual(['“:trace', 'Hope:peek', '”:trace', 'isthething:peek', 'withfeathers-:trace']);
+    draw(0, 16);
+    expect(looks(1)).toEqual(['“Hope”isthethingwithfeathers-:trace']);
 
     // At the recital, nothing comes back.
     fireEvent.click(action('recite'));
@@ -240,13 +245,14 @@ describe('the stages', () => {
     expect(looks(2)).toEqual(['Thatperchesin:ink', 'thesoul-:gone']);
     // One gone past without being said shows in pencil at once.
     fireEvent.change(recite, { target: { value: 'Hope is the thing with feathers - that perches in soul -' } });
-    expect(looks(2)).toEqual(['Thatperchesin:ink', 'the:peek', 'soul:ink', '-:gone']);
-    expect(looks(1)).toEqual(['“:gone', 'Hope:ink', '”:gone', 'isthethingwithfeathers:ink', '-:gone']);
+    // Punctuation comes back with its word.
+    expect(looks(2)).toEqual(['Thatperchesin:ink', 'the:peek', 'soul-:ink']);
+    expect(looks(1)).toEqual(['“Hope”isthethingwithfeathers-:ink']);
 
     fireEvent.click(action('done'));
     expect(screen.queryByRole('textbox', { name: 'recite' })).toBeNull();
     expect(looks(2)).toEqual(['Thatperchesin:ink', 'the:peek', 'soul-:ink']);
-    expect(looks(3)[0]).toBe('Andsingsthetunewithoutthewords:peek');
+    expect(looks(3)).toEqual(['Andsingsthetunewithoutthewords-:peek']);
     expect(await screen.findByText(/What you missed is in pencil/)).toBeTruthy();
 
     // A tap on a word in pencil says what was heard there, and the reader can count it as said.
@@ -257,6 +263,33 @@ describe('the stages', () => {
     // A second tap puts it back in pencil.
     fireEvent.click(glyph(2, 17));
     expect(looks(2)).toEqual(['Thatperchesin:ink', 'the:peek', 'soul-:ink']);
+
+    // The reader judges how it went, or first tries again on a clear page.
+    expect(screen.getByText('How much of it did you know?')).toBeTruthy();
+    fireEvent.click(action('again'));
+    expect((screen.getByRole('textbox', { name: 'recite' }) as HTMLTextAreaElement).value).toBe('');
+    expect(looks(2)).toEqual(['Thatperchesinthesoul-:gone']);
+    expect(screen.queryByRole('button', { name: 'all of it' })).toBeNull();
+  });
+
+  it('keeps the furthest page reached at the foot, so going back never means going all the way through again', async () => {
+    const { store, poem } = await storeWithPoem();
+    show(store, poem);
+    await ready();
+    fireEvent.click(action('mark what you hear'));
+    await screen.findByRole('dialog', { name: 'beats' });
+    fireEvent.click(action('put it away'));
+    for (const name of ['fade the words', 'marks only', 'fade the marks', 'back', 'back']) fireEvent.click(action(name));
+    // Back on fade the words: the next page, and the furthest one reached.
+    expect(screen.getByRole('button', { name: 'marks only' })).toBeTruthy();
+    fireEvent.click(action('fade the marks'));
+    fireEvent.click(action('recite'));
+    fireEvent.click(action('back'));
+    // The numeral leads back to the whole poem, where recite returns to the recital left.
+    fireEvent.click(action('stanza 1'));
+    expect(screen.getByRole('button', { name: 'mark what you hear' })).toBeTruthy();
+    fireEvent.click(action('recite'));
+    expect(screen.getByRole('textbox', { name: 'recite' })).toBeTruthy();
   });
 
   it('fades the nearest marked stanza when the one in hand has no marks yet', async () => {
@@ -427,7 +460,7 @@ describe('the stages', () => {
     expect(screen.queryByText('hope is the thing with feathers that perches')).toBeNull();
     // A word gone past shows in pencil at once.
     say('hope is the thing with feathers that perches in soul');
-    expect(looks(2)).toEqual(['Thatperchesin:ink', 'the:peek', 'soul:ink', '-:gone']);
+    expect(looks(2)).toEqual(['Thatperchesin:ink', 'the:peek', 'soul-:ink']);
 
     // A tap on the page pauses; a tap on a line then takes it again from there.
     fireEvent.click(glyph(3, 4));
@@ -435,7 +468,7 @@ describe('the stages', () => {
     expect(await screen.findByText(/Tap a line to take it again/)).toBeTruthy();
     fireEvent.click(glyph(2, 4));
     expect(looks(2)).toEqual(['Thatperchesinthesoul-:gone']);
-    expect(looks(1)).toEqual(['“:gone', 'Hope:ink', '”:gone', 'isthethingwithfeathers:ink', '-:gone']);
+    expect(looks(1)).toEqual(['“Hope”isthethingwithfeathers-:ink']);
     expect(action('pause')).toBeTruthy();
     say('that perches');
 
@@ -450,6 +483,6 @@ describe('the stages', () => {
     fireEvent.click(action('type instead'));
     await waitFor(async () => expect(await store.settings.reciteBy()).toBe('typing'));
     fireEvent.click(action('done'));
-    expect(looks(2)).toEqual(['Thatperches:ink', 'inthesoul:peek', '-:ink']);
+    expect(looks(2)).toEqual(['Thatperches:ink', 'inthesoul-:peek']);
   });
 });
