@@ -131,8 +131,9 @@ public class MnemoEarPlugin: CAPPlugin, CAPBridgedPlugin {
                 // A stretch that has already ended can still call back, with a last result or an error, after the
                 // next one began. Only the stretch under way may speak, or it would cut the new one short.
                 guard let self, self.request === request else { return }
-                if let result {
-                    self.notifyListeners("heard", data: ["text": result.bestTranscription.formattedString])
+                // After the audio ends, the last result can come back empty; the words heard still stand.
+                if let text = result?.bestTranscription.formattedString, !text.isEmpty {
+                    self.notifyListeners("heard", data: ["text": text])
                 }
                 if error != nil || result?.isFinal == true {
                     self.finish()
